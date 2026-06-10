@@ -1,9 +1,19 @@
-# Reusable Session Prompt
+---
+name: session-prompt
+description: Use only when explicitly invoked as $session-prompt to start or resume a CKC UI work session from a task argument.
+---
 
-Preferred invocation:
-`$session-prompt <TASK>`
+# Session Prompt
 
-You are working in `/run/host/home/eturkes/Projects/scratch/ckc-ui`.
+Treat the invoking user message as a command with this shape:
+
+```text
+$session-prompt <TASK>
+```
+
+Use the text after `$session-prompt` as the requested task. If the invoking message contains no task text after `$session-prompt`, ask for the missing task before changing files.
+
+Work in `/run/host/home/eturkes/Projects/scratch/ckc-ui`.
 
 Load order:
 1. `AGENTS.md`
@@ -18,8 +28,3 @@ Default closeout:
 1. Verify changed artifacts with local tools.
 2. Keep `.gitignore` aligned with generated outputs.
 3. Commit one scoped change before final response when work is complete.
-
-Requested task:
-<TASK>
-
-When `<TASK>` is empty, ask for the missing task before changing files.
