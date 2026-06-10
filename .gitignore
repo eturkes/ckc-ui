@@ -1,0 +1,6 @@
+/runs/
+/target/
+/.serena/cache/
+/.serena/memories/
+/.serena/project.local.yml
+.DS_Store
