@@ -623,6 +623,88 @@
       color: #94392e;
     }
 
+    .spec-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      padding: 18px;
+      background: #fbfcfa;
+    }
+
+    .spec-card {
+      min-width: 0;
+      display: grid;
+      align-content: start;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      box-shadow: 0 1px 2px rgba(23, 33, 29, 0.06);
+    }
+
+    .spec-card h3 {
+      margin: 0;
+      font-size: 13px;
+      letter-spacing: 0;
+    }
+
+    .spec-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .spec-list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .spec-list li {
+      display: grid;
+      grid-template-columns: 76px minmax(0, 1fr);
+      gap: 8px;
+      align-items: start;
+      min-width: 0;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .spec-list code {
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .spec-tag {
+      display: inline-flex;
+      width: max-content;
+      max-width: 100%;
+      padding: 3px 6px;
+      border-radius: 999px;
+      background: #e6f1df;
+      color: #3f6427;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .spec-tag.deferred {
+      background: #fbf0d5;
+      color: #85621f;
+    }
+
+    .spec-tag.model {
+      background: #e4ecf7;
+      color: #344f7e;
+    }
+
     .scroll {
       overflow: auto;
     }
@@ -746,6 +828,10 @@
       }
 
       .mechanics-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .spec-grid {
         grid-template-columns: 1fr;
       }
 
@@ -1099,6 +1185,56 @@
       <div class="caption">
         <span>Detection proposes spans; the role check decides which proposed spans become picked records.</span>
         <code>anchored sentence -> detectors -> role check -> grounded records</code>
+      </div>
+    </section>
+
+    <section class="extraction-figure" aria-labelledby="specTitle">
+      <div class="figure-head">
+        <div>
+          <h2 id="specTitle">What the spec actually commits</h2>
+          <p>V1-V2 picking is deterministic. Model-based extraction is a separate V3 experiment.</p>
+        </div>
+        <span class="fixture-badge">SPEC.md §§4.5, 5, 8.3, 10, 12</span>
+      </div>
+
+      <div class="spec-grid">
+        <article class="spec-card">
+          <span class="spec-tag">V1-V2 path</span>
+          <h3>Not an LLM picker</h3>
+          <p>The layered pipeline is `runtime_ai: false`. Picked spans come from deterministic artifacts.</p>
+          <ul class="spec-list">
+            <li><code>extract</code><span>real HTML parser creates SourceGraph nodes, spans, anchors, and regions</span></li>
+            <li><code>segment</code><span>rule-based segmentation keyed on fixture structure and sentence markers</span></li>
+            <li><code>normalize</code><span>lexicon-driven mention binding, statement normalization, and rule derivation</span></li>
+          </ul>
+        </article>
+
+        <article class="spec-card">
+          <span class="spec-tag deferred">Software detail</span>
+          <h3>Existing parser, exact library not fixed here</h3>
+          <p>The spec requires real parsing and deterministic bytes, but does not name the parser crate in the prose.</p>
+          <ul class="spec-list">
+            <li><code>HTML</code><span>must preserve sections, paragraphs, lists, tables, cells, headers, and offsets</span></li>
+            <li><code>ckc.lex</code><span>project lexicon maps surface forms, action verbs, modality phrases, and intervals</span></li>
+            <li><code>V5</code><span>public-source adapters are registered later for HTML, XML, PDF, tables, and MEDIS terms</span></li>
+          </ul>
+        </article>
+
+        <article class="spec-card">
+          <span class="spec-tag model">V3 model routes</span>
+          <h3>If a model is used, it is measured separately</h3>
+          <p>V3 uses a recorded local llama.cpp-family runtime under explicit experiment flags.</p>
+          <ul class="spec-list">
+            <li><code>input</code><span>prompt template plus source text and route-specific schema</span></li>
+            <li><code>output</code><span>grammar-constrained JSON or DSL, not trusted until admission checks pass</span></li>
+            <li><code>replay</code><span>fixed seeds, recorded bytes, model identity, quantization, and prompt hashes in manifests</span></li>
+          </ul>
+        </article>
+      </div>
+
+      <div class="caption">
+        <span>In this concept file, the span-picking mechanics figure represents the deterministic V1-V2 path, not a model route.</span>
+        <code>HTML parser -> rule segmenter -> ckc.lex normalizer -> grounded records</code>
       </div>
     </section>
   </div>
