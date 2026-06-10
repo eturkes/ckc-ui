@@ -538,6 +538,241 @@
       gap: 10px;
     }
 
+    .pipeline-map-panel {
+      margin-top: 14px;
+    }
+
+    .pipeline-map {
+      display: grid;
+      gap: 14px;
+    }
+
+    .pipeline-scroll {
+      overflow-x: auto;
+      padding: 2px 2px 8px;
+    }
+
+    .pipeline-flow {
+      min-width: 1110px;
+      display: grid;
+      grid-template-columns: repeat(8, minmax(126px, 1fr));
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .pipeline-step {
+      position: relative;
+      min-width: 0;
+      min-height: 148px;
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      gap: 7px;
+      border: 1px solid var(--line);
+      border-top-width: 4px;
+      border-radius: 7px;
+      background: #ffffff;
+      padding: 10px;
+    }
+
+    .pipeline-step.ingest {
+      border-top-color: var(--blue);
+    }
+
+    .pipeline-step.semantic {
+      border-top-color: var(--teal);
+    }
+
+    .pipeline-step.reuse {
+      border-top-color: var(--green);
+    }
+
+    .pipeline-step.formal {
+      border-top-color: var(--violet);
+    }
+
+    .pipeline-step.verify {
+      border-top-color: var(--amber);
+    }
+
+    .pipeline-step.report {
+      border-top-color: var(--red);
+    }
+
+    .pipeline-step:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      right: -15px;
+      width: 18px;
+      height: 2px;
+      background: var(--line-strong);
+      z-index: 1;
+    }
+
+    .stage-arrow {
+      position: absolute;
+      top: calc(50% - 5px);
+      right: -17px;
+      width: 0;
+      height: 0;
+      border-top: 6px solid transparent;
+      border-bottom: 6px solid transparent;
+      border-left: 7px solid var(--line-strong);
+      z-index: 2;
+    }
+
+    .stage-kicker {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .pipeline-step strong,
+    .pipeline-step span,
+    .pipeline-step code {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .pipeline-step strong {
+      font-size: 13px;
+      line-height: 1.2;
+    }
+
+    .pipeline-step p {
+      margin: 0;
+      color: var(--ink-2);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .stage-artifacts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .artifact-chip {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface-3);
+      color: var(--ink-2);
+      padding: 3px 7px;
+      font-size: 11px;
+    }
+
+    .pipeline-structure {
+      display: grid;
+      grid-template-columns: minmax(0, 1.12fr) minmax(280px, 0.88fr);
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .structure-block {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--surface-3);
+      padding: 12px;
+    }
+
+    .structure-block h3 {
+      margin: 0 0 9px;
+      font-size: 13px;
+      line-height: 1.2;
+      letter-spacing: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .layer-stack {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .layer-card {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #ffffff;
+      padding: 10px;
+    }
+
+    .layer-card strong,
+    .layer-card span,
+    .layer-card code {
+      display: block;
+      overflow-wrap: anywhere;
+    }
+
+    .layer-card strong {
+      margin-bottom: 5px;
+      font-size: 12px;
+    }
+
+    .layer-card span,
+    .layer-card code {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    .store-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .store-row {
+      min-width: 0;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: start;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #ffffff;
+      padding: 9px;
+    }
+
+    .store-row strong,
+    .store-row span {
+      overflow-wrap: anywhere;
+    }
+
+    .store-row span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .direct-strip {
+      display: grid;
+      grid-template-columns: 160px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      border: 1px dashed #d5b75f;
+      border-radius: 7px;
+      background: var(--amber-soft);
+      padding: 11px;
+    }
+
+    .direct-strip strong,
+    .direct-strip span {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .direct-strip span {
+      color: #6c4808;
+      font-size: 12px;
+    }
+
     .rank-card {
       border: 1px solid var(--line);
       border-radius: 7px;
@@ -1066,6 +1301,7 @@
 
       .layout,
       .rank-grid,
+      .pipeline-structure,
       .reuse-grid,
       .diff-grid,
       .summary-grid,
@@ -1081,6 +1317,10 @@
 
       .graph {
         min-width: 640px;
+      }
+
+      .layer-stack {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
       .graph-wrap {
@@ -1101,6 +1341,8 @@
       .hash-row,
       .mini-row,
       .endpoint-strip,
+      .direct-strip,
+      .layer-stack,
       .quality-row {
         grid-template-columns: 1fr;
       }
@@ -1318,6 +1560,61 @@
               </div>
             </section>
           </div>
+
+          <section class="panel pipeline-map-panel" aria-labelledby="layeredPipelineTitle">
+            <div class="panel-header">
+              <div>
+                <h2 id="layeredPipelineTitle">Layered Pipeline Map</h2>
+                <p>Stage boundary, IR layer, artifact, and reuse path</p>
+              </div>
+              <span class="badge ok">pipe.layered_ckcir_to_smt</span>
+            </div>
+            <div class="panel-body pipeline-map">
+              <div class="pipeline-scroll" aria-label="Layered pipeline stages">
+                <div class="pipeline-flow" id="layeredPipelineFlow"></div>
+              </div>
+
+              <div class="pipeline-structure">
+                <div class="structure-block">
+                  <h3>IRBundle Layer Stack</h3>
+                  <div class="layer-stack" id="irLayerStack"></div>
+                </div>
+
+                <div class="structure-block">
+                  <h3>Run-Scoped Component Store</h3>
+                  <div class="store-list">
+                    <div class="store-row">
+                      <div>
+                        <strong>normalized structural hash</strong>
+                        <span>actions, contexts, rules, and constraints keyed once per run</span>
+                      </div>
+                      <span class="badge ok">14 hits</span>
+                    </div>
+                    <div class="store-row">
+                      <div>
+                        <strong>metamorphic convergence</strong>
+                        <span>punctuation, kana/kanji, and section-order variants share component hashes</span>
+                      </div>
+                      <span class="badge ok">8/8</span>
+                    </div>
+                    <div class="store-row">
+                      <div>
+                        <strong>trace exports</strong>
+                        <span>component_reuse_graph.json and compactness_frontier.json join trace_bundle.json</span>
+                      </div>
+                      <span class="badge info">V2</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="direct-strip">
+                <strong>direct baseline</strong>
+                <span>extract -> segment -> direct phrase-normalization -> FormalIR -> SMT; ClinicalIR and NormIR component reuse are bypassed.</span>
+                <span class="badge warn">pipe.direct_rule_to_smt</span>
+              </div>
+            </div>
+          </section>
 
           <section class="panel translation-panel">
             <div class="panel-header">
@@ -1732,10 +2029,124 @@
       }
     ];
 
+    const layeredPipelineStages = [
+      {
+        stage: "extract",
+        layer: "SourceGraph",
+        kind: "ingest",
+        text: "fixture HTML, tables, spans, anchors, and regions",
+        artifacts: ["source_graph.json"]
+      },
+      {
+        stage: "segment",
+        layer: "SegmentIR",
+        kind: "semantic",
+        text: "CQ, recommendation, exception, definition, and evidence segments",
+        artifacts: ["segments.json"]
+      },
+      {
+        stage: "normalize",
+        layer: "ClinicalIR + NormIR",
+        kind: "semantic",
+        text: "terminology bindings, clinical statements, guarded rules, factual rules",
+        artifacts: ["normalization.json"]
+      },
+      {
+        stage: "assemble",
+        layer: "IRBundle",
+        kind: "reuse",
+        text: "five-layer bundle validation with per-layer structural hashes",
+        artifacts: ["ir_bundle.json"]
+      },
+      {
+        stage: "compile",
+        layer: "FormalIR -> SMT",
+        kind: "formal",
+        text: "eligibility scan, contradiction-query plan, named assertions",
+        artifacts: ["compiled.json", "query.smt2"]
+      },
+      {
+        stage: "verify",
+        layer: "VerifierResult",
+        kind: "verify",
+        text: "Z3 verdicts, unsat cores, models, and typed diagnostics",
+        artifacts: ["verifier_results.json"]
+      },
+      {
+        stage: "trace",
+        layer: "TraceBundle",
+        kind: "reuse",
+        text: "finding-to-source lineage plus reuse and compactness exports",
+        artifacts: ["trace_bundle.json", "lineage_index.json"]
+      },
+      {
+        stage: "report",
+        layer: "Report",
+        kind: "report",
+        text: "ranked comparison, raw metric rows, manifests, and replay identity",
+        artifacts: ["report.json", "replay_manifest.json"]
+      }
+    ];
+
+    const irLayers = [
+      {
+        id: "DocIR",
+        text: "layout-preserving text and table view over SourceGraph refs",
+        hash: "h.doc.*"
+      },
+      {
+        id: "SegmentIR",
+        text: "ClinicalSegments with stable region references",
+        hash: "h.seg.*"
+      },
+      {
+        id: "ClinicalIR",
+        text: "ClinicalStatements plus TerminologyBindings",
+        hash: "h.clin.*"
+      },
+      {
+        id: "NormIR",
+        text: "NormRules, FactualRules, contexts, actions",
+        hash: "h.norm.*"
+      },
+      {
+        id: "FormalIR",
+        text: "target-independent constraints and query plan",
+        hash: "h.formal.*"
+      }
+    ];
+
     const fixtureList = document.querySelector("#fixtureList");
     const metricRows = document.querySelector("#metricRows");
     const recordKv = document.querySelector("#recordKv");
     const miniBars = document.querySelector("#miniBars");
+    const layeredPipelineFlow = document.querySelector("#layeredPipelineFlow");
+    const irLayerStack = document.querySelector("#irLayerStack");
+
+    function renderPipeline() {
+      layeredPipelineFlow.innerHTML = layeredPipelineStages.map((step, index) => `
+        <article class="pipeline-step ${step.kind}">
+          <div class="stage-kicker">
+            <span>${String(index + 1).padStart(2, "0")}</span>
+            <span>${step.stage}</span>
+          </div>
+          <strong>${step.layer}</strong>
+          <p>${step.text}</p>
+          <div class="stage-artifacts">
+            ${step.artifacts.map((artifact) => `<code class="artifact-chip">${artifact}</code>`).join("")}
+          </div>
+          ${index === layeredPipelineStages.length - 1 ? "" : `<span class="stage-arrow" aria-hidden="true"></span>`}
+        </article>
+      `).join("");
+
+      irLayerStack.innerHTML = irLayers.map((layer) => `
+        <div class="layer-card">
+          <strong>${layer.id}</strong>
+          <span>${layer.text}</span>
+          <code>${layer.hash}</code>
+        </div>
+      `).join("");
+    }
 
     function renderFixtures(selectedId = fixtures[0].id) {
       fixtureList.innerHTML = fixtures.map((fixture) => `
@@ -1817,6 +2228,7 @@
     });
 
     renderFixtures();
+    renderPipeline();
     renderMetric(metrics[0].id);
   </script>
 </body>
