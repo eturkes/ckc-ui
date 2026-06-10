@@ -629,6 +629,114 @@
       font-weight: 800;
     }
 
+    .translation-panel {
+      margin-top: 14px;
+    }
+
+    .translation-body {
+      display: grid;
+      gap: 12px;
+    }
+
+    .endpoint-strip {
+      display: grid;
+      grid-template-columns: 92px 1fr;
+      gap: 8px 12px;
+      align-items: start;
+      border: 1px solid #b8d4e8;
+      border-radius: 7px;
+      background: var(--blue-soft);
+      padding: 10px;
+    }
+
+    .endpoint-strip strong {
+      color: #1d5378;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    .endpoint-strip code {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      color: var(--ink);
+      font-size: 12px;
+    }
+
+    .source-block {
+      display: grid;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #ffffff;
+      padding: 11px;
+    }
+
+    .source-block strong,
+    .source-block span {
+      overflow-wrap: anywhere;
+    }
+
+    .source-text {
+      margin: 0;
+      color: var(--ink);
+      font-size: 13px;
+      line-height: 1.55;
+      overflow-wrap: anywhere;
+    }
+
+    .translation-matrix {
+      overflow-x: auto;
+    }
+
+    .translation-table {
+      min-width: 820px;
+    }
+
+    .translation-table th:first-child {
+      width: 132px;
+    }
+
+    .semantic-output {
+      display: grid;
+      gap: 5px;
+    }
+
+    .semantic-output code {
+      display: block;
+      color: var(--ink-2);
+      font-size: 11px;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+      white-space: normal;
+    }
+
+    .quality-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .quality-row {
+      display: grid;
+      grid-template-columns: 132px 1fr auto;
+      gap: 10px;
+      align-items: start;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #ffffff;
+      padding: 10px;
+    }
+
+    .quality-row strong,
+    .quality-row span {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .quality-row span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
     .outcome-grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -991,7 +1099,9 @@
       .top-actions,
       .segmented,
       .hash-row,
-      .mini-row {
+      .mini-row,
+      .endpoint-strip,
+      .quality-row {
         grid-template-columns: 1fr;
       }
 
@@ -1208,6 +1318,101 @@
               </div>
             </section>
           </div>
+
+          <section class="panel translation-panel">
+            <div class="panel-header">
+              <div>
+                <h2>Translation Accuracy Case</h2>
+                <p>Locked gold row with candidate outputs side by side</p>
+              </div>
+              <span class="badge warn">group.v2_terms.case1</span>
+            </div>
+            <div class="panel-body translation-body">
+              <div class="endpoint-strip">
+                <strong>Endpoint</strong>
+                <code>ckc run --experiment exp.v2_compare</code>
+                <strong>Case id</strong>
+                <code>finding.group.v2_terms.001 / candidate_diff.json</code>
+              </div>
+
+              <div class="source-block">
+                <div>
+                  <strong>Source span</strong>
+                  <span class="tiny muted">synthetic Japanese fixture; research measurement only</span>
+                </div>
+                <p class="source-text" lang="ja">成人の敗血症患者には抗菌薬Aを投与することを推奨する。ただし、重度腎機能障害のある患者を除く。重度腎機能障害とは eGFR 30 未満をいう。</p>
+              </div>
+
+              <div class="translation-matrix">
+                <table class="table translation-table">
+                  <thead>
+                    <tr>
+                      <th>Candidate</th>
+                      <th>Semantic translation</th>
+                      <th>Field match</th>
+                      <th>Diagnostic</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>Locked gold</strong><div class="tiny muted">fixture expectation</div></td>
+                      <td>
+                        <div class="semantic-output">
+                          <code>population = adult AND condition = sepsis</code>
+                          <code>action = administer antimicrobial_a</code>
+                          <code>exception = severe_renal_impairment WHEN eGFR &lt; 30</code>
+                        </div>
+                      </td>
+                      <td><span class="badge info">reference</span></td>
+                      <td><span class="tiny muted">gold row</span></td>
+                    </tr>
+                    <tr>
+                      <td><strong>pipe.layered_ckcir_to_smt</strong><div class="tiny muted">segment -> normalize -> assemble</div></td>
+                      <td>
+                        <div class="semantic-output">
+                          <code>population = adult AND condition = sepsis</code>
+                          <code>action = administer antimicrobial_a</code>
+                          <code>exception = severe_renal_impairment WHEN eGFR &lt; 30</code>
+                        </div>
+                      </td>
+                      <td><span class="badge ok">6/6 exact</span></td>
+                      <td><span class="tiny muted">no diagnostic</span></td>
+                    </tr>
+                    <tr>
+                      <td><strong>pipe.direct_rule_to_smt</strong><div class="tiny muted">phrase normalization -> FormalIR</div></td>
+                      <td>
+                        <div class="semantic-output">
+                          <code>population = adult AND condition = sepsis</code>
+                          <code>action = administer antimicrobial_a</code>
+                          <code>exception = renal_impairment WHEN eGFR &lt;= 30</code>
+                        </div>
+                      </td>
+                      <td><span class="badge bad">4/6 exact</span></td>
+                      <td><span class="tiny muted">terminology_incoherent + false_negative_conflict</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="quality-list" aria-label="Translation field comparison">
+                <div class="quality-row">
+                  <strong>term binding</strong>
+                  <span>Layered binds 重度腎機能障害 to the declared eGFR threshold; direct keeps a broader renal impairment term.</span>
+                  <span class="badge warn">direct miss</span>
+                </div>
+                <div class="quality-row">
+                  <strong>interval boundary</strong>
+                  <span>Layered preserves 未満 as strict less-than; direct emits less-than-or-equal and changes the conflict core.</span>
+                  <span class="badge warn">direct miss</span>
+                </div>
+                <div class="quality-row">
+                  <strong>trace</strong>
+                  <span>Layered keeps the exception sentence and definition sentence as separate lineage nodes into the same NormRule.</span>
+                  <span class="badge ok">layered exact</span>
+                </div>
+              </div>
+            </div>
+          </section>
 
           <section class="panel" style="margin-top: 14px;">
             <div class="panel-header">
