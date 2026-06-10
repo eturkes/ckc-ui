@@ -1,0 +1,1769 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CKC exp.v3 Routes Mockup</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f6f5;
+      --surface: #ffffff;
+      --surface-2: #eef2ef;
+      --surface-3: #f9faf9;
+      --ink: #18211d;
+      --ink-2: #43514b;
+      --muted: #6e7d76;
+      --line: #d7dfd9;
+      --line-strong: #aebcaf;
+      --teal: #0b6d66;
+      --teal-soft: #dff1ee;
+      --green: #26764e;
+      --green-soft: #e2f2e8;
+      --blue: #255f8d;
+      --blue-soft: #e2edf6;
+      --red: #b63b2e;
+      --red-soft: #f8e4e1;
+      --amber: #94630f;
+      --amber-soft: #f7eccd;
+      --violet: #6655a3;
+      --violet-soft: #ebe7f7;
+      --shadow: 0 1px 2px rgba(23, 32, 28, 0.08), 0 18px 42px rgba(23, 32, 28, 0.08);
+      --radius: 8px;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+    }
+
+    code,
+    .mono {
+      font-family: var(--mono);
+      letter-spacing: 0;
+    }
+
+    .app-shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      min-height: 66px;
+      display: grid;
+      grid-template-columns: minmax(320px, 1fr) auto;
+      align-items: center;
+      gap: 18px;
+      padding: 12px 18px;
+      background: #ffffff;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .mark {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      flex: none;
+      border: 1px solid #9bd0c9;
+      border-radius: 7px;
+      background: var(--teal-soft);
+      color: var(--teal);
+      font-family: var(--mono);
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.1;
+      letter-spacing: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .brand p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn,
+    .icon-btn,
+    .seg-btn,
+    .tab,
+    .route-row,
+    .metric-row {
+      border-radius: 7px;
+      transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+    }
+
+    .btn,
+    .icon-btn {
+      min-height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink);
+      padding: 0 10px;
+      white-space: nowrap;
+    }
+
+    .btn.primary {
+      border-color: var(--teal);
+      background: var(--teal);
+      color: #ffffff;
+    }
+
+    .icon-btn {
+      width: 34px;
+      padding: 0;
+      flex: none;
+    }
+
+    .ico {
+      width: 16px;
+      height: 16px;
+      flex: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .layout {
+      min-height: calc(100vh - 67px);
+      display: grid;
+      grid-template-columns: minmax(250px, 286px) minmax(640px, 1fr) minmax(310px, 360px);
+    }
+
+    .sidebar,
+    .inspector {
+      min-width: 0;
+      padding: 16px;
+      background: var(--surface-3);
+      overflow: auto;
+    }
+
+    .sidebar {
+      border-right: 1px solid var(--line);
+    }
+
+    .inspector {
+      border-left: 1px solid var(--line);
+    }
+
+    .workspace {
+      min-width: 0;
+      padding: 16px;
+      overflow: auto;
+    }
+
+    .stack {
+      display: grid;
+      gap: 14px;
+    }
+
+    .section-title {
+      margin: 0 0 10px;
+      color: var(--ink-2);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel.flat {
+      box-shadow: none;
+    }
+
+    .panel-header {
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      background: #ffffff;
+    }
+
+    .panel-header h2,
+    .panel-header h3 {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.2;
+      letter-spacing: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .panel-header p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .panel-body {
+      padding: 14px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .field label {
+      color: var(--ink-2);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .select,
+    .search {
+      width: 100%;
+      min-width: 0;
+      height: 36px;
+      border: 1px solid var(--line-strong);
+      border-radius: 7px;
+      background: #ffffff;
+      color: var(--ink);
+      padding: 0 10px;
+    }
+
+    .search-wrap {
+      position: relative;
+    }
+
+    .search-wrap .ico {
+      position: absolute;
+      left: 10px;
+      top: 10px;
+      color: var(--muted);
+    }
+
+    .search-wrap .search {
+      padding-left: 34px;
+    }
+
+    .badge {
+      min-height: 24px;
+      max-width: 100%;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface-2);
+      color: var(--ink-2);
+      padding: 3px 8px;
+      font-size: 12px;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .badge.ok {
+      border-color: #b7dfc0;
+      background: var(--green-soft);
+      color: #155c39;
+    }
+
+    .badge.info {
+      border-color: #b8d4e8;
+      background: var(--blue-soft);
+      color: #1d5378;
+    }
+
+    .badge.warn {
+      border-color: #e6cc7e;
+      background: var(--amber-soft);
+      color: #6c4808;
+    }
+
+    .badge.bad {
+      border-color: #ebb0a8;
+      background: var(--red-soft);
+      color: #8c291f;
+    }
+
+    .badge.violet {
+      border-color: #cbc3ea;
+      background: var(--violet-soft);
+      color: #4d3d87;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      flex: none;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .tiny {
+      font-size: 12px;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 5px;
+      padding: 5px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-2);
+    }
+
+    .seg-btn {
+      min-height: 32px;
+      background: transparent;
+      color: var(--ink-2);
+      font-weight: 750;
+      padding: 0 8px;
+      white-space: nowrap;
+    }
+
+    .seg-btn.active {
+      background: #ffffff;
+      color: var(--ink);
+      box-shadow: 0 1px 2px rgba(23, 32, 28, 0.08);
+    }
+
+    .run-card {
+      display: grid;
+      gap: 8px;
+      border: 1px solid #90c8c1;
+      border-radius: 7px;
+      background: var(--teal-soft);
+      padding: 10px;
+    }
+
+    .run-card.alt {
+      border-color: #cbc3ea;
+      background: var(--violet-soft);
+    }
+
+    .run-card .line {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .route-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .route-row {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      border: 1px solid var(--line);
+      background: #ffffff;
+      color: var(--ink);
+      padding: 10px;
+      text-align: left;
+    }
+
+    .route-row.active {
+      border-color: #90c8c1;
+      background: var(--teal-soft);
+    }
+
+    .route-row strong,
+    .route-row span {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .route-meta {
+      grid-column: 1 / -1;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .check-list {
+      display: grid;
+      gap: 9px;
+    }
+
+    .check-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      color: var(--ink-2);
+      font-size: 13px;
+    }
+
+    .check-row input {
+      margin-top: 2px;
+      accent-color: var(--teal);
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .stat {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #ffffff;
+      padding: 11px;
+    }
+
+    .stat strong {
+      display: block;
+      margin: 7px 0 5px;
+      font-size: 24px;
+      line-height: 1;
+      letter-spacing: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .tabs {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-2);
+      overflow-x: auto;
+    }
+
+    .tab {
+      min-height: 32px;
+      flex: none;
+      padding: 0 11px;
+      background: transparent;
+      color: var(--ink-2);
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .tab.active {
+      background: #ffffff;
+      color: var(--ink);
+      box-shadow: 0 1px 2px rgba(23, 32, 28, 0.08);
+    }
+
+    .view {
+      display: none;
+      margin-top: 14px;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    .rank-grid {
+      display: grid;
+      grid-template-columns: minmax(250px, 0.62fr) minmax(0, 1.38fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .route-rank {
+      display: grid;
+      gap: 10px;
+    }
+
+    .rank-card {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #ffffff;
+      padding: 12px;
+    }
+
+    .rank-card.active {
+      border-color: #90c8c1;
+      background: var(--teal-soft);
+    }
+
+    .rank-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .rank-head strong {
+      display: block;
+      overflow-wrap: anywhere;
+    }
+
+    .rank-score {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .bar-track {
+      height: 10px;
+      border-radius: 999px;
+      background: var(--surface-2);
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: var(--teal);
+    }
+
+    .metric-table-wrap {
+      overflow-x: auto;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .table th,
+    .table td {
+      padding: 8px 6px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+      overflow-wrap: normal;
+      word-break: normal;
+    }
+
+    .table th {
+      background: var(--surface-3);
+      color: var(--ink-2);
+      font-size: 12px;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .table td:first-child {
+      white-space: nowrap;
+    }
+
+    .metric-row {
+      background: #ffffff;
+    }
+
+    .metric-row:hover,
+    .metric-row.active {
+      background: var(--teal-soft);
+    }
+
+    .delta-pos {
+      color: var(--green);
+      font-weight: 800;
+    }
+
+    .delta-neg {
+      color: var(--red);
+      font-weight: 800;
+    }
+
+    .route-map {
+      position: relative;
+      min-height: 330px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background:
+        linear-gradient(#edf1ee 1px, transparent 1px),
+        linear-gradient(90deg, #edf1ee 1px, transparent 1px),
+        #ffffff;
+      background-size: 28px 28px;
+      overflow: hidden;
+    }
+
+    .map-edge {
+      position: absolute;
+      height: 2px;
+      transform-origin: left center;
+      background: #adc1b8;
+    }
+
+    .map-edge.e1 { left: 78px; top: 72px; width: 142px; transform: rotate(20deg); }
+    .map-edge.e2 { left: 78px; top: 162px; width: 150px; transform: rotate(-14deg); }
+    .map-edge.e3 { left: 246px; top: 116px; width: 146px; transform: rotate(24deg); }
+    .map-edge.e4 { left: 246px; top: 190px; width: 138px; transform: rotate(-22deg); }
+    .map-edge.e5 { left: 410px; top: 86px; width: 148px; transform: rotate(30deg); }
+    .map-edge.e6 { left: 410px; top: 238px; width: 148px; transform: rotate(-33deg); }
+
+    .map-node {
+      position: absolute;
+      width: 136px;
+      min-height: 58px;
+      display: grid;
+      align-content: center;
+      gap: 2px;
+      border: 1px solid var(--line-strong);
+      border-radius: 7px;
+      background: #ffffff;
+      padding: 8px;
+      box-shadow: 0 1px 2px rgba(23, 32, 28, 0.08);
+    }
+
+    .map-node strong,
+    .map-node span {
+      overflow-wrap: anywhere;
+    }
+
+    .map-node strong {
+      font-size: 12px;
+    }
+
+    .map-node span {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .map-node.model {
+      border-color: #cbc3ea;
+      background: var(--violet-soft);
+    }
+
+    .map-node.det {
+      border-color: #95cf9f;
+      background: var(--green-soft);
+    }
+
+    .map-node.warn {
+      border-color: #e6cc7e;
+      background: var(--amber-soft);
+    }
+
+    .map-node.n1 { left: 24px; top: 44px; }
+    .map-node.n2 { left: 24px; top: 142px; }
+    .map-node.n3 { left: 218px; top: 92px; }
+    .map-node.n4 { left: 386px; top: 42px; }
+    .map-node.n5 { left: 386px; top: 210px; }
+    .map-node.n6 { right: 26px; top: 122px; }
+
+    .matrix-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .schema-grid,
+    .io-list,
+    .artifact-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .schema-card,
+    .io-card,
+    .artifact-item,
+    .flow-card,
+    .frontier-row,
+    .diagnostic-card {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #ffffff;
+      padding: 10px;
+    }
+
+    .schema-card strong,
+    .io-card strong,
+    .artifact-item strong,
+    .artifact-item code,
+    .flow-card strong,
+    .frontier-row strong {
+      display: block;
+      overflow-wrap: anywhere;
+    }
+
+    .schema-card .meter,
+    .io-card .meter {
+      margin-top: 8px;
+    }
+
+    .meter {
+      height: 9px;
+      border-radius: 999px;
+      background: var(--surface-2);
+      overflow: hidden;
+    }
+
+    .meter span {
+      display: block;
+      height: 100%;
+      border-radius: 999px;
+      background: var(--teal);
+    }
+
+    .io-card code,
+    .artifact-item code {
+      margin-top: 6px;
+      color: var(--ink-2);
+      font-size: 11px;
+      overflow-wrap: anywhere;
+    }
+
+    .amortize-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(320px, 0.82fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .flow-card {
+      position: relative;
+      min-height: 104px;
+      display: grid;
+      align-content: start;
+      gap: 5px;
+    }
+
+    .flow-card::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      right: -11px;
+      width: 12px;
+      height: 2px;
+      background: var(--line-strong);
+    }
+
+    .flow-card:last-child::after {
+      display: none;
+    }
+
+    .flow-card.model {
+      border-color: #cbc3ea;
+      background: var(--violet-soft);
+    }
+
+    .flow-card.det {
+      border-color: #95cf9f;
+      background: var(--green-soft);
+    }
+
+    .frontier {
+      min-height: 232px;
+      position: relative;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background:
+        linear-gradient(#edf1ee 1px, transparent 1px),
+        linear-gradient(90deg, #edf1ee 1px, transparent 1px),
+        #ffffff;
+      background-size: 36px 36px;
+      margin-bottom: 12px;
+    }
+
+    .axis-label {
+      position: absolute;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .axis-label.x {
+      left: 14px;
+      bottom: 8px;
+    }
+
+    .axis-label.y {
+      left: 10px;
+      top: 8px;
+    }
+
+    .point {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border: 2px solid #ffffff;
+      border-radius: 50%;
+      background: var(--teal);
+      box-shadow: 0 0 0 1px var(--teal);
+    }
+
+    .point.baseline {
+      background: var(--red);
+      box-shadow: 0 0 0 1px var(--red);
+    }
+
+    .point.p1 { left: 78%; top: 24%; }
+    .point.p2 { left: 59%; top: 35%; }
+    .point.p3 { left: 44%; top: 48%; }
+    .point.p4 { left: 30%; top: 64%; }
+    .point.p5 { left: 72%; top: 72%; }
+
+    .frontier-list {
+      display: grid;
+      gap: 9px;
+    }
+
+    .frontier-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: start;
+    }
+
+    .diagnostic-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .diagnostic-card {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: start;
+    }
+
+    .diagnostic-card strong,
+    .diagnostic-card span {
+      overflow-wrap: anywhere;
+    }
+
+    .diagnostic-card strong {
+      display: block;
+    }
+
+    .diagnostic-card span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .inspector-hero {
+      display: grid;
+      gap: 8px;
+    }
+
+    .inspector-hero h2 {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+
+    .kv {
+      display: grid;
+      grid-template-columns: 94px 1fr;
+      gap: 8px 10px;
+      font-size: 13px;
+    }
+
+    .kv dt {
+      color: var(--muted);
+      overflow-wrap: anywhere;
+    }
+
+    .kv dd {
+      min-width: 0;
+      margin: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .mini-bars {
+      display: grid;
+      gap: 10px;
+    }
+
+    .mini-row {
+      display: grid;
+      grid-template-columns: 96px 1fr 52px;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .mini-row span {
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .footnote {
+      margin: 16px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .btn:focus-visible,
+    .icon-btn:focus-visible,
+    .seg-btn:focus-visible,
+    .tab:focus-visible,
+    .route-row:focus-visible,
+    .metric-row:focus-visible {
+      outline: 3px solid #9bd4ca;
+      outline-offset: 2px;
+    }
+
+    @media (max-width: 1260px) {
+      .layout {
+        grid-template-columns: 270px minmax(0, 1fr);
+      }
+
+      .inspector {
+        grid-column: 1 / -1;
+        border-left: 0;
+        border-top: 1px solid var(--line);
+      }
+    }
+
+    @media (max-width: 940px) {
+      .topbar {
+        grid-template-columns: 1fr;
+      }
+
+      .top-actions {
+        justify-content: flex-start;
+      }
+
+      .layout,
+      .rank-grid,
+      .matrix-grid,
+      .amortize-grid,
+      .summary-grid,
+      .schema-grid,
+      .io-list,
+      .artifact-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .flow {
+        grid-template-columns: 1fr;
+      }
+
+      .flow-card::after {
+        display: none;
+      }
+
+      .sidebar {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .route-map {
+        min-width: 680px;
+      }
+
+      .route-map-wrap {
+        overflow-x: auto;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .topbar,
+      .sidebar,
+      .workspace,
+      .inspector {
+        padding: 12px;
+      }
+
+      .top-actions,
+      .segmented,
+      .mini-row {
+        grid-template-columns: 1fr;
+      }
+
+      .top-actions {
+        display: grid;
+      }
+
+      .btn,
+      .icon-btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark" aria-hidden="true">V3</div>
+        <div>
+          <h1>CKC exp.v3 Weak-Model Translation Evidence Surface</h1>
+          <p>route lift / recorded grammar-constrained I/O / build-once amortization</p>
+        </div>
+      </div>
+      <div class="top-actions" aria-label="Run actions">
+        <button class="btn primary" type="button" title="Run exp.v3_routes">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg>
+          Run Routes
+        </button>
+        <button class="btn" type="button" title="Replay recorded model I/O">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4"></path><path d="M21 3v6h-6"></path></svg>
+          Replay
+        </button>
+        <button class="btn" type="button" title="Open route report">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M8 13h8"></path><path d="M8 17h5"></path></svg>
+          Report
+        </button>
+        <button class="icon-btn" type="button" title="Export artifacts">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="stack">
+          <section>
+            <div class="section-title">Experiment</div>
+            <div class="field">
+              <label for="experiment">Selected plan</label>
+              <select class="select" id="experiment">
+                <option selected>exp.v3_routes - weak-model route lift</option>
+                <option>exp.v3_amortize - build-once apply-many</option>
+                <option>exp.v2_compare - layered vs direct</option>
+                <option>exp.v4_loop - autoresearch ledger</option>
+              </select>
+            </div>
+            <div class="search-wrap">
+              <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.4-3.4"></path></svg>
+              <input class="search" type="search" value="route.ckc_layered / fixture.B" aria-label="Search V3 records">
+            </div>
+          </section>
+
+          <section>
+            <div class="section-title">Runs</div>
+            <div class="stack">
+              <div class="run-card">
+                <div class="line">
+                  <strong class="mono">runs/v3-routes</strong>
+                  <span class="badge ok"><span class="dot"></span>ok</span>
+                </div>
+                <div class="tiny muted">6 routes / 48 prompts / 144 recorded samples</div>
+                <div class="tiny mono">evaluator_lock sha256:9c41...a2d7</div>
+              </div>
+              <div class="run-card alt">
+                <div class="line">
+                  <strong class="mono">runs/v3-amortize</strong>
+                  <span class="badge ok"><span class="dot"></span>ok</span>
+                </div>
+                <div class="tiny muted">fixture set A builds / set B applies with runtime_ai:false</div>
+                <div class="tiny mono">mapping_store sha256:3e9f...6bb0</div>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <div class="section-title">Lens</div>
+            <div class="segmented" role="tablist" aria-label="V3 lens">
+              <button class="seg-btn active" type="button" data-lens="routes">Routes</button>
+              <button class="seg-btn" type="button" data-lens="amortize">Amortize</button>
+            </div>
+          </section>
+
+          <section>
+            <div class="section-title">Routes</div>
+            <div class="route-list" id="routeList"></div>
+          </section>
+
+          <section class="panel flat">
+            <div class="panel-header">
+              <div>
+                <h3>Admission Gates</h3>
+                <p>Artifact checks before scoring</p>
+              </div>
+            </div>
+            <div class="panel-body check-list">
+              <label class="check-row"><input type="checkbox" checked> JSON-Schema or GBNF grammar registered</label>
+              <label class="check-row"><input type="checkbox" checked> model I/O bytes recorded and replayed</label>
+              <label class="check-row"><input type="checkbox" checked> route bridge compiles into section 6 profile</label>
+              <label class="check-row"><input type="checkbox" checked> raw rows emitted before ranking</label>
+            </div>
+          </section>
+
+          <section class="panel flat">
+            <div class="panel-header">
+              <div>
+                <h3>Claim Scope</h3>
+                <p>Report vocabulary</p>
+              </div>
+            </div>
+            <div class="panel-body">
+              <span class="badge ok">s1 locked measurement</span>
+              <span class="badge warn" style="margin-top: 8px;">G-RUNTIME-ORACLE closed</span>
+            </div>
+          </section>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <div class="summary-grid" aria-label="V3 summary">
+          <div class="stat">
+            <span>Top route</span>
+            <strong>ckc_layered</strong>
+            <span>score 84/100</span>
+          </div>
+          <div class="stat">
+            <span>Lift over direct SMT</span>
+            <strong>+46</strong>
+            <span>route_quality_score</span>
+          </div>
+          <div class="stat">
+            <span>Recorded replay</span>
+            <strong>144/144</strong>
+            <span>byte-stable samples</span>
+          </div>
+          <div class="stat">
+            <span>Apply model calls</span>
+            <strong>0</strong>
+            <span>fixture set B runtime_ai:false</span>
+          </div>
+        </div>
+
+        <nav class="tabs" aria-label="V3 views">
+          <button class="tab active" type="button" data-view="lift">Route Lift</button>
+          <button class="tab" type="button" data-view="io">I/O Ledger</button>
+          <button class="tab" type="button" data-view="amortize">Amortize</button>
+          <button class="tab" type="button" data-view="artifacts">Artifacts</button>
+        </nav>
+
+        <section class="view active" id="view-lift">
+          <div class="rank-grid">
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>Route Ranking</h2>
+                  <p>Weak model held constant; route schema changes</p>
+                </div>
+                <span class="badge ok">ranking.csv</span>
+              </div>
+              <div class="panel-body route-rank" id="routeRank"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>Metric Rows</h2>
+                  <p>V2 evaluator applied to every route</p>
+                </div>
+                <span class="badge info">score_breakdown.json</span>
+              </div>
+              <div class="metric-table-wrap">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Metric</th>
+                      <th>Best</th>
+                      <th>Direct SMT</th>
+                      <th>Lift</th>
+                      <th>Family</th>
+                    </tr>
+                  </thead>
+                  <tbody id="metricRows"></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+
+          <section class="panel" style="margin-top: 14px;">
+            <div class="panel-header">
+              <div>
+                <h2>Route Shape Map</h2>
+                <p>Prompted hops and deterministic bridges into the locked evaluator</p>
+              </div>
+              <span class="badge violet">claim 2 instrument</span>
+            </div>
+            <div class="panel-body route-map-wrap">
+              <div class="route-map" aria-label="Translation route shape map">
+                <div class="map-edge e1"></div>
+                <div class="map-edge e2"></div>
+                <div class="map-edge e3"></div>
+                <div class="map-edge e4"></div>
+                <div class="map-edge e5"></div>
+                <div class="map-edge e6"></div>
+                <div class="map-node model n1"><strong>source spans</strong><span>synthetic JP fixtures</span></div>
+                <div class="map-node warn n2"><strong>direct SMT</strong><span>weak baseline</span></div>
+                <div class="map-node model n3"><strong>constrained route</strong><span>schema / prompt / seed</span></div>
+                <div class="map-node det n4"><strong>bridge</strong><span>deterministic compile</span></div>
+                <div class="map-node model n5"><strong>k samples</strong><span>per-sample seeds</span></div>
+                <div class="map-node det n6"><strong>section 6 profile</strong><span>same scoring surface</span></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel" style="margin-top: 14px;">
+            <div class="panel-header">
+              <div>
+                <h2>Expected Outcomes</h2>
+                <p>Gold conflict and null-result fixtures remain the scoring anchor</p>
+              </div>
+              <span class="badge ok">gold matched by top route</span>
+            </div>
+            <div class="panel-body diagnostic-list">
+              <div class="diagnostic-card">
+                <div><strong>numeric_threshold_empty_intersection</strong><span>best route 2/2; direct SMT 1/2</span></div>
+                <span class="badge ok">locked</span>
+              </div>
+              <div class="diagnostic-card">
+                <div><strong>strict_factual_contradiction</strong><span>best route 1/1; direct SMT 0/1</span></div>
+                <span class="badge ok">locked</span>
+              </div>
+              <div class="diagnostic-card">
+                <div><strong>terminology_incoherence</strong><span>best route 2/2; direct SMT 0/2</span></div>
+                <span class="badge ok">locked</span>
+              </div>
+              <div class="diagnostic-card">
+                <div><strong>null_result_preservation</strong><span>best route 2/2; direct SMT 1/2</span></div>
+                <span class="badge ok">locked</span>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section class="view" id="view-io">
+          <div class="matrix-grid">
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>Grammar and Schema Coverage</h2>
+                  <p>Registered grammars constrain every model-emitted artifact</p>
+                </div>
+                <span class="badge ok">registry/schemas.yaml</span>
+              </div>
+              <div class="panel-body schema-grid">
+                <div class="schema-card"><strong>route.single_ir</strong><span class="tiny muted">condition/action rows</span><div class="meter"><span style="width: 96%;"></span></div></div>
+                <div class="schema-card"><strong>route.stacked_ir</strong><span class="tiny muted">PICO frame to rule rows</span><div class="meter"><span style="width: 91%;"></span></div></div>
+                <div class="schema-card"><strong>route.ir_hop_chain</strong><span class="tiny muted">adjacent dialect hops</span><div class="meter"><span style="width: 88%;"></span></div></div>
+                <div class="schema-card"><strong>route.ckc_layered</strong><span class="tiny muted">segment to statement to rule</span><div class="meter"><span style="width: 98%;"></span></div></div>
+                <div class="schema-card"><strong>route.ckc_dsl</strong><span class="tiny muted">project DSL parse to IR</span><div class="meter"><span style="width: 93%;"></span></div></div>
+                <div class="schema-card"><strong>route.direct_smt</strong><span class="tiny muted">SMT-LIB text grammar</span><div class="meter"><span style="width: 61%;"></span></div></div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>Model Runtime Lock</h2>
+                  <p>Identity lives in manifests, not prose</p>
+                </div>
+                <span class="badge info">llama.cpp-family</span>
+              </div>
+              <div class="panel-body">
+                <dl class="kv">
+                  <dt>decoding</dt><dd class="mono">greedy / fixed seed</dd>
+                  <dt>k samples</dt><dd class="mono">3 per route-fixture cell</dd>
+                  <dt>authority</dt><dd class="mono">evidence_discovery_only</dd>
+                  <dt>runtime</dt><dd class="mono">recorded subprocess</dd>
+                  <dt>admission</dt><dd class="mono">section 4 artifact checks</dd>
+                </dl>
+              </div>
+            </section>
+          </div>
+
+          <section class="panel" style="margin-top: 14px;">
+            <div class="panel-header">
+              <div>
+                <h2>Recorded I/O Ledger</h2>
+                <p>Prompt-template hashes, seeds, replay bytes, and parser admission</p>
+              </div>
+              <span class="badge ok">model_io.jsonl</span>
+            </div>
+            <div class="panel-body io-list" id="ioList"></div>
+          </section>
+        </section>
+
+        <section class="view" id="view-amortize">
+          <div class="amortize-grid">
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>Build-Once Apply-Many Flow</h2>
+                  <p>Fixture set A admits mappings; fixture set B applies without runtime model nodes</p>
+                </div>
+                <span class="badge violet">exp.v3_amortize</span>
+              </div>
+              <div class="panel-body">
+                <div class="flow" aria-label="Amortization flow">
+                  <div class="flow-card model"><strong>Set A source</strong><span class="tiny muted">shared component family</span><span class="badge violet">model on</span></div>
+                  <div class="flow-card model"><strong>Route build</strong><span class="tiny muted">grammar-constrained samples</span><span class="badge ok">admitted</span></div>
+                  <div class="flow-card det"><strong>Mapping store</strong><span class="tiny muted">lexicon + components</span><span class="badge ok">sealed</span></div>
+                  <div class="flow-card det"><strong>Set B apply</strong><span class="tiny muted">runtime_ai:false</span><span class="badge ok">0 calls</span></div>
+                  <div class="flow-card det"><strong>Evaluator</strong><span class="tiny muted">same V2 lock</span><span class="badge ok">raw rows</span></div>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>Amortization Rows</h2>
+                  <p>Coverage versus mapping-set size</p>
+                </div>
+                <span class="badge info">amortization_report.json</span>
+              </div>
+              <div class="panel-body frontier-list">
+                <div class="frontier-row"><div><strong>deterministic coverage B</strong><span class="tiny muted">fresh documents sharing components</span></div><span class="badge ok">17/20</span></div>
+                <div class="frontier-row"><div><strong>accuracy versus gold</strong><span class="tiny muted">conflict and null outcomes</span></div><span class="badge ok">16/17</span></div>
+                <div class="frontier-row"><div><strong>mapping-set size</strong><span class="tiny muted">admitted entries after compaction</span></div><span class="badge info">42</span></div>
+                <div class="frontier-row"><div><strong>apply-phase calls</strong><span class="tiny muted">model nodes in B path graph</span></div><span class="badge ok">0</span></div>
+              </div>
+            </section>
+          </div>
+
+          <section class="panel" style="margin-top: 14px;">
+            <div class="panel-header">
+              <div>
+                <h2>Compactness Frontier</h2>
+                <p>Build mappings once, then compare coverage and apply cost</p>
+              </div>
+              <span class="badge violet">claim 3 objective</span>
+            </div>
+            <div class="panel-body">
+              <div class="frontier" aria-label="Amortization compactness frontier">
+                <span class="axis-label y">coverage</span>
+                <span class="axis-label x">mapping-set size</span>
+                <span class="point p1" title="full admitted set"></span>
+                <span class="point p2" title="compact admitted set"></span>
+                <span class="point p3" title="terminology-only set"></span>
+                <span class="point p4" title="minimal bridge set"></span>
+                <span class="point baseline p5" title="model-per-document baseline"></span>
+              </div>
+              <div class="diagnostic-list">
+                <div class="diagnostic-card"><div><strong>apply path graph</strong><span>contains source, mapping, component, compiler, solver nodes</span></div><span class="badge ok">zero model nodes</span></div>
+                <div class="diagnostic-card"><div><strong>baseline contrast</strong><span>model-per-document route remains available as a cost row</span></div><span class="badge warn">20 calls</span></div>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section class="view" id="view-artifacts">
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>V3 Artifact Set</h2>
+                <p>Canonical files and derived evidence views</p>
+              </div>
+              <span class="badge ok">strict read pass</span>
+            </div>
+            <div class="panel-body artifact-grid">
+              <div class="artifact-item"><strong>evaluator_lock.json</strong><span class="badge ok">V2 instrument identity</span><code>sha256:9c41e5ef87d5a1d9c2d2a8f0dbfae88b00d9c319e7fb2fd0db4f9e029f21a2d7</code></div>
+              <div class="artifact-item"><strong>route_registry.json</strong><span class="badge ok">six route definitions</span><code>sha256:78df52ce110f3dcde4df652a97a5e947f8295be1e86dc10c3f62d45008c932a4</code></div>
+              <div class="artifact-item"><strong>model_io.jsonl</strong><span class="badge ok">recorded subprocess I/O</span><code>sha256:5bb7308a8f1cfe2b0e4076baab403483af00b72c546e3d78d1f22b8c0cd30e34</code></div>
+              <div class="artifact-item"><strong>route_quality_rows.csv</strong><span class="badge ok">raw rows first</span><code>sha256:712cfc6133e17b36fbd83be84c27eab50819d89fcfc6a99b7eab154f4e83c1e8</code></div>
+              <div class="artifact-item"><strong>k_sample_convergence.csv</strong><span class="badge ok">sample stability</span><code>sha256:b7cc8a41d34b88994ac2e782f7e92f2556937967a5de35bb86a68c6ea67a04ef</code></div>
+              <div class="artifact-item"><strong>amortization_report.json</strong><span class="badge ok">build/apply rows</span><code>sha256:96f911213f5899d964850e8df282fa8f7c76d03357ff03da255b99e1ae0532fa</code></div>
+              <div class="artifact-item"><strong>apply_path_graph.json</strong><span class="badge ok">zero model nodes</span><code>sha256:1e97a276cd7a6283bb7e3845d84e8216f74b4ce0a9bc1f9280d14c8ce6d82291</code></div>
+              <div class="artifact-item"><strong>report.md</strong><span class="badge info">derived view</span><code>rendered from canonical report.json</code></div>
+            </div>
+          </section>
+        </section>
+      </main>
+
+      <aside class="inspector" aria-label="V3 inspector">
+        <div class="stack">
+          <section class="panel flat">
+            <div class="panel-body inspector-hero">
+              <span class="badge ok" id="inspectorBadge">route_quality</span>
+              <h2 id="inspectorTitle">conflict_task_accuracy</h2>
+              <p class="muted tiny" id="inspectorText">The top route preserves the locked V2 conflict and null outcomes while the direct SMT baseline loses traceable obligations.</p>
+            </div>
+          </section>
+
+          <section class="panel flat">
+            <div class="panel-header">
+              <div>
+                <h3>Raw Row</h3>
+                <p>Selected metric values</p>
+              </div>
+            </div>
+            <div class="panel-body">
+              <dl class="kv" id="recordKv"></dl>
+            </div>
+          </section>
+
+          <section class="panel flat">
+            <div class="panel-header">
+              <div>
+                <h3>Route Deltas</h3>
+                <p>Best versus weak baseline</p>
+              </div>
+            </div>
+            <div class="panel-body mini-bars" id="miniBars"></div>
+          </section>
+
+          <section class="panel flat">
+            <div class="panel-header">
+              <div>
+                <h3>V3 Diagnostics</h3>
+                <p>Admission and replay blockers</p>
+              </div>
+            </div>
+            <div class="panel-body diagnostic-list">
+              <div class="diagnostic-card"><div><strong>grammar_repair_applied</strong><span>direct SMT and DSL parse rows</span></div><span class="badge warn">7</span></div>
+              <div class="diagnostic-card"><div><strong>route_bridge_missing</strong><span>admission blocker</span></div><span class="badge ok">0</span></div>
+              <div class="diagnostic-card"><div><strong>replay_byte_mismatch</strong><span>recorded subprocess artifacts</span></div><span class="badge ok">0</span></div>
+              <div class="diagnostic-card"><div><strong>runtime_oracle_claim</strong><span>blocked behind gate evidence</span></div><span class="badge warn">closed</span></div>
+            </div>
+          </section>
+
+          <p class="footnote">This mockup is a research evidence view over canonical artifacts. It presents route measurements and amortization evidence only, with no clinical decision-support affordances.</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const routes = [
+      {
+        id: "route.ckc_layered",
+        label: "CKC layered",
+        score: 84,
+        badge: "ok",
+        status: "rank 1",
+        meta: "segment to statement to rule / deterministic section 6 compiler"
+      },
+      {
+        id: "route.ckc_dsl",
+        label: "CKC DSL",
+        score: 79,
+        badge: "ok",
+        status: "rank 2",
+        meta: "compact grammar mask / parse to IR"
+      },
+      {
+        id: "route.stacked_ir",
+        label: "Stacked IR",
+        score: 72,
+        badge: "info",
+        status: "rank 3",
+        meta: "PICO frame to condition/action rows"
+      },
+      {
+        id: "route.ir_hop_chain",
+        label: "IR hop chain",
+        score: 68,
+        badge: "info",
+        status: "rank 4",
+        meta: "adjacent dialect hops with small semantic deltas"
+      },
+      {
+        id: "route.single_ir",
+        label: "Single IR",
+        score: 59,
+        badge: "warn",
+        status: "rank 5",
+        meta: "one existing-IR-shaped schema"
+      },
+      {
+        id: "route.direct_smt",
+        label: "Direct SMT",
+        score: 38,
+        badge: "bad",
+        status: "baseline",
+        meta: "model emits SMT-LIB text directly"
+      }
+    ];
+
+    const metrics = [
+      {
+        id: "conflict_task_accuracy",
+        best: "7/7",
+        direct: "3/7",
+        lift: "+4/7",
+        family: "route_quality",
+        text: "The top route preserves the locked V2 conflict and null outcomes while the direct SMT baseline loses traceable obligations.",
+        bars: [["best", 100, "7/7"], ["direct", 43, "3/7"], ["lift", 57, "+4/7"]]
+      },
+      {
+        id: "admitted_output_rate",
+        best: "46/48",
+        direct: "29/48",
+        lift: "+17/48",
+        family: "admission",
+        text: "Schema-constrained staged outputs pass artifact admission more often than direct SMT text.",
+        bars: [["best", 96, "46/48"], ["direct", 60, "29/48"], ["lift", 36, "+17/48"]]
+      },
+      {
+        id: "trace_completeness",
+        best: "40/42",
+        direct: "18/42",
+        lift: "+22/42",
+        family: "trace",
+        text: "Route outputs that retain stage boundaries keep source-span to solver-verdict trace links intact.",
+        bars: [["best", 95, "40/42"], ["direct", 43, "18/42"], ["lift", 52, "+22/42"]]
+      },
+      {
+        id: "k_sample_convergence",
+        best: "32/36",
+        direct: "14/36",
+        lift: "+18/36",
+        family: "stability",
+        text: "Small constrained hops show higher sample convergence under per-sample recorded seeds.",
+        bars: [["best", 89, "32/36"], ["direct", 39, "14/36"], ["lift", 50, "+18/36"]]
+      },
+      {
+        id: "grammar_repair_rate",
+        best: "2/48",
+        direct: "15/48",
+        lift: "-13/48",
+        family: "repair",
+        text: "The best route needs fewer deterministic grammar repairs before admission.",
+        bars: [["best", 4, "2/48"], ["direct", 31, "15/48"], ["lift", 27, "-13/48"]]
+      },
+      {
+        id: "amortized_apply_coverage",
+        best: "17/20",
+        direct: "n/a",
+        lift: "0 calls",
+        family: "amortization",
+        text: "The admitted mapping store covers fresh set B documents with runtime_ai:false and zero apply-phase model calls.",
+        bars: [["covered", 85, "17/20"], ["calls", 0, "0"], ["baseline", 100, "20 calls"]]
+      }
+    ];
+
+    const ioRecords = [
+      {
+        route: "route.ckc_layered",
+        fixture: "group.v2_terms.case1",
+        seed: "seed:4107",
+        hash: "prompt sha256:da84...7c1e",
+        status: "admitted",
+        badge: "ok"
+      },
+      {
+        route: "route.ckc_dsl",
+        fixture: "group.v2_threshold.case2",
+        seed: "seed:4108",
+        hash: "prompt sha256:5c29...9f80",
+        status: "admitted",
+        badge: "ok"
+      },
+      {
+        route: "route.ir_hop_chain",
+        fixture: "group.v1_conflict.case1",
+        seed: "seed:4112",
+        hash: "prompt sha256:bd11...203a",
+        status: "converged",
+        badge: "info"
+      },
+      {
+        route: "route.single_ir",
+        fixture: "group.v2_factual.case1",
+        seed: "seed:4115",
+        hash: "prompt sha256:9914...a8bf",
+        status: "repaired",
+        badge: "warn"
+      },
+      {
+        route: "route.direct_smt",
+        fixture: "group.v2_terms.case2",
+        seed: "seed:4121",
+        hash: "prompt sha256:102a...f6be",
+        status: "blocked",
+        badge: "bad"
+      },
+      {
+        route: "route.stacked_ir",
+        fixture: "group.v2_null.case2",
+        seed: "seed:4124",
+        hash: "prompt sha256:ee31...7544",
+        status: "admitted",
+        badge: "ok"
+      }
+    ];
+
+    const routeList = document.querySelector("#routeList");
+    const routeRank = document.querySelector("#routeRank");
+    const metricRows = document.querySelector("#metricRows");
+    const recordKv = document.querySelector("#recordKv");
+    const miniBars = document.querySelector("#miniBars");
+    const ioList = document.querySelector("#ioList");
+
+    function renderRoutes(selectedId = routes[0].id) {
+      routeList.innerHTML = routes.map((route) => `
+        <button class="route-row ${route.id === selectedId ? "active" : ""}" type="button" data-route="${route.id}">
+          <strong>${route.label}</strong>
+          <span class="badge ${route.badge}">${route.status}</span>
+          <span class="route-meta">${route.id} / ${route.meta}</span>
+        </button>
+      `).join("");
+
+      routeRank.innerHTML = routes.map((route, index) => `
+        <article class="rank-card ${route.id === selectedId ? "active" : ""}">
+          <div class="rank-head">
+            <div>
+              <strong>${index + 1}. ${route.label}</strong>
+              <span class="tiny muted">${route.id} / ${route.meta}</span>
+            </div>
+            <span class="badge ${route.badge}">${route.score}/100</span>
+          </div>
+          <div class="rank-score">
+            <div class="bar-track"><div class="bar-fill" style="width: ${route.score}%; ${route.badge === "bad" ? "background: var(--red)" : route.badge === "warn" ? "background: var(--amber)" : ""}"></div></div>
+            <span class="mono tiny">${route.score}%</span>
+          </div>
+        </article>
+      `).join("");
+
+      routeList.querySelectorAll("[data-route]").forEach((button) => {
+        button.addEventListener("click", () => renderRoutes(button.dataset.route));
+      });
+    }
+
+    function renderMetrics(selectedId = metrics[0].id) {
+      metricRows.innerHTML = metrics.map((metric) => {
+        const deltaClass = metric.lift.startsWith("-") ? "delta-neg" : "delta-pos";
+        return `
+          <tr class="metric-row ${metric.id === selectedId ? "active" : ""}" data-metric="${metric.id}" tabindex="0">
+            <td class="mono">${metric.id}</td>
+            <td class="mono">${metric.best}</td>
+            <td class="mono">${metric.direct}</td>
+            <td class="mono ${deltaClass}">${metric.lift}</td>
+            <td>${metric.family}</td>
+          </tr>
+        `;
+      }).join("");
+
+      metricRows.querySelectorAll("[data-metric]").forEach((row) => {
+        row.addEventListener("click", () => renderMetric(row.dataset.metric));
+        row.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            renderMetric(row.dataset.metric);
+          }
+        });
+      });
+    }
+
+    function renderMetric(id) {
+      const metric = metrics.find((item) => item.id === id) || metrics[0];
+      renderMetrics(metric.id);
+      document.querySelector("#inspectorTitle").textContent = metric.id;
+      document.querySelector("#inspectorText").textContent = metric.text;
+      document.querySelector("#inspectorBadge").textContent = metric.family;
+
+      recordKv.innerHTML = `
+        <dt>metric_id</dt><dd class="mono">${metric.id}</dd>
+        <dt>best_route</dt><dd class="mono">${metric.best}</dd>
+        <dt>direct_smt</dt><dd class="mono">${metric.direct}</dd>
+        <dt>lift</dt><dd class="mono">${metric.lift}</dd>
+        <dt>family</dt><dd class="mono">${metric.family}</dd>
+      `;
+
+      miniBars.innerHTML = metric.bars.map(([label, width, value]) => `
+        <div class="mini-row">
+          <span>${label}</span>
+          <div class="bar-track"><div class="bar-fill" style="width: ${width}%; ${label === "direct" || label === "baseline" ? "background: var(--amber)" : ""}"></div></div>
+          <span class="mono">${value}</span>
+        </div>
+      `).join("");
+    }
+
+    function renderIo() {
+      ioList.innerHTML = ioRecords.map((record) => `
+        <div class="io-card">
+          <strong>${record.route}</strong>
+          <span class="badge ${record.badge}">${record.status}</span>
+          <code>${record.fixture}</code>
+          <div class="tiny muted">${record.seed} / ${record.hash}</div>
+          <div class="meter"><span style="width: ${record.badge === "bad" ? 42 : record.badge === "warn" ? 70 : 96}%;"></span></div>
+        </div>
+      `).join("");
+    }
+
+    document.querySelectorAll(".tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach((item) => item.classList.remove("active"));
+        document.querySelectorAll(".view").forEach((item) => item.classList.remove("active"));
+        tab.classList.add("active");
+        document.querySelector(`#view-${tab.dataset.view}`).classList.add("active");
+      });
+    });
+
+    document.querySelectorAll(".seg-btn").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll(".seg-btn").forEach((item) => item.classList.remove("active"));
+        button.classList.add("active");
+      });
+    });
+
+    renderRoutes();
+    renderMetric(metrics[0].id);
+    renderIo();
+  </script>
+</body>
+</html>
