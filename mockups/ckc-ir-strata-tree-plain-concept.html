@@ -143,6 +143,298 @@
       letter-spacing: 0;
     }
 
+    .extraction-figure {
+      margin-top: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: 0 1px 2px rgba(23, 33, 29, 0.07), 0 18px 42px rgba(23, 33, 29, 0.08);
+      overflow: hidden;
+    }
+
+    .figure-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfcfa;
+    }
+
+    .figure-head h2 {
+      margin: 0;
+      font-size: 15px;
+      letter-spacing: 0;
+    }
+
+    .figure-head p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .fixture-badge {
+      flex: none;
+      padding: 5px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #ffffff;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .extraction-grid {
+      display: grid;
+      grid-template-columns: minmax(250px, 1.05fr) 46px minmax(310px, 1.25fr) 46px minmax(250px, 1fr);
+      gap: 0;
+      min-height: 410px;
+      padding: 18px;
+      background:
+        linear-gradient(90deg, rgba(45, 112, 116, 0.05), transparent 30%),
+        linear-gradient(90deg, transparent 37%, rgba(79, 115, 48, 0.05) 37% 69%, transparent 69%),
+        #fbfcfa;
+    }
+
+    .figure-col {
+      min-width: 0;
+      display: grid;
+      align-content: start;
+      gap: 10px;
+    }
+
+    .col-title {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .source-card,
+    .extract-card,
+    .layer-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      box-shadow: 0 1px 2px rgba(23, 33, 29, 0.06);
+    }
+
+    .source-card {
+      padding: 14px;
+    }
+
+    .source-card p {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.55;
+      letter-spacing: 0;
+    }
+
+    .source-card small {
+      display: block;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .mark {
+      padding: 1px 3px 2px;
+      border-radius: 4px;
+      box-decoration-break: clone;
+      -webkit-box-decoration-break: clone;
+    }
+
+    .m-who {
+      background: #e0f0ef;
+      color: #1e6268;
+    }
+
+    .m-condition {
+      background: #f0e5ef;
+      color: #6f416d;
+    }
+
+    .m-threshold {
+      background: #e4ecf7;
+      color: #2c4f7c;
+    }
+
+    .m-action {
+      background: #e6f1df;
+      color: #3f6427;
+    }
+
+    .m-direction {
+      background: #f6ead7;
+      color: #85500f;
+    }
+
+    .m-contrast {
+      background: #f7e3df;
+      color: #94392e;
+    }
+
+    .flow-arrow {
+      display: grid;
+      place-items: center;
+      color: #839289;
+    }
+
+    .flow-arrow svg {
+      width: 34px;
+      height: 34px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .extract-card {
+      display: grid;
+      grid-template-columns: 30px minmax(0, 1fr);
+      gap: 9px;
+      align-items: center;
+      padding: 9px;
+    }
+
+    .extract-icon {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border: 1px solid currentColor;
+      background: var(--soft);
+      color: currentColor;
+    }
+
+    .extract-icon svg {
+      width: 16px;
+      height: 16px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .extract-card strong,
+    .extract-card span,
+    .layer-card strong,
+    .layer-card span {
+      display: block;
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .extract-card strong {
+      font-size: 12px;
+      line-height: 1.15;
+    }
+
+    .extract-card span {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .i-who {
+      --soft: #e0f0ef;
+      color: var(--source);
+      border-radius: 5px;
+    }
+
+    .i-condition {
+      --soft: #f0e5ef;
+      color: var(--meaning);
+      border-radius: 4px;
+      transform: rotate(45deg) scale(0.86);
+    }
+
+    .i-condition svg {
+      transform: rotate(-45deg);
+    }
+
+    .i-threshold {
+      --soft: #e4ecf7;
+      color: var(--check);
+      border-radius: 2px;
+    }
+
+    .i-action {
+      --soft: #e6f1df;
+      color: var(--piece);
+      border-radius: 999px;
+    }
+
+    .i-direction {
+      --soft: #f6ead7;
+      color: var(--rule);
+      clip-path: polygon(50% 0, 96% 25%, 96% 75%, 50% 100%, 4% 75%, 4% 25%);
+    }
+
+    .i-contrast {
+      --soft: #f7e3df;
+      color: var(--trail);
+      border-radius: 50% 50% 50% 12%;
+      transform: rotate(-45deg);
+    }
+
+    .i-contrast svg {
+      transform: rotate(45deg);
+    }
+
+    .layer-stack {
+      display: grid;
+      gap: 8px;
+    }
+
+    .layer-card {
+      display: grid;
+      grid-template-columns: 88px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      padding: 10px;
+    }
+
+    .layer-card .stage {
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .layer-card strong {
+      font-size: 12px;
+      line-height: 1.15;
+    }
+
+    .layer-card span {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .rule-card {
+      border-color: #dec58e;
+      background: #fffaf0;
+    }
+
+    .check-card {
+      border-color: #b8c8dc;
+      background: #f6f9fd;
+    }
+
+    .trail-card {
+      border-color: #e5b9b1;
+      background: #fff7f5;
+    }
+
     .scroll {
       overflow: auto;
     }
@@ -256,6 +548,21 @@
       }
 
       .caption {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .extraction-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+
+      .flow-arrow {
+        min-height: 24px;
+        transform: rotate(90deg);
+      }
+
+      .figure-head {
         align-items: flex-start;
         flex-direction: column;
       }
@@ -393,6 +700,101 @@
       <div class="caption">
         <span>Green branches show parts that stay the same across wording changes; dashed amber shows the shortcut path.</span>
         <code>source -> pieces -> meaning -> rules -> checks -> audit trail</code>
+      </div>
+    </section>
+
+    <section class="extraction-figure" aria-labelledby="extractTitle">
+      <div class="figure-head">
+        <div>
+          <h2 id="extractTitle">Source text to layered extraction</h2>
+          <p>Synthetic English passage showing which words become which reusable pieces.</p>
+        </div>
+        <span class="fixture-badge">research fixture only</span>
+      </div>
+
+      <div class="extraction-grid">
+        <div class="figure-col">
+          <h3 class="col-title">Source text</h3>
+          <div class="source-card">
+            <p>
+              For <span class="mark m-who">adults</span> with
+              <span class="mark m-condition">severe kidney disease</span>
+              (<span class="mark m-threshold">eGFR below 30</span>),
+              <span class="mark m-direction">do not use</span>
+              <span class="mark m-action">Drug X</span>.
+              If <span class="mark m-contrast">kidney function is normal</span>,
+              Drug X may be used.
+            </p>
+            <small>Fake passage for visualization only; not clinical guidance.</small>
+          </div>
+        </div>
+
+        <div class="flow-arrow" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M4 12h15"></path><path d="m13 6 6 6-6 6"></path></svg>
+        </div>
+
+        <div class="figure-col">
+          <h3 class="col-title">Picked words</h3>
+          <div class="extract-card">
+            <span class="extract-icon i-who"><svg viewBox="0 0 24 24"><path d="M8 7a4 4 0 1 0 8 0 4 4 0 0 0-8 0"></path><path d="M5 21a7 7 0 0 1 14 0"></path></svg></span>
+            <div><strong>adults</strong><span>who the rule is about</span></div>
+          </div>
+          <div class="extract-card">
+            <span class="extract-icon i-condition"><svg viewBox="0 0 24 24"><path d="M12 5l7 7-7 7-7-7z"></path><path d="M9 12h6"></path></svg></span>
+            <div><strong>severe kidney disease</strong><span>condition attached to the rule</span></div>
+          </div>
+          <div class="extract-card">
+            <span class="extract-icon i-threshold"><svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"></path><path d="M8 12h8"></path><path d="m12 9-3 3 3 3"></path></svg></span>
+            <div><strong>eGFR below 30</strong><span>turns into a strict threshold</span></div>
+          </div>
+          <div class="extract-card">
+            <span class="extract-icon i-direction"><svg viewBox="0 0 24 24"><path d="M12 4v16"></path><path d="M6 8h12"></path><path d="M8 8l-3 6h6z"></path></svg></span>
+            <div><strong>do not use</strong><span>negative direction, strong wording</span></div>
+          </div>
+          <div class="extract-card">
+            <span class="extract-icon i-action"><svg viewBox="0 0 24 24"><path d="M7 7h10"></path><path d="M7 12h10"></path><path d="M7 17h10"></path></svg></span>
+            <div><strong>Drug X</strong><span>the action target</span></div>
+          </div>
+          <div class="extract-card">
+            <span class="extract-icon i-contrast"><svg viewBox="0 0 24 24"><path d="M12 5a5 5 0 0 1 5 5c0 4-5 9-5 9s-5-5-5-9a5 5 0 0 1 5-5z"></path><path d="M10 10h4"></path></svg></span>
+            <div><strong>kidney function is normal</strong><span>contrast case, not the same patient group</span></div>
+          </div>
+        </div>
+
+        <div class="flow-arrow" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M4 12h15"></path><path d="m13 6 6 6-6 6"></path></svg>
+        </div>
+
+        <div class="figure-col">
+          <h3 class="col-title">Layered form</h3>
+          <div class="layer-stack">
+            <div class="layer-card">
+              <span class="stage">pieces</span>
+              <div><strong>one recommendation sentence</strong><span>keeps exact links back to the highlighted words</span></div>
+            </div>
+            <div class="layer-card">
+              <span class="stage">meaning</span>
+              <div><strong>adult + severe kidney disease + eGFR &lt; 30</strong><span>different wording can map to the same meaning</span></div>
+            </div>
+            <div class="layer-card rule-card">
+              <span class="stage">rule</span>
+              <div><strong>when that group is present, avoid Drug X</strong><span>reusable rule created from the extracted parts</span></div>
+            </div>
+            <div class="layer-card check-card">
+              <span class="stage">check</span>
+              <div><strong>look for a same-group permission</strong><span>the system can test whether another statement conflicts</span></div>
+            </div>
+            <div class="layer-card trail-card">
+              <span class="stage">audit</span>
+              <div><strong>rule -> picked words -> source passage</strong><span>every later result can point back to the original sentence</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="caption">
+        <span>The colored spans are the only facts carried forward; the rest of the sentence stays available as context and trace evidence.</span>
+        <code>words -> picked parts -> shared meaning -> rule -> check</code>
       </div>
     </section>
   </div>
