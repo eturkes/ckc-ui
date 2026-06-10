@@ -1,4 +1,9 @@
-# Reusable Session Prompt
+---
+description: Start or resume a CKC UI work session
+argument-hint: <TASK>
+---
+
+# CKC UI Session Prompt
 
 You are working in `/run/host/home/eturkes/Projects/scratch/ckc-ui`.
 
@@ -15,3 +20,8 @@ Default closeout:
 1. Verify changed artifacts with local tools.
 2. Keep `.gitignore` aligned with generated outputs.
 3. Commit one scoped change before final response when work is complete.
+
+Requested task:
+$ARGUMENTS
+
+When `<TASK>` is empty, ask for the missing task before changing files.
