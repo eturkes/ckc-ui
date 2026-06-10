@@ -435,6 +435,194 @@
       background: #fff7f5;
     }
 
+    .mechanics-figure {
+      margin-top: 16px;
+    }
+
+    .mechanics-grid {
+      display: grid;
+      grid-template-columns: minmax(260px, 0.95fr) minmax(330px, 1.15fr) minmax(280px, 1fr);
+      gap: 14px;
+      padding: 18px;
+      background:
+        linear-gradient(90deg, rgba(45, 112, 116, 0.05), transparent 32%),
+        linear-gradient(90deg, transparent 34%, rgba(52, 84, 127, 0.05) 34% 67%, transparent 67%),
+        #fbfcfa;
+    }
+
+    .mechanics-col {
+      min-width: 0;
+      display: grid;
+      align-content: start;
+      gap: 10px;
+    }
+
+    .mechanics-card,
+    .detector-card,
+    .record-card,
+    .resolver-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      box-shadow: 0 1px 2px rgba(23, 33, 29, 0.06);
+    }
+
+    .mechanics-card {
+      padding: 12px;
+    }
+
+    .anchored-text {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.65;
+      letter-spacing: 0;
+    }
+
+    .span-key {
+      display: grid;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .span-key div {
+      display: grid;
+      grid-template-columns: 72px minmax(0, 1fr);
+      gap: 8px;
+      align-items: baseline;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .span-key code {
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .detector-card {
+      display: grid;
+      grid-template-columns: 86px minmax(0, 1fr);
+      gap: 10px;
+      padding: 10px;
+    }
+
+    .detector-card .detector-name {
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .detector-card strong,
+    .detector-card span,
+    .record-card strong,
+    .record-card span,
+    .resolver-card strong,
+    .resolver-card span {
+      display: block;
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .detector-card strong,
+    .record-card strong,
+    .resolver-card strong {
+      font-size: 12px;
+      line-height: 1.15;
+    }
+
+    .detector-card span,
+    .record-card span,
+    .resolver-card span {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .resolver-card {
+      padding: 10px;
+      background: #f8faf8;
+    }
+
+    .resolver-steps {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .resolver-steps div {
+      display: grid;
+      grid-template-columns: 22px minmax(0, 1fr);
+      gap: 8px;
+      align-items: start;
+    }
+
+    .step-num {
+      width: 22px;
+      height: 22px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #ffffff;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 11px;
+    }
+
+    .record-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .record-card {
+      display: grid;
+      grid-template-columns: 72px minmax(0, 1fr);
+      gap: 9px;
+      padding: 9px;
+    }
+
+    .record-card.accepted {
+      border-color: #b8cfae;
+      background: #f7fbf4;
+    }
+
+    .record-card.separate {
+      border-color: #e6c1b9;
+      background: #fff8f6;
+    }
+
+    .record-card code {
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 5px;
+      padding: 2px 5px;
+      border-radius: 999px;
+      background: #e6f1df;
+      color: #3f6427;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .status-pill.separate {
+      background: #f7e3df;
+      color: #94392e;
+    }
+
     .scroll {
       overflow: auto;
     }
@@ -555,6 +743,10 @@
       .extraction-grid {
         grid-template-columns: 1fr;
         gap: 14px;
+      }
+
+      .mechanics-grid {
+        grid-template-columns: 1fr;
       }
 
       .flow-arrow {
@@ -795,6 +987,118 @@
       <div class="caption">
         <span>The colored spans are the only facts carried forward; the rest of the sentence stays available as context and trace evidence.</span>
         <code>words -> picked parts -> shared meaning -> rule -> check</code>
+      </div>
+    </section>
+
+    <section class="extraction-figure mechanics-figure" aria-labelledby="mechanicsTitle">
+      <div class="figure-head">
+        <div>
+          <h2 id="mechanicsTitle">How picked words are picked</h2>
+          <p>Each kept value must pass through an anchored span, a detector, and a role check.</p>
+        </div>
+        <span class="fixture-badge">exact offsets shown</span>
+      </div>
+
+      <div class="mechanics-grid">
+        <div class="mechanics-col">
+          <h3 class="col-title">1. Anchor the sentence</h3>
+          <div class="mechanics-card">
+            <p class="anchored-text">
+              For <span class="mark m-who">adults</span> with
+              <span class="mark m-condition">severe kidney disease</span>
+              (<span class="mark m-threshold">eGFR below 30</span>),
+              <span class="mark m-direction">do not use</span>
+              <span class="mark m-action">Drug X</span>.
+              If <span class="mark m-contrast">kidney function is normal</span>,
+              Drug X may be used.
+            </p>
+            <div class="span-key" aria-label="Source offsets">
+              <div><code>S1:4-10</code><span>adults</span></div>
+              <div><code>S1:16-37</code><span>severe kidney disease</span></div>
+              <div><code>S1:39-52</code><span>eGFR below 30</span></div>
+              <div><code>S1:55-65</code><span>do not use</span></div>
+              <div><code>S1:66-72</code><span>Drug X</span></div>
+              <div><code>S1:77-102</code><span>kidney function is normal</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mechanics-col">
+          <h3 class="col-title">2. Run detectors</h3>
+          <div class="detector-card">
+            <span class="detector-name">section</span>
+            <div><strong>warning sentence</strong><span>period boundary creates one source sentence with stable offsets</span></div>
+          </div>
+          <div class="detector-card">
+            <span class="detector-name">people</span>
+            <div><strong>adults -> who</strong><span>known population term, accepted only inside the warning sentence</span></div>
+          </div>
+          <div class="detector-card">
+            <span class="detector-name">term</span>
+            <div><strong>severe kidney disease -> condition</strong><span>terminology match keeps the original words plus a normalized meaning</span></div>
+          </div>
+          <div class="detector-card">
+            <span class="detector-name">number</span>
+            <div><strong>eGFR below 30 -> eGFR &lt; 30</strong><span>measure + comparator + value becomes a threshold</span></div>
+          </div>
+          <div class="detector-card">
+            <span class="detector-name">phrase</span>
+            <div><strong>do not use -> avoid</strong><span>negative instruction phrase sets the rule direction</span></div>
+          </div>
+          <div class="detector-card">
+            <span class="detector-name">target</span>
+            <div><strong>Drug X -> action target</strong><span>the named thing acted on by the instruction</span></div>
+          </div>
+          <div class="detector-card">
+            <span class="detector-name">guard</span>
+            <div><strong>normal kidney function -> separate case</strong><span>starts with "If", so it is kept apart from the severe-kidney rule</span></div>
+          </div>
+        </div>
+
+        <div class="mechanics-col">
+          <h3 class="col-title">3. Accept grounded records</h3>
+          <div class="resolver-card">
+            <strong>Role check</strong>
+            <span>A picked word is accepted only when its source span, detector, and role agree.</span>
+            <div class="resolver-steps">
+              <div><span class="step-num">1</span><span>All accepted spans point to the same anchored sentence.</span></div>
+              <div><span class="step-num">2</span><span>Each span has one role: who, condition, threshold, direction, or target.</span></div>
+              <div><span class="step-num">3</span><span>The assembled rule keeps source offsets for later audit.</span></div>
+            </div>
+          </div>
+
+          <div class="record-list">
+            <div class="record-card accepted">
+              <div><code>S1:4-10</code><span class="status-pill">kept</span></div>
+              <div><strong>who = adult</strong><span>from "adults"</span></div>
+            </div>
+            <div class="record-card accepted">
+              <div><code>S1:16-37</code><span class="status-pill">kept</span></div>
+              <div><strong>condition = severe kidney disease</strong><span>from terminology match</span></div>
+            </div>
+            <div class="record-card accepted">
+              <div><code>S1:39-52</code><span class="status-pill">kept</span></div>
+              <div><strong>threshold = eGFR &lt; 30</strong><span>from numeric phrase</span></div>
+            </div>
+            <div class="record-card accepted">
+              <div><code>S1:55-65</code><span class="status-pill">kept</span></div>
+              <div><strong>direction = avoid</strong><span>from instruction phrase</span></div>
+            </div>
+            <div class="record-card accepted">
+              <div><code>S1:66-72</code><span class="status-pill">kept</span></div>
+              <div><strong>target = Drug X</strong><span>from action target match</span></div>
+            </div>
+            <div class="record-card separate">
+              <div><code>S1:77-102</code><span class="status-pill separate">split</span></div>
+              <div><strong>separate case</strong><span>not merged into the severe-kidney rule</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="caption">
+        <span>Detection proposes spans; the role check decides which proposed spans become picked records.</span>
+        <code>anchored sentence -> detectors -> role check -> grounded records</code>
       </div>
     </section>
   </div>
