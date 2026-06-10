@@ -1,7 +1,7 @@
 # CKC — Clinical Knowledge Compiler — spec04
 
-Design authority for this repository. Sole implementers and readers: Claude (Fable 5 family)
-sessions operating under CLAUDE.md, `.claude/commands/session-prompt.md`, and `.agent/`.
+Design authority for this repository. Sole implementers and readers: AI-agent sessions operating
+under AGENTS.md and `.agent/`.
 The document is optimized for machine reading: stable `§` anchors, tables over prose, one fact in
 one place, sections sized for selective loading.
 
@@ -70,34 +70,32 @@ Claim tiers:
 Intent: every session behaves the same way, learns from prior sessions, and leaves the repository
 in a state the next session can trust.
 
-Sources of truth, in order: user instructions > CLAUDE.md > this spec > `.agent/roadmap.md`
+Sources of truth, in order: user instructions > AGENTS.md > this spec > `.agent/roadmap.md`
 (build plan) > `.agent/memory.md` (lessons). Sessions load §0–§2 plus the reading slice their
 roadmap unit names; wider loading is reserved for spec-maintenance sessions.
 
 Unit discipline:
 
 - One roadmap unit = one conceptual deliverable + one gate command, finishable and committable in
-  a single 200K context window with margin. Calibrate from neighbouring units' `NN%` annotations
-  and the sizing lessons in memory; pre-split units that stack a crate foundation, a
-  writer-inverse, a recursive type family, or an algorithm plus a second authored artifact.
+  a single session with margin. Calibrate from neighbouring units and the sizing lessons in
+  memory; pre-split units that stack a crate foundation, a writer-inverse, a recursive type
+  family, or an algorithm plus a second authored artifact.
 - Build exactly the unit's deliverable; choose the simplest implementation that passes the gate.
   Record genuine future needs as roadmap candidates for the unit that will consume them.
 - Every Rust unit runs `cargo fmt`, `cargo clippy --workspace --all-targets -- -D warnings`, and
   its gate before staging.
-- Monitor context with `.agent/compaction.sh`; from 80% usage, bring work to a committable state
-  before starting anything new.
-- Close each cohesive piece of work with one scoped commit (CLAUDE.md); write non-ASCII commit
+- Close each cohesive piece of work with one scoped commit (AGENTS.md); write non-ASCII commit
   messages to a file and commit with `git commit -F <path>`.
 
-Working style (Fable 5):
+Working style:
 
 - When you have enough information to act, act; bring contract-changing decisions, destructive
   actions, and genuine scope changes to the user, and proceed on everything else.
 - Audit every progress claim against a tool result from the current session; report failures with
   their output, and state verified results plainly.
-- Milestone-closing reviews audit the whole milestone single-context in a 1M window (every other
-  session runs 200K); plan sessions fan out to subagent workflows per the session command.
-  Subagents stay read-only; all mutations land in the main session.
+- Milestone-closing reviews audit the whole milestone in a dedicated review session. Plan
+  sessions use separate read-only review passes when useful. All mutations land in the main
+  session.
 - Record transferable lessons in `.agent/memory.md` when they generalize beyond the current unit;
   update or delete entries that have drifted.
 - Lead final reports with the outcome, in plain sentences a reader without your working context
@@ -106,7 +104,8 @@ Working style (Fable 5):
 Spec evolution: the spec grows in place. When a milestone closes (its closing review lands), the
 plan session that opens the next milestone is an elaboration session while that milestone's
 contract section is still compact: expand it into full normative text (workflow-driven; mine
-`docs/` and the archives through subagents), present the diff to the user for review, then seed
+`docs/` and the archives through read-only review passes), present the diff to the user for
+review, then seed
 `.agent/roadmap.md` with the milestone's header and units. Elaboration sessions may also amend
 earlier sections when implementation evidence justifies it; contract-affecting amendments reach
 the user before any unit consumes them. Acceptance sessions mark the milestone header in the
@@ -127,7 +126,7 @@ assembling the full harness before the first end-to-end result.
 | V1 spine | Layered pipeline end-to-end on synthetic Japanese fixtures: extract → segment → normalize → assemble → compile → verify; one deontic contradiction found, one null result documented, full trace, deterministic replay. Pure Rust. | `ckc run --experiment exp.v1_spine` + §8 checklist |
 | V2 comparison | Direct-formalization baseline pipeline; reuse/compactness/hash-convergence/conflict metrics; metamorphic variant fixtures; ranked comparison report. First thesis measurement (claim 1; claim 3's optimization objective via the compactness frontier). | `ckc run --experiment exp.v2_compare` + §9 acceptance |
 | V3 weak-model PoC | Translation-route comparison under a weak local model (laptop CPU, grammar-constrained, recorded I/O): six routes (§10 table) scored on the V2 evaluator (claim 2); plus the build-once amortization experiment (claim 3). | `ckc run --experiment exp.v3_routes` / `exp.v3_amortize` + §10 |
-| V4 autoresearch PoC | Bounded autoresearch loop (§11) over declared surfaces against a locked evaluator, optimizing lift, reuse, and coverage; full attempt ledger; driver-portable — local driver for acceptance, Claude-session driver defined (claim 4). | `ckc research loop --experiment exp.v4_loop` + §11 |
+| V4 autoresearch PoC | Bounded autoresearch loop (§11) over declared surfaces against a locked evaluator, optimizing lift, reuse, and coverage; full attempt ledger; driver-portable — local driver for acceptance, agent-session driver defined (claim 4). | `ckc research loop --experiment exp.v4_loop` + §11 |
 | V5 sources | Public corpus ingestion: fetch/cache, permission records, real Minds/J-STAGE HTML+PDF extraction, tables and DecisionTable IR, MEDIS-anchored terminology, e-PI XML source family, drift checks. | §12 contract, elaborated at V4 acceptance |
 | V6 expansion | Registry-driven growth: retrieval, richer rule semantics, additional solvers/targets, corpus scale, matrix scale-out, the cross-source flagship experiment, candidate DSLs beyond the PoC. | §13 principles, elaborated per candidate |
 
@@ -190,16 +189,15 @@ Repository layout (target state; built up by the V1 units):
 
 ```text
 .
-├── SPEC.md  CLAUDE.md  LICENSE  .gitignore
+├── SPEC.md  AGENTS.md  LICENSE  .gitignore
 ├── Cargo.toml  Cargo.lock
 ├── crates/{ckc-core,ckc-smt,ckc-cli}/
 ├── corpus/{fixtures,lexicon,gold}/        # committed, license-clean
 ├── registry/                              # corpora.yaml candidates.yaml experiments.yaml at V1;
 │                                          # grows per milestone (§14)
-├── docs/                                  # research compendium (§14), mined via subagents
+├── docs/                                  # research compendium (§14), mined during elaboration
 ├── runs/                                  # gitignored run outputs
-├── .agent/{memory.md,roadmap.md,compaction.sh}
-└── .claude/
+└── .agent/{memory.md,roadmap.md}
 ```
 
 CLI (V1 surface; later milestones extend):
@@ -725,7 +723,7 @@ the core and back.
 `core-canon-writer/collections/unions/reader/hash` (canonical bytes + hashing) — byte-compatible
 with §4.1–§4.3. `archive/spec02` holds a canonical serializer, content-addressed store, and
 closure/certificate patterns. Consult them via `git show archive/specNN:<path>` or read-only
-subagents; this main rebuilds the code fresh.
+review passes; this main rebuilds the code fresh.
 
 ### §8.8 Seed decomposition (sizing aid; the roadmap is authoritative)
 
@@ -887,11 +885,11 @@ Committed direction:
 - Loop drivers: the loop contract (lock, surfaces, budgets, ledger, admission) is
   driver-independent, with the driver an ExperimentPlan field recorded in manifests.
   `driver.local` — this PoC's acceptance driver — runs recorded local models on the laptop.
-  `driver.claude_session`, a §8.4 candidate entry, runs proposer/council/patch steps as Claude
-  agent sessions (a slash command under `.claude/commands/` plus headless invocation, authored
-  at this milestone's elaboration), with API cost in the budget fields; it ships authored and
-  registered, exercised on user request. Long-horizon loops run on the agent driver when scale
-  demands; evaluator locks, admission, and ledgers stay identical across drivers.
+  `driver.agent_session`, a §8.4 candidate entry, runs proposer/council/patch steps as supervised
+  agent sessions (repo-local command documentation or scripts, authored at this milestone's
+  elaboration), with API cost in the budget fields; it ships authored and registered, exercised on
+  user request. Long-horizon loops run on the agent driver when scale demands; evaluator locks,
+  admission, and ledgers stay identical across drivers.
 - Standing long-run objectives: route/IR-combination search over the `registry/methods.yaml`
   universe (§14) — existing formalisms and invented DSLs; the claim-2 configuration space is
   combinatorial — and mapping-set minimization toward the §0 asymptotic ideal, under `G-MDL`
@@ -962,8 +960,8 @@ V3 adds `prompts|schemas` (the schema export feeds V3's grammar constraints); V4
 
 `docs/` is the committed research compendium behind spec04 — ten method-category deep-research
 reports plus the agent-language catalogue. Registry-seeding and elaboration units mine it through
-read-only subagents and cite `file §section` in registry notes; main sessions keep their
-own context lean.
+read-only review passes and cite `file §section` in registry notes; main sessions keep their
+working context focused.
 
 ## §15 Gates
 
