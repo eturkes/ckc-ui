@@ -75,7 +75,7 @@
     .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: #fff; margin-top: 10px; }
     table { width: 100%; border-collapse: collapse; min-width: 760px; }
     table.wide { min-width: 980px; }
-    table.extra-wide { min-width: 1320px; }
+    table.extra-wide { min-width: 1120px; }
     th, td { border-bottom: 1px solid var(--line); padding: 8px 9px; text-align: left; vertical-align: top; font-size: .81rem; line-height: 1.32; }
     tr:last-child th, tr:last-child td { border-bottom: 0; }
     th { color: var(--muted); background: #f7fafc; font-weight: 800; }
@@ -223,109 +223,91 @@
     <section class="band">
       <div class="wrap">
         <h2>M3 Route Ranking</h2>
-        <p><code>runs/m3-routes/ranking.csv</code> classifies the latest route comparison as <code>target_syntax_delta_only</code>. No route has admitted lift; non-direct routes produce parseable targets more reliably than direct SMT. The table separates the gated performance rank, the audit-only candidate performance rank, and a structural complexity rank.</p>
+        <p>This view ranks route methods by target accuracy: how often the generated route target reached the expected verdict on the current M3 trial rows. Admission is shown separately because none of these route outputs passed the current admission gate.</p>
         <div class="rank-strip" aria-label="Route ranking summary">
           <div class="rank-fact">
-            <strong>Gated performance</strong>
-            <span><code>route.ckc_layered</code> is rank 1 in the CSV sort, but every route has <code>0/4</code> admitted accuracy and <code>0/4</code> admission.</span>
+            <strong>Highest target accuracy</strong>
+            <span><code>route.ir_hop_chain</code> reached the expected target verdict on <code>3/4</code> trial rows.</span>
           </div>
           <div class="rank-fact">
-            <strong>Best candidate performance</strong>
-            <span><code>route.ir_hop_chain</code> leads the rejected-output diagnostic view at <code>3/4</code> candidate verdict accuracy.</span>
+            <strong>Middle group</strong>
+            <span><code>route.single_ir</code>, <code>route.stacked_ir</code>, and <code>route.ckc_layered</code> each reached <code>1/4</code>.</span>
           </div>
           <div class="rank-fact">
-            <strong>Relative complexity</strong>
-            <span><code>route.direct_smt</code> is complexity rank <code>1</code>, the least complex route; <code>route.ckc_layered</code> is rank <code>5</code>.</span>
+            <strong>Least complex</strong>
+            <span><code>route.direct_smt</code> is complexity rank <code>1</code>, but reached <code>0/4</code> target verdicts.</span>
           </div>
         </div>
         <div class="table-wrap">
           <table class="extra-wide">
             <thead>
               <tr>
-                <th>Gated perf rank</th>
+                <th>Success rank</th>
                 <th>Route</th>
-                <th>Candidate perf rank</th>
+                <th>Target accuracy</th>
                 <th>Complexity rank</th>
                 <th>Model calls</th>
                 <th>Target syntax</th>
-                <th>Admission</th>
-                <th>Admitted accuracy</th>
-                <th>Stability</th>
-                <th>Candidate accuracy</th>
+                <th>Admission gate</th>
                 <th>Evidence classification</th>
               </tr>
             </thead>
             <tbody>
               <tr>
                 <td class="num">1</td>
-                <td><code>route.ckc_layered</code></td>
-                <td class="num">2</td>
-                <td class="num">5</td>
-                <td class="num">24</td>
-                <td><span class="ratio"><span class="track"><span class="fill green" style="width:100%"></span></span><code>4/4</code></span></td>
-                <td><code>0/4</code></td>
-                <td><code>0/4</code></td>
-                <td><code>0/4</code></td>
-                <td><code>1/4</code> audit-only</td>
-                <td><span class="tag amber">target_syntax_delta_only</span></td>
-              </tr>
-              <tr>
-                <td class="num">2</td>
                 <td><code>route.ir_hop_chain</code></td>
-                <td class="num">1</td>
+                <td><span class="ratio"><span class="track"><span class="fill green" style="width:75%"></span></span><code>3/4</code></span></td>
                 <td class="num">4</td>
                 <td class="num">12</td>
                 <td><span class="ratio"><span class="track"><span class="fill green" style="width:100%"></span></span><code>4/4</code></span></td>
                 <td><code>0/4</code></td>
-                <td><code>0/4</code></td>
-                <td><code>0/4</code></td>
-                <td><code>3/4</code> audit-only</td>
                 <td><span class="tag amber">target_syntax_delta_only</span></td>
               </tr>
               <tr>
-                <td class="num">3</td>
+                <td class="num">2</td>
                 <td><code>route.single_ir</code></td>
-                <td class="num">2</td>
+                <td><span class="ratio"><span class="track"><span class="fill amber" style="width:25%"></span></span><code>1/4</code></span></td>
                 <td class="num">2</td>
                 <td class="num">4</td>
                 <td><span class="ratio"><span class="track"><span class="fill green" style="width:100%"></span></span><code>4/4</code></span></td>
                 <td><code>0/4</code></td>
-                <td><code>0/4</code></td>
-                <td><code>0/4</code></td>
-                <td><code>1/4</code> audit-only</td>
                 <td><span class="tag amber">target_syntax_delta_only</span></td>
               </tr>
               <tr>
-                <td class="num">4</td>
+                <td class="num">2</td>
                 <td><code>route.stacked_ir</code></td>
-                <td class="num">2</td>
+                <td><span class="ratio"><span class="track"><span class="fill amber" style="width:25%"></span></span><code>1/4</code></span></td>
                 <td class="num">3</td>
                 <td class="num">4</td>
                 <td><span class="ratio"><span class="track"><span class="fill green" style="width:100%"></span></span><code>4/4</code></span></td>
                 <td><code>0/4</code></td>
-                <td><code>0/4</code></td>
-                <td><code>0/4</code></td>
-                <td><code>1/4</code> audit-only</td>
                 <td><span class="tag amber">target_syntax_delta_only</span></td>
               </tr>
               <tr>
+                <td class="num">2</td>
+                <td><code>route.ckc_layered</code></td>
+                <td><span class="ratio"><span class="track"><span class="fill amber" style="width:25%"></span></span><code>1/4</code></span></td>
                 <td class="num">5</td>
-                <td><code>route.direct_smt</code></td>
+                <td class="num">24</td>
+                <td><span class="ratio"><span class="track"><span class="fill green" style="width:100%"></span></span><code>4/4</code></span></td>
+                <td><code>0/4</code></td>
+                <td><span class="tag amber">target_syntax_delta_only</span></td>
+              </tr>
+              <tr>
                 <td class="num">3</td>
+                <td><code>route.direct_smt</code></td>
+                <td><span class="ratio"><span class="track"><span class="fill red" style="width:0%"></span></span><code>0/4</code></span></td>
                 <td class="num">1</td>
                 <td class="num">4</td>
                 <td><span class="ratio"><span class="track"><span class="fill red" style="width:25%"></span></span><code>1/4</code></span></td>
                 <td><code>0/4</code></td>
-                <td><code>0/4</code></td>
-                <td><code>0/4</code></td>
-                <td><code>0/4</code> audit-only</td>
                 <td><span class="tag amber">baseline null</span></td>
               </tr>
             </tbody>
           </table>
         </div>
         <div class="note">
-          <p>Ranking policy: <code>route_lexicographic_exact_v0</code>. Sort keys are admitted verdict accuracy, admission rate, target syntax validity, and k-sample stability. Candidate verdict rank is audit-only. Complexity rank is structural, lower is simpler, and is based on the current route shape and model/bridge stages rather than a quality metric.</p>
+          <p>Target accuracy is the current <code>candidate_verdict_accuracy</code> metric from <code>score_breakdown.json</code>. It is useful for comparing route-method promise, but the admission gate remains <code>0/4</code> for every route, so this is not an admitted performance claim.</p>
         </div>
       </div>
     </section>
