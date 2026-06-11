@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import {
   mkdir,
@@ -16,6 +17,12 @@ const runId = "m2-one-shot";
 const runDir = path.join(root, "runs", runId);
 const webDataPath = path.join(root, "workbench", "run-data.js");
 const verifyMode = process.argv.includes("--verify");
+const recordedModel = process.argv.includes("--recorded-model");
+const liveModel = process.argv.includes("--live-model") || !recordedModel;
+const llamaCliPath = process.env.CKC_LLAMA_CLI ?? path.join(root, ".local", "bin", "llama-cli");
+const modelPath = process.env.CKC_MODEL_PATH ?? path.join(root, ".local", "models", "qwen2.5-0.5b-instruct-q2_k.gguf");
+const modelName = "Qwen2.5-0.5B-Instruct-Q2_K";
+const modelTimeoutMs = Number(process.env.CKC_MODEL_TIMEOUT_MS ?? "120000");
 
 const fixtureRegistry = [
   {
@@ -525,14 +532,249 @@ function simulateRoute(routeId, groupId, seed) {
   return { route_id: routeId, group_id: groupId, seed, ...entry };
 }
 
-function promptFor(routeId, groupId, seed) {
+function groupSourceLines(groupId) {
+  if (groupId === "group.m1_conflict") {
+    return [
+      "A: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。",
+      "A-exception: ただし、重度腎機能障害のある患者を除く。",
+      "B: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。"
+    ];
+  }
   return [
-    `route: ${routeId}`,
+    "A: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。",
+    "A-exception: ただし、重度腎機能障害のある患者を除く。",
+    "Control: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。"
+  ];
+}
+
+function allowedRulesForGroup(groupId) {
+  return groupId === "group.m1_conflict"
+    ? ["rule.a.cq1.r1", "rule.b.contra1"]
+    : ["rule.a.cq1.r1", "rule.control.child.contra1"];
+}
+
+function promptFor(routeId, groupId, seed) {
+  const common = [
+    "You are a weak local model inside a research harness.",
+    "Translate only the provided synthetic Japanese fixture spans.",
+    "No clinical, patient-care, deployment, or regulatory claim.",
     `group: ${groupId}`,
     `seed: ${seed}`,
-    "task: translate the synthetic Japanese fixture spans into the route target.",
-    "scope: research harness, source-grounded, no clinical claim."
+    "source spans:",
+    ...groupSourceLines(groupId)
+  ];
+  if (routeId === "route.direct_smt") {
+    return [
+      ...common,
+      "route: route.direct_smt",
+      "Output only SMT-LIB text. Do not use Markdown.",
+      "Use only these symbols: |q.age_years|, |cond.sepsis|, |cond.renal_severe|, |cond.pregnancy|, |pos:act.administer:drug.abx_a|.",
+      "End with (check-sat)."
+    ].join("\n");
+  }
+  return [
+    ...common,
+    "route: route.single_ir",
+    "Output only one minified JSON object. Do not use Markdown.",
+    "Schema: {\"rules\":[string,string],\"verdict\":\"semantic_contradiction|semantic_no_conflict\"}",
+    `Allowed rules: ${allowedRulesForGroup(groupId).join(", ")}`
   ].join("\n");
+}
+
+function requireLiveModelReady() {
+  if (!existsSync(llamaCliPath) || !existsSync(modelPath)) {
+    throw new Error(
+      `live model assets missing. Run \`npm run setup:model\` first, or use \`npm run verify:recorded\`. Missing: ${[
+        existsSync(llamaCliPath) ? null : path.relative(root, llamaCliPath),
+        existsSync(modelPath) ? null : path.relative(root, modelPath)
+      ].filter(Boolean).join(", ")}`
+    );
+  }
+}
+
+function llamaArgs(prompt, seed) {
+  return [
+    "-m", modelPath,
+    "-p", prompt,
+    "-n", "180",
+    "--ctx-size", "1536",
+    "--temp", "0.2",
+    "--top-k", "20",
+    "--seed", String(seed),
+    "--no-display-prompt",
+    "--single-turn",
+    "--simple-io",
+    "--no-show-timings",
+    "--log-verbosity", "1",
+    "--no-log-prefix",
+    "--no-log-timestamps",
+    "--no-warmup",
+    "--no-perf"
+  ];
+}
+
+function runLlama(prompt, seed) {
+  requireLiveModelReady();
+  const args = llamaArgs(prompt, seed);
+  const result = spawnSync(llamaCliPath, args, {
+    cwd: root,
+    encoding: "utf8",
+    timeout: modelTimeoutMs,
+    maxBuffer: 8 * 1024 * 1024,
+    env: {
+      ...process.env,
+      LLAMA_CACHE: path.join(root, ".local", "llama-cache")
+    }
+  });
+  return {
+    stdout: result.stdout ?? "",
+    exit_status: result.status,
+    signal: result.signal,
+    error: result.error ? String(result.error.message ?? result.error) : null,
+    timed_out: result.error?.code === "ETIMEDOUT",
+    command: {
+      executable: path.relative(root, llamaCliPath),
+      args: args.map((entry, index) => {
+        if (entry === modelPath) return path.relative(root, modelPath);
+        if (args[index - 1] === "-p") return "<prompt>";
+        return entry;
+      })
+    }
+  };
+}
+
+function cleanModelText(text, prompt = "") {
+  let cleaned = text.replace(/\r/g, "");
+  if (prompt && cleaned.includes(prompt)) {
+    cleaned = cleaned.slice(cleaned.indexOf(prompt) + prompt.length);
+  }
+  const exitIndex = cleaned.indexOf("\nExiting");
+  if (exitIndex >= 0) cleaned = cleaned.slice(0, exitIndex);
+  return cleaned
+    .replace(/\r/g, "")
+    .replace(/```(?:smt2?|json)?/gi, "")
+    .replace(/```/g, "")
+    .replace(/^\s*>\s*/gm, "")
+    .trim();
+}
+
+function balancedParens(text) {
+  let depth = 0;
+  for (const char of text) {
+    if (char === "(") depth += 1;
+    if (char === ")") depth -= 1;
+    if (depth < 0) return false;
+  }
+  return depth === 0;
+}
+
+function extractJsonObject(text) {
+  const cleaned = cleanModelText(text);
+  const candidates = [];
+  for (let start = cleaned.indexOf("{"); start >= 0; start = cleaned.indexOf("{", start + 1)) {
+    for (let end = cleaned.indexOf("}", start); end >= 0; end = cleaned.indexOf("}", end + 1)) {
+      const text = cleaned.slice(start, end + 1);
+      try {
+        candidates.push({ value: JSON.parse(text), text });
+        break;
+      } catch {
+        // Keep scanning; prompts may contain schema examples that are not valid JSON.
+      }
+    }
+  }
+  return candidates.at(-1) ?? null;
+}
+
+function classifyDirectSmt(output, expected) {
+  const text = cleanModelText(output);
+  const diagnostics = [];
+  const syntax_valid = text.includes("(check-sat)") && balancedParens(text);
+  if (!syntax_valid) diagnostics.push("target_parse_error", "ai_schema_violation");
+
+  const hallucinated = /\b(creatinine|renal|腎|dose|死亡|mortality)\b/i.test(text)
+    && !text.includes("cond.renal_severe");
+  if (hallucinated) diagnostics.push("ai_hallucinated_source");
+
+  let verdict = "unknown";
+  if (syntax_valid) {
+    const hasPositive = /\(assert\s+\|?pos[:\w.-]*act\.administer:drug\.abx_a\|?|\(assert\s+\|positive_abx_a\|/.test(text);
+    const hasNegative = /\(assert\s+\(not\s+\|?pos[:\w.-]*act\.administer:drug\.abx_a\|?\)|\(assert\s+\(not\s+\|positive_abx_a\|\)/.test(text);
+    const hasAgeAdult = />=\s+\|q\.age_years\|\s+18|>=\s+18/.test(text);
+    const hasAgeChild = /<\s+\|q\.age_years\|\s+18|<\s+18/.test(text);
+    if (hasPositive && hasNegative) verdict = "semantic_contradiction";
+    else if (hasAgeAdult && hasAgeChild) verdict = "semantic_no_conflict";
+  }
+
+  if (syntax_valid && verdict === "unknown") diagnostics.push("unsupported_ir_fragment");
+  if (verdict !== "unknown" && verdict !== expected) diagnostics.push("false_positive_conflict");
+
+  return {
+    syntax_valid,
+    admitted: syntax_valid && verdict !== "unknown" && !hallucinated,
+    verdict: syntax_valid ? verdict : "target_syntax_failure",
+    diagnostics: [...new Set(diagnostics)]
+  };
+}
+
+function classifySingleIr(output, groupId, expected) {
+  const diagnostics = [];
+  const extracted = extractJsonObject(output);
+  const parsed = extracted?.value;
+  const syntax_valid = Boolean(parsed);
+  if (!syntax_valid) diagnostics.push("ai_schema_violation");
+
+  const allowedRules = new Set(allowedRulesForGroup(groupId));
+  const rules = Array.isArray(parsed?.rules) ? parsed.rules : [];
+  const verdict = parsed?.verdict;
+  const allowedVerdict = verdict === "semantic_contradiction" || verdict === "semantic_no_conflict";
+  const allowedRuleSet = rules.length > 0 && rules.every((rule) => allowedRules.has(rule));
+  if (syntax_valid && !allowedRuleSet) diagnostics.push("ai_hallucinated_source");
+  if (syntax_valid && !allowedVerdict) diagnostics.push("unsupported_ir_fragment");
+  if (allowedVerdict && verdict !== expected) diagnostics.push("false_positive_conflict");
+
+  return {
+    syntax_valid,
+    admitted: syntax_valid && allowedRuleSet && allowedVerdict,
+    verdict: allowedVerdict ? verdict : (syntax_valid ? "unknown" : "target_syntax_failure"),
+    diagnostics: [...new Set(diagnostics)],
+    parsed,
+    candidate_text: extracted?.text ?? cleanModelText(output)
+  };
+}
+
+function extractSmtCandidateText(output) {
+  const cleaned = cleanModelText(output);
+  const start = cleaned.indexOf("(set-logic");
+  if (start >= 0) return cleaned.slice(start).trim();
+  const assertStart = cleaned.indexOf("(assert");
+  if (assertStart >= 0) return cleaned.slice(assertStart).trim();
+  const symbolStart = cleaned.lastIndexOf("|q.age_years|");
+  if (symbolStart >= 0) return cleaned.slice(symbolStart).trim();
+  return cleaned;
+}
+
+function runLiveRoute(routeId, groupId, seed, expected) {
+  const prompt = promptFor(routeId, groupId, seed);
+  const subprocess = runLlama(prompt, seed);
+  const rawOutput = cleanModelText(subprocess.stdout, prompt);
+  const output = routeId === "route.direct_smt" ? extractSmtCandidateText(rawOutput) : rawOutput;
+  const classified = routeId === "route.direct_smt"
+    ? classifyDirectSmt(output, expected)
+    : classifySingleIr(output, groupId, expected);
+  const processDiagnostics = [];
+  if (subprocess.exit_status !== 0 || subprocess.signal || subprocess.error) processDiagnostics.push("process_crash");
+  return {
+    route_id: routeId,
+    group_id: groupId,
+    seed,
+    syntax_valid: classified.syntax_valid,
+    admitted: classified.admitted && processDiagnostics.length === 0,
+    verdict: processDiagnostics.length === 0 ? classified.verdict : "solver_execution_failure",
+    diagnostics: [...new Set([...classified.diagnostics, ...processDiagnostics])],
+    response: classified.candidate_text ?? output,
+    parsed_response: classified.parsed ?? null,
+    subprocess
+  };
 }
 
 function scoreRows() {
@@ -540,10 +782,14 @@ function scoreRows() {
   const seeds = [11, 22, 33];
   const rawRows = [];
   const ioRecords = [];
+  let liveCalls = 0;
   for (const routeId of routes) {
     for (const seed of seeds) {
       for (const group of groups) {
-        const simulated = simulateRoute(routeId, group.id, seed);
+        const simulated = liveModel
+          ? runLiveRoute(routeId, group.id, seed, group.expectedOutcome)
+          : simulateRoute(routeId, group.id, seed);
+        if (liveModel) liveCalls += 1;
         const expected = group.expectedOutcome;
         const verdict_correct = simulated.verdict === expected;
         const row = {
@@ -565,7 +811,9 @@ function scoreRows() {
           seed,
           prompt: promptFor(routeId, group.id, seed),
           response: simulated.response,
+          parsed_response: simulated.parsed_response ?? null,
           response_hash: sha256(simulated.response),
+          subprocess: simulated.subprocess ?? null,
           row
         });
       }
@@ -606,7 +854,7 @@ function scoreRows() {
     delta: subtractRatio(lifted[metric], baseline[metric])
   }));
 
-  return { rawRows, routeMetrics: [...byRoute.values()], liftTable, ioRecords };
+  return { rawRows, routeMetrics: [...byRoute.values()], liftTable, ioRecords, liveCalls };
 }
 
 function buildTrace(artifactsByDoc, groupResults, finding, nullResult) {
@@ -699,7 +947,7 @@ ${rawRows}
 
 ${diagnostics}
 
-## Recorded model route identity
+## Model route identity
 
 - Model identity: ${report.model_identity}
 - Runtime: ${report.model_runtime}
@@ -768,7 +1016,31 @@ async function buildReplayManifest() {
   };
 }
 
+async function modelMetadata(liveCalls) {
+  if (!liveModel) {
+    return {
+      model_identity: "recorded.one-shot.weak-ja-symbolic-stub",
+      model_runtime: "deterministic-js-fixture-adapter",
+      live_model_calls: 0,
+      model_mode: "recorded"
+    };
+  }
+  requireLiveModelReady();
+  const version = spawnSync(llamaCliPath, ["--version"], { encoding: "utf8" });
+  const versionText = `${version.stdout ?? ""}${version.stderr ?? ""}`.trim().split("\n")[0] || "llama.cpp unknown";
+  const modelHash = sha256Bytes(await readFile(modelPath));
+  return {
+    model_identity: `${modelName}:${modelHash.slice(0, 16)}`,
+    model_runtime: versionText,
+    live_model_calls: liveCalls,
+    model_mode: "live_local_llama_cpp",
+    model_path: path.relative(root, modelPath),
+    llama_cli: path.relative(root, llamaCliPath)
+  };
+}
+
 async function main() {
+  if (liveModel) requireLiveModelReady();
   await rm(runDir, { recursive: true, force: true });
   await mkdir(runDir, { recursive: true });
 
@@ -856,6 +1128,7 @@ async function main() {
   await writeJson("lineage_index.json", lineageIndex);
 
   const metrics = scoreRows();
+  const modelMeta = await modelMetadata(metrics.liveCalls);
   for (const record of metrics.ioRecords) {
     await writeJson(`model_io/${record.route_id}/${record.group_id}/seed-${record.seed}.json`, record);
   }
@@ -876,9 +1149,12 @@ async function main() {
     corpus_hash: sha256(fixtureRegistry.map((fixture) => ({ id: fixture.id, path: fixture.path }))),
     lexicon_hash: sha256(["pop.adult", "pop.child", "cond.sepsis", "cond.renal_severe", "cond.pregnancy", "drug.abx_a"]),
     solver_identity: "one-shot-js-symbolic-verifier",
-    model_identity: "recorded.one-shot.weak-ja-symbolic-stub",
-    model_runtime: "deterministic-js-fixture-adapter",
-    live_model_calls: 0,
+    model_identity: modelMeta.model_identity,
+    model_runtime: modelMeta.model_runtime,
+    model_mode: modelMeta.model_mode,
+    model_path: modelMeta.model_path ?? null,
+    llama_cli: modelMeta.llama_cli ?? null,
+    live_model_calls: modelMeta.live_model_calls,
     findings: [finding],
     null_results: [nullResult],
     diagnostics_summary: diagnosticsSummary,
@@ -915,6 +1191,9 @@ async function main() {
     run_id: runId,
     created_at: "2026-06-11T00:00:00Z",
     stack_deviation: "JavaScript one-shot harness instead of the spec04 Rust/model/solver stack",
+    model_mode: modelMeta.model_mode,
+    model_identity: modelMeta.model_identity,
+    model_runtime: modelMeta.model_runtime,
     experiments: report.experiments,
     fixture_ids: fixtureRegistry.map((fixture) => fixture.id),
     route_ids: ["route.direct_smt", "route.single_ir"],
@@ -925,7 +1204,7 @@ async function main() {
   const events = [
     { event: "run_started", run_id: runId },
     { event: "m1_spine_completed", outcome: "ok" },
-    { event: "m2_lift_completed", outcome: "ok" },
+    { event: "m2_lift_completed", outcome: "ok", model_mode: modelMeta.model_mode, live_model_calls: modelMeta.live_model_calls },
     { event: "run_completed", outcome: "ok" }
   ];
   await writeText("logs/events.jsonl", events.map((entry) => JSON.stringify(stable(entry))).join("\n"));
@@ -975,18 +1254,32 @@ async function main() {
       "metrics/raw_rows.json",
       "model_io/route.direct_smt/group.m1_conflict/seed-11.json"
     ];
-    const assertions = [
+    const commonAssertions = [
       finding?.conflict_kind === "deontic_direction_conflict",
       nullResult?.classification === "documented_null_result",
-      direct.target_syntax_validity.exact === "4/6",
-      direct.admission_rate.exact === "3/6",
-      direct.verdict_accuracy.exact === "2/6",
-      single.target_syntax_validity.exact === "6/6",
-      single.admission_rate.exact === "6/6",
-      single.verdict_accuracy.exact === "6/6",
+      direct.samples === 6,
+      single.samples === 6,
+      metrics.rawRows.length === 12,
+      metrics.ioRecords.length === 12,
       existsSync(webDataPath),
       ...requiredFiles.map((relative) => existsSync(path.join(runDir, relative)))
     ];
+    const modelAssertions = liveModel
+      ? [
+          report.model_mode === "live_local_llama_cpp",
+          report.live_model_calls === 12,
+          metrics.ioRecords.every((record) => record.subprocess?.exit_status === 0),
+          metrics.ioRecords.every((record) => record.response_hash && record.response_hash.length === 64)
+        ]
+      : [
+          direct.target_syntax_validity.exact === "4/6",
+          direct.admission_rate.exact === "3/6",
+          direct.verdict_accuracy.exact === "2/6",
+          single.target_syntax_validity.exact === "6/6",
+          single.admission_rate.exact === "6/6",
+          single.verdict_accuracy.exact === "6/6"
+        ];
+    const assertions = [...commonAssertions, ...modelAssertions];
     if (assertions.some((entry) => !entry)) {
       throw new Error("one-shot verification failed");
     }
@@ -995,6 +1288,8 @@ async function main() {
   console.log(JSON.stringify({
     run_dir: path.relative(root, runDir),
     workbench_data: path.relative(root, webDataPath),
+    model_mode: report.model_mode,
+    live_model_calls: report.live_model_calls,
     findings: report.findings.length,
     null_results: report.null_results.length,
     direct_smt_accuracy: metrics.routeMetrics.find((entry) => entry.route_id === "route.direct_smt").verdict_accuracy.exact,

@@ -1,5 +1,6 @@
 /runs/
 /target/
+/.local/
 node_modules/
 .npm/
 .cache/

@@ -17,7 +17,7 @@
     chip("M1 ok", "ok"),
     chip("M2 ok", "ok"),
     chip(report.replay.status, "info"),
-    chip("live model calls: 0", "warn")
+    chip(`live model calls: ${report.live_model_calls}`, "warn")
   ].join("");
 
   document.querySelectorAll(".rail-item").forEach((button) => {

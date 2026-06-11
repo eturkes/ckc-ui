@@ -82,87 +82,87 @@ window.CKC_RUN = {
     },
     {
       "path": "logs/diagnostics.jsonl",
-      "sha256": "63be59536ff85b6e5d5722b6ebbeef65305e3fe1ced887ebd1ba2218d0f79565"
+      "sha256": "b696a68f4d2d6293b22f3f1fca6f5ea784267905e48bb4a46dc83ddbe129de47"
     },
     {
       "path": "logs/events.jsonl",
-      "sha256": "5c11d39d38cf575a836da54e47e63af05b080a20c77232949e14f61d4502fb97"
+      "sha256": "09a86d279958db03565a651b32dc494bf5f40da3a6794bf0402710862b785199"
     },
     {
       "path": "manifest.json",
-      "sha256": "974ecdef5641c5acf8285aba0b75bfd4ffecf85c4d02902d9d628d2aa5ecb948"
+      "sha256": "c27c7cf734e4a52eff09df7c497ed108edec313d972deafba13a470c89c9dcb8"
     },
     {
       "path": "metrics/lift_table.json",
-      "sha256": "4ab58681b0765b2fd44c7b9b4424387a89a38606600574dcaf1dd1a0c5a918b6"
+      "sha256": "350d8e44fe9c8997d6b832def5f0ec9913491fe415697a250589c168c6484c3c"
     },
     {
       "path": "metrics/raw_rows.json",
-      "sha256": "c2b29d1f854d86913d5f0778a022f8beea35f4579155f5105eadf6ddf39f269b"
+      "sha256": "f48d69f5c7876a26199de2f422599de2051df8e207334f8793f0a242bfdea032"
     },
     {
       "path": "metrics/route_metrics.json",
-      "sha256": "b1fdb1cd33fe155923dd9e9a8b857118dc11bff7e3b6daaf16285a35f3143275"
+      "sha256": "22923aaad7574a1aad437944efa75991edf9700aa8ac402884a5aa961944a09f"
     },
     {
       "path": "model_io/route.direct_smt/group.m1_conflict/seed-11.json",
-      "sha256": "da6b91cf4695bb7e0fdabce2ecc7352d5b1d3b62d97511aa2a156385f3b38381"
+      "sha256": "8627259c1b4173df305dc4aa11408d35a0a57419ab352e512fd9df0528249faf"
     },
     {
       "path": "model_io/route.direct_smt/group.m1_conflict/seed-22.json",
-      "sha256": "eed9027b31cff47545cc23c04cd29bde86aa779a9641479130d71d0ded9abd25"
+      "sha256": "7814234a567e86ab2d58f05a04ffbb6f25340967b565ad75b2a56e1f3b3f697b"
     },
     {
       "path": "model_io/route.direct_smt/group.m1_conflict/seed-33.json",
-      "sha256": "9543b5dad5ac36e9e6c4f8378df3a469573510cbe1edc2bbef1467444e91fd10"
+      "sha256": "13da3ed872b12a2bc045a7ac80ff60130f1ccbb1ec895a8fb202e886c4e3b91f"
     },
     {
       "path": "model_io/route.direct_smt/group.m1_null/seed-11.json",
-      "sha256": "7becf539e4e3ee7dd29ebc955cb727ae1823f22c9211d0a4c0b31f95cc6bf1b2"
+      "sha256": "4f8f035d87948afbf99e560177c06ef19b0b8b61f63353d0b391e6d34a6fb78d"
     },
     {
       "path": "model_io/route.direct_smt/group.m1_null/seed-22.json",
-      "sha256": "6dc49dd79139854a1eaedda59348f1b7faa3a511b25938dd78e8c1f8d8f63c19"
+      "sha256": "50b2d8425709f9c814cc35b3d579102362cc79cfacafdd399f0d11e7b037b7d9"
     },
     {
       "path": "model_io/route.direct_smt/group.m1_null/seed-33.json",
-      "sha256": "7a6fc8dcc54919943a97ea4707c03a341753c5814c8a2b7803bdad1d68fcce96"
+      "sha256": "2f80a5e636f7d2c5550fa30593ed2ecbb352f000b1c4feca907001210303796e"
     },
     {
       "path": "model_io/route.single_ir/group.m1_conflict/seed-11.json",
-      "sha256": "ba54d02a999e676d099986e7ea007b08bd156e6c598db7844d96d651296da7e6"
+      "sha256": "1c0b6ada27e78a419899ef2a579af983f74d8c662c8b23e442e9831416953bcf"
     },
     {
       "path": "model_io/route.single_ir/group.m1_conflict/seed-22.json",
-      "sha256": "fd9380df076a9881e5102ef9846455ee72fa2783fffc24462961bb8688adec4e"
+      "sha256": "0766e2478ee346feba02126a4f6254cf1fc8366572395c49b8a88a183cec1a4f"
     },
     {
       "path": "model_io/route.single_ir/group.m1_conflict/seed-33.json",
-      "sha256": "375bcb47acfb21416ae4ac412fda3e03d17c31d63bbc6d16392d1278cf7dc33e"
+      "sha256": "a64c511517d38aca497d5c1a81345e4bda3a8a9a61a79e9beac7e6bda3ae7ce3"
     },
     {
       "path": "model_io/route.single_ir/group.m1_null/seed-11.json",
-      "sha256": "80eb8abc03a3c932048e884856d7558434743204459b5d29027d70ca806606a7"
+      "sha256": "b24fba77628559d70e01968f9d0bdee0711391fe7ba0fcfd46390f3afc433334"
     },
     {
       "path": "model_io/route.single_ir/group.m1_null/seed-22.json",
-      "sha256": "4e9b95793c6c3e665b9383586e7d3363fd840f51b030f689ef8b43711166b2af"
+      "sha256": "2e9c15bb6fff81d521f29f981a1279dc46eb550386fc739fc89994d66a627321"
     },
     {
       "path": "model_io/route.single_ir/group.m1_null/seed-33.json",
-      "sha256": "8e539bcb13a5e9181fc83abe322ad7e1e2d3dafc9fbaff79ac2fee8da02356fb"
+      "sha256": "414a4dd0e8eb610a36d19a2635d2b831ec15c2336cadcdf98f423c35642c9ac6"
     },
     {
       "path": "report.ja.md",
-      "sha256": "4ac26aa4eaa77c0c948eb5cbabc6f97f8d884d859ac13ad00df00b0a10584c5b"
+      "sha256": "d52073cc27ae6edbbe6c0f40846009a5178da33485398d84a047890e78341f89"
     },
     {
       "path": "report.json",
-      "sha256": "4e4948f4a49c1302f9eddd3f8e34edc6e915c8be110c55edea87347c2bb6604e"
+      "sha256": "b8ac9608433b080525da08c79879303aa6deb1175cea37cdb78de2ec22b553cf"
     },
     {
       "path": "report.md",
-      "sha256": "0c4637dd09544929b13be9268eeae8edfbca5fe520ed7e592506ad161efb89c2"
+      "sha256": "529e0d0f6d3338ce208c8eebb16b6d65bfd54a8e7be9d58fcb1a0e0a51b32367"
     },
     {
       "path": "trace_bundle.json",
@@ -358,15 +358,15 @@ window.CKC_RUN = {
   "lift_table": [
     {
       "baseline": {
-        "decimal": 0.6667,
+        "decimal": 0,
         "denominator": 6,
-        "exact": "4/6",
-        "numerator": 4
+        "exact": "0/6",
+        "numerator": 0
       },
       "delta": {
-        "decimal": 0.3333,
-        "denominator": 3,
-        "exact": "1/3",
+        "decimal": 1,
+        "denominator": 1,
+        "exact": "1/1",
         "numerator": 1
       },
       "lifted": {
@@ -379,37 +379,37 @@ window.CKC_RUN = {
     },
     {
       "baseline": {
-        "decimal": 0.5,
+        "decimal": 0,
         "denominator": 6,
-        "exact": "3/6",
-        "numerator": 3
+        "exact": "0/6",
+        "numerator": 0
       },
       "delta": {
-        "decimal": 0.5,
-        "denominator": 2,
-        "exact": "1/2",
-        "numerator": 1
+        "decimal": 0,
+        "denominator": 1,
+        "exact": "0/1",
+        "numerator": 0
       },
       "lifted": {
-        "decimal": 1,
+        "decimal": 0,
         "denominator": 6,
-        "exact": "6/6",
-        "numerator": 6
+        "exact": "0/6",
+        "numerator": 0
       },
       "metric": "admission_rate"
     },
     {
       "baseline": {
-        "decimal": 0.3333,
+        "decimal": 0,
         "denominator": 6,
-        "exact": "2/6",
-        "numerator": 2
+        "exact": "0/6",
+        "numerator": 0
       },
       "delta": {
-        "decimal": 0.6667,
-        "denominator": 3,
-        "exact": "2/3",
-        "numerator": 2
+        "decimal": 1,
+        "denominator": 1,
+        "exact": "1/1",
+        "numerator": 1
       },
       "lifted": {
         "decimal": 1,
@@ -427,16 +427,16 @@ window.CKC_RUN = {
         "numerator": 0
       },
       "delta": {
-        "decimal": 1,
+        "decimal": 0,
         "denominator": 1,
-        "exact": "1/1",
-        "numerator": 1
+        "exact": "0/1",
+        "numerator": 0
       },
       "lifted": {
-        "decimal": 1,
+        "decimal": 0,
         "denominator": 2,
-        "exact": "2/2",
-        "numerator": 2
+        "exact": "0/2",
+        "numerator": 0
       },
       "metric": "k_sample_stability"
     }
@@ -480,52 +480,131 @@ window.CKC_RUN = {
   "model_io": [
     {
       "group_id": "group.m1_conflict",
-      "prompt": "route: route.direct_smt\ngroup: group.m1_conflict\nseed: 11\ntask: translate the synthetic Japanese fixture spans into the route target.\nscope: research harness, source-grounded, no clinical claim.",
+      "parsed_response": null,
+      "prompt": "You are a weak local model inside a research harness.\nTranslate only the provided synthetic Japanese fixture spans.\nNo clinical, patient-care, deployment, or regulatory claim.\ngroup: group.m1_conflict\nseed: 11\nsource spans:\nA: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nA-exception: ただし、重度腎機能障害のある患者を除く。\nB: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。\nroute: route.direct_smt\nOutput only SMT-LIB text. Do not use Markdown.\nUse only these symbols: |q.age_years|, |cond.sepsis|, |cond.renal_severe|, |cond.pregnancy|, |pos:act.administer:drug.abx_a|.\nEnd with (check-sat).",
       "record_id": "io_route_direct_smt_group_m1_conflict_11",
-      "response": "(set-logic QF_UF)\n(assert |positive_abx_a|)\n(assert (not |positive_abx_a|))\n(check-sat)",
-      "response_hash": "5100db55b12dd086638ff05448c5a38db0bfa2d319bd87e034fd55297c44dc77",
+      "response": "|q.age_years|18, |cond.sepsis|1, |cond.renal_severe|1, |cond.pregnancy|0, |pos:act.administer",
+      "response_hash": "73f1b6707709f700f760739097b836d458ce3760e9764365faedba71b0b44e01",
       "route_id": "route.direct_smt",
       "row": {
-        "admitted": true,
-        "diagnostics": [],
+        "admitted": false,
+        "diagnostics": [
+          "target_parse_error",
+          "ai_schema_violation"
+        ],
         "expected": "semantic_contradiction",
         "group_id": "group.m1_conflict",
         "route_id": "route.direct_smt",
         "seed": 11,
-        "syntax_valid": true,
-        "verdict": "semantic_contradiction",
-        "verdict_correct": true
+        "syntax_valid": false,
+        "verdict": "target_syntax_failure",
+        "verdict_correct": false
       },
-      "seed": 11
+      "seed": 11,
+      "subprocess": {
+        "command": {
+          "args": [
+            "-m",
+            ".local/models/qwen2.5-0.5b-instruct-q2_k.gguf",
+            "-p",
+            "<prompt>",
+            "-n",
+            "180",
+            "--ctx-size",
+            "1536",
+            "--temp",
+            "0.2",
+            "--top-k",
+            "20",
+            "--seed",
+            "11",
+            "--no-display-prompt",
+            "--single-turn",
+            "--simple-io",
+            "--no-show-timings",
+            "--log-verbosity",
+            "1",
+            "--no-log-prefix",
+            "--no-log-timestamps",
+            "--no-warmup",
+            "--no-perf"
+          ],
+          "executable": ".local/bin/llama-cli"
+        },
+        "error": null,
+        "exit_status": 0,
+        "signal": null,
+        "stdout": "\nLoading model... \n\n\n▄▄ ▄▄\n██ ██\n██ ██  ▀▀█▄ ███▄███▄  ▀▀█▄    ▄████ ████▄ ████▄\n██ ██ ▄█▀██ ██ ██ ██ ▄█▀██    ██    ██ ██ ██ ██\n██ ██ ▀█▄██ ██ ██ ██ ▀█▄██ ██ ▀████ ████▀ ████▀\n                                    ██    ██\n                                    ▀▀    ▀▀\n\nbuild      : b9592-ac4cddeb0\nmodel      : qwen2.5-0.5b-instruct-q2_k.gguf\nmodalities : text\n\navailable commands:\n  /exit or Ctrl+C     stop or exit\n  /regen              regenerate the last response\n  /clear              clear the chat history\n  /read <file>        add a text file\n  /glob <pattern>     add text files using globbing pattern\n\n\n> You are a weak local model inside a research harness.\nTranslate only the provided synthetic Japanese fixture spans.\nNo clinical, patient-care, deployment, or regulatory claim.\ngroup: group.m1_conflict\nseed: 11\nsource spans:\nA: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nA-exception: ただし、重度腎機能障害のある患者を除く。\nB: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しない� ... (truncated)\n\n|q.age_years|18, |cond.sepsis|1, |cond.renal_severe|1, |cond.pregnancy|0, |pos:act.administer:drug.abx_a|1, |q.age_years|18, |cond.sepsis|1, |cond.renal_severe|1, |cond.pregnancy|0, |pos:act.administer:drug.abx_a|1, |q.age_years|18, |cond.sepsis|1, |cond.renal_severe|1, |cond.pregnancy|0, |pos:act.administer:drug.abx_a|1, |q.age_years|18, |cond.sepsis|1, |cond.renal_severe|1, |cond.pregnancy|0, |pos:act.administer\n\nExiting...\n",
+        "timed_out": false
+      }
     },
     {
       "group_id": "group.m1_null",
-      "prompt": "route: route.direct_smt\ngroup: group.m1_null\nseed: 11\ntask: translate the synthetic Japanese fixture spans into the route target.\nscope: research harness, source-grounded, no clinical claim.",
+      "parsed_response": null,
+      "prompt": "You are a weak local model inside a research harness.\nTranslate only the provided synthetic Japanese fixture spans.\nNo clinical, patient-care, deployment, or regulatory claim.\ngroup: group.m1_null\nseed: 11\nsource spans:\nA: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nA-exception: ただし、重度腎機能障害のある患者を除く。\nControl: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。\nroute: route.direct_smt\nOutput only SMT-LIB text. Do not use Markdown.\nUse only these symbols: |q.age_years|, |cond.sepsis|, |cond.renal_severe|, |cond.pregnancy|, |pos:act.administer:drug.abx_a|.\nEnd with (check-sat).",
       "record_id": "io_route_direct_smt_group_m1_null_11",
-      "response": "(set-logic QF_UF)\n(assert |adult_abx_a|)\n(assert (not |adult_abx_a|))\n(check-sat)",
-      "response_hash": "7b10d07c9156a122292e53608ae8c7f38d68cfcdee210f9c95feea05e41fc9a5",
+      "response": "|q.age_years| 18\n|cond.sepsis| 18\n|cond.renal_severe| 18\n|cond.pregnancy| 0\n|pos:act.administer:drug.abx_a| 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。",
+      "response_hash": "ca7ae2798dcf30a82b370470cb05bbe051becf8974bd4b83e8383a622db86c8e",
       "route_id": "route.direct_smt",
       "row": {
-        "admitted": true,
+        "admitted": false,
         "diagnostics": [
-          "false_positive_conflict"
+          "target_parse_error",
+          "ai_schema_violation"
         ],
         "expected": "semantic_no_conflict",
         "group_id": "group.m1_null",
         "route_id": "route.direct_smt",
         "seed": 11,
-        "syntax_valid": true,
-        "verdict": "semantic_contradiction",
+        "syntax_valid": false,
+        "verdict": "target_syntax_failure",
         "verdict_correct": false
       },
-      "seed": 11
+      "seed": 11,
+      "subprocess": {
+        "command": {
+          "args": [
+            "-m",
+            ".local/models/qwen2.5-0.5b-instruct-q2_k.gguf",
+            "-p",
+            "<prompt>",
+            "-n",
+            "180",
+            "--ctx-size",
+            "1536",
+            "--temp",
+            "0.2",
+            "--top-k",
+            "20",
+            "--seed",
+            "11",
+            "--no-display-prompt",
+            "--single-turn",
+            "--simple-io",
+            "--no-show-timings",
+            "--log-verbosity",
+            "1",
+            "--no-log-prefix",
+            "--no-log-timestamps",
+            "--no-warmup",
+            "--no-perf"
+          ],
+          "executable": ".local/bin/llama-cli"
+        },
+        "error": null,
+        "exit_status": 0,
+        "signal": null,
+        "stdout": "\nLoading model... \n\n\n▄▄ ▄▄\n██ ██\n██ ██  ▀▀█▄ ███▄███▄  ▀▀█▄    ▄████ ████▄ ████▄\n██ ██ ▄█▀██ ██ ██ ██ ▄█▀██    ██    ██ ██ ██ ██\n██ ██ ▀█▄██ ██ ██ ██ ▀█▄██ ██ ▀████ ████▀ ████▀\n                                    ██    ██\n                                    ▀▀    ▀▀\n\nbuild      : b9592-ac4cddeb0\nmodel      : qwen2.5-0.5b-instruct-q2_k.gguf\nmodalities : text\n\navailable commands:\n  /exit or Ctrl+C     stop or exit\n  /regen              regenerate the last response\n  /clear              clear the chat history\n  /read <file>        add a text file\n  /glob <pattern>     add text files using globbing pattern\n\n\n> You are a weak local model inside a research harness.\nTranslate only the provided synthetic Japanese fixture spans.\nNo clinical, patient-care, deployment, or regulatory claim.\ngroup: group.m1_null\nseed: 11\nsource spans:\nA: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nA-exception: ただし、重度腎機能障害のある患者を除く。\nControl: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。\nroute: route ... (truncated)\n\n|q.age_years| 18\n|cond.sepsis| 18\n|cond.renal_severe| 18\n|cond.pregnancy| 0\n|pos:act.administer:drug.abx_a| 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\n\nExiting...\n",
+        "timed_out": false
+      }
     },
     {
       "group_id": "group.m1_conflict",
-      "prompt": "route: route.direct_smt\ngroup: group.m1_conflict\nseed: 22\ntask: translate the synthetic Japanese fixture spans into the route target.\nscope: research harness, source-grounded, no clinical claim.",
+      "parsed_response": null,
+      "prompt": "You are a weak local model inside a research harness.\nTranslate only the provided synthetic Japanese fixture spans.\nNo clinical, patient-care, deployment, or regulatory claim.\ngroup: group.m1_conflict\nseed: 22\nsource spans:\nA: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nA-exception: ただし、重度腎機能障害のある患者を除く。\nB: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。\nroute: route.direct_smt\nOutput only SMT-LIB text. Do not use Markdown.\nUse only these symbols: |q.age_years|, |cond.sepsis|, |cond.renal_severe|, |cond.pregnancy|, |pos:act.administer:drug.abx_a|.\nEnd with (check-sat).",
       "record_id": "io_route_direct_smt_group_m1_conflict_22",
-      "response": "(set-logic QF_UF)\n(assert |positive_abx_a|\n(check-sat)",
-      "response_hash": "ee84e93549b4de6195c14c45a60a9c40a44b9d15167d9723e958b2bf628b0bac",
+      "response": "|q.age_years| 18\n|cond.sepsis| 重度腎機能障害\n|cond.renal_severe| 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)\n|cond.pregnancy| 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)\n|pos:act.administer:drug.abx_a| 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)",
+      "response_hash": "5572dc7b60056fd6302d835b7c09891522726e459e56846d02a8cfba6fd8d336",
       "route_id": "route.direct_smt",
       "row": {
         "admitted": false,
@@ -541,61 +620,177 @@ window.CKC_RUN = {
         "verdict": "target_syntax_failure",
         "verdict_correct": false
       },
-      "seed": 22
+      "seed": 22,
+      "subprocess": {
+        "command": {
+          "args": [
+            "-m",
+            ".local/models/qwen2.5-0.5b-instruct-q2_k.gguf",
+            "-p",
+            "<prompt>",
+            "-n",
+            "180",
+            "--ctx-size",
+            "1536",
+            "--temp",
+            "0.2",
+            "--top-k",
+            "20",
+            "--seed",
+            "22",
+            "--no-display-prompt",
+            "--single-turn",
+            "--simple-io",
+            "--no-show-timings",
+            "--log-verbosity",
+            "1",
+            "--no-log-prefix",
+            "--no-log-timestamps",
+            "--no-warmup",
+            "--no-perf"
+          ],
+          "executable": ".local/bin/llama-cli"
+        },
+        "error": null,
+        "exit_status": 0,
+        "signal": null,
+        "stdout": "\nLoading model... \n\n\n▄▄ ▄▄\n██ ██\n██ ██  ▀▀█▄ ███▄███▄  ▀▀█▄    ▄████ ████▄ ████▄\n██ ██ ▄█▀██ ██ ██ ██ ▄█▀██    ██    ██ ██ ██ ██\n██ ██ ▀█▄██ ██ ██ ██ ▀█▄██ ██ ▀████ ████▀ ████▀\n                                    ██    ██\n                                    ▀▀    ▀▀\n\nbuild      : b9592-ac4cddeb0\nmodel      : qwen2.5-0.5b-instruct-q2_k.gguf\nmodalities : text\n\navailable commands:\n  /exit or Ctrl+C     stop or exit\n  /regen              regenerate the last response\n  /clear              clear the chat history\n  /read <file>        add a text file\n  /glob <pattern>     add text files using globbing pattern\n\n\n> You are a weak local model inside a research harness.\nTranslate only the provided synthetic Japanese fixture spans.\nNo clinical, patient-care, deployment, or regulatory claim.\ngroup: group.m1_conflict\nseed: 22\nsource spans:\nA: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nA-exception: ただし、重度腎機能障害のある患者を除く。\nB: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しない� ... (truncated)\n\n|q.age_years| 18\n|cond.sepsis| 重度腎機能障害\n|cond.renal_severe| 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)\n|cond.pregnancy| 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)\n|pos:act.administer:drug.abx_a| 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)\n\nExiting...\n",
+        "timed_out": false
+      }
     },
     {
       "group_id": "group.m1_null",
-      "prompt": "route: route.direct_smt\ngroup: group.m1_null\nseed: 22\ntask: translate the synthetic Japanese fixture spans into the route target.\nscope: research harness, source-grounded, no clinical claim.",
+      "parsed_response": null,
+      "prompt": "You are a weak local model inside a research harness.\nTranslate only the provided synthetic Japanese fixture spans.\nNo clinical, patient-care, deployment, or regulatory claim.\ngroup: group.m1_null\nseed: 22\nsource spans:\nA: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nA-exception: ただし、重度腎機能障害のある患者を除く。\nControl: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。\nroute: route.direct_smt\nOutput only SMT-LIB text. Do not use Markdown.\nUse only these symbols: |q.age_years|, |cond.sepsis|, |cond.renal_severe|, |cond.pregnancy|, |pos:act.administer:drug.abx_a|.\nEnd with (check-sat).",
       "record_id": "io_route_direct_smt_group_m1_null_22",
-      "response": "(set-logic QF_LRA)\n(assert (>= |q.age_years| 18))\n(assert (< |q.age_years| 18))\n(check-sat)",
-      "response_hash": "33a179c01668379e42315ed0c4219aefc1f8d9e4f421c281866e8d22442f03af",
-      "route_id": "route.direct_smt",
-      "row": {
-        "admitted": true,
-        "diagnostics": [],
-        "expected": "semantic_no_conflict",
-        "group_id": "group.m1_null",
-        "route_id": "route.direct_smt",
-        "seed": 22,
-        "syntax_valid": true,
-        "verdict": "semantic_no_conflict",
-        "verdict_correct": true
-      },
-      "seed": 22
-    },
-    {
-      "group_id": "group.m1_conflict",
-      "prompt": "route: route.direct_smt\ngroup: group.m1_conflict\nseed: 33\ntask: translate the synthetic Japanese fixture spans into the route target.\nscope: research harness, source-grounded, no clinical claim.",
-      "record_id": "io_route_direct_smt_group_m1_conflict_33",
-      "response": "(set-logic QF_LRA)\n(assert (> |creatinine| 2.0))\n(check-sat)",
-      "response_hash": "ca8905fac003dbff2a476bca901dca62f867efe89760fef642c18e37ea67d82b",
+      "response": "|q.age_years| 18\n|cond.sepsis| 18歳未満\n|cond.renal_severe| 重度腎機能障害\n|cond.pregnancy| 未満\n|pos:act.administer:drug.abx_a| 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。",
+      "response_hash": "ce13fe3625e434096bcba4c6f40958387864b403d07e2b95906f4374a1cd8001",
       "route_id": "route.direct_smt",
       "row": {
         "admitted": false,
         "diagnostics": [
-          "ai_hallucinated_source"
+          "target_parse_error",
+          "ai_schema_violation"
+        ],
+        "expected": "semantic_no_conflict",
+        "group_id": "group.m1_null",
+        "route_id": "route.direct_smt",
+        "seed": 22,
+        "syntax_valid": false,
+        "verdict": "target_syntax_failure",
+        "verdict_correct": false
+      },
+      "seed": 22,
+      "subprocess": {
+        "command": {
+          "args": [
+            "-m",
+            ".local/models/qwen2.5-0.5b-instruct-q2_k.gguf",
+            "-p",
+            "<prompt>",
+            "-n",
+            "180",
+            "--ctx-size",
+            "1536",
+            "--temp",
+            "0.2",
+            "--top-k",
+            "20",
+            "--seed",
+            "22",
+            "--no-display-prompt",
+            "--single-turn",
+            "--simple-io",
+            "--no-show-timings",
+            "--log-verbosity",
+            "1",
+            "--no-log-prefix",
+            "--no-log-timestamps",
+            "--no-warmup",
+            "--no-perf"
+          ],
+          "executable": ".local/bin/llama-cli"
+        },
+        "error": null,
+        "exit_status": 0,
+        "signal": null,
+        "stdout": "\nLoading model... \n\n\n▄▄ ▄▄\n██ ██\n██ ██  ▀▀█▄ ███▄███▄  ▀▀█▄    ▄████ ████▄ ████▄\n██ ██ ▄█▀██ ██ ██ ██ ▄█▀██    ██    ██ ██ ██ ██\n██ ██ ▀█▄██ ██ ██ ██ ▀█▄██ ██ ▀████ ████▀ ████▀\n                                    ██    ██\n                                    ▀▀    ▀▀\n\nbuild      : b9592-ac4cddeb0\nmodel      : qwen2.5-0.5b-instruct-q2_k.gguf\nmodalities : text\n\navailable commands:\n  /exit or Ctrl+C     stop or exit\n  /regen              regenerate the last response\n  /clear              clear the chat history\n  /read <file>        add a text file\n  /glob <pattern>     add text files using globbing pattern\n\n\n> You are a weak local model inside a research harness.\nTranslate only the provided synthetic Japanese fixture spans.\nNo clinical, patient-care, deployment, or regulatory claim.\ngroup: group.m1_null\nseed: 22\nsource spans:\nA: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nA-exception: ただし、重度腎機能障害のある患者を除く。\nControl: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。\nroute: route ... (truncated)\n\n|q.age_years| 18\n|cond.sepsis| 18歳未満\n|cond.renal_severe| 重度腎機能障害\n|cond.pregnancy| 未満\n|pos:act.administer:drug.abx_a| 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\n\nExiting...\n",
+        "timed_out": false
+      }
+    },
+    {
+      "group_id": "group.m1_conflict",
+      "parsed_response": null,
+      "prompt": "You are a weak local model inside a research harness.\nTranslate only the provided synthetic Japanese fixture spans.\nNo clinical, patient-care, deployment, or regulatory claim.\ngroup: group.m1_conflict\nseed: 33\nsource spans:\nA: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nA-exception: ただし、重度腎機能障害のある患者を除く。\nB: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。\nroute: route.direct_smt\nOutput only SMT-LIB text. Do not use Markdown.\nUse only these symbols: |q.age_years|, |cond.sepsis|, |cond.renal_severe|, |cond.pregnancy|, |pos:act.administer:drug.abx_a|.\nEnd with (check-sat).",
+      "record_id": "io_route_direct_smt_group_m1_conflict_33",
+      "response": "|q.age_years| 18\n|cond.sepsis| 重度腎機能障害\n|cond.renal_severe| 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)\n|cond.pregnancy| 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)\n|pos:act.administer:drug.abx_a| 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)",
+      "response_hash": "5572dc7b60056fd6302d835b7c09891522726e459e56846d02a8cfba6fd8d336",
+      "route_id": "route.direct_smt",
+      "row": {
+        "admitted": false,
+        "diagnostics": [
+          "target_parse_error",
+          "ai_schema_violation"
         ],
         "expected": "semantic_contradiction",
         "group_id": "group.m1_conflict",
         "route_id": "route.direct_smt",
         "seed": 33,
-        "syntax_valid": true,
-        "verdict": "semantic_no_conflict",
+        "syntax_valid": false,
+        "verdict": "target_syntax_failure",
         "verdict_correct": false
       },
-      "seed": 33
+      "seed": 33,
+      "subprocess": {
+        "command": {
+          "args": [
+            "-m",
+            ".local/models/qwen2.5-0.5b-instruct-q2_k.gguf",
+            "-p",
+            "<prompt>",
+            "-n",
+            "180",
+            "--ctx-size",
+            "1536",
+            "--temp",
+            "0.2",
+            "--top-k",
+            "20",
+            "--seed",
+            "33",
+            "--no-display-prompt",
+            "--single-turn",
+            "--simple-io",
+            "--no-show-timings",
+            "--log-verbosity",
+            "1",
+            "--no-log-prefix",
+            "--no-log-timestamps",
+            "--no-warmup",
+            "--no-perf"
+          ],
+          "executable": ".local/bin/llama-cli"
+        },
+        "error": null,
+        "exit_status": 0,
+        "signal": null,
+        "stdout": "\nLoading model... \n\n\n▄▄ ▄▄\n██ ██\n██ ██  ▀▀█▄ ███▄███▄  ▀▀█▄    ▄████ ████▄ ████▄\n██ ██ ▄█▀██ ██ ██ ██ ▄█▀██    ██    ██ ██ ██ ██\n██ ██ ▀█▄██ ██ ██ ██ ▀█▄██ ██ ▀████ ████▀ ████▀\n                                    ██    ██\n                                    ▀▀    ▀▀\n\nbuild      : b9592-ac4cddeb0\nmodel      : qwen2.5-0.5b-instruct-q2_k.gguf\nmodalities : text\n\navailable commands:\n  /exit or Ctrl+C     stop or exit\n  /regen              regenerate the last response\n  /clear              clear the chat history\n  /read <file>        add a text file\n  /glob <pattern>     add text files using globbing pattern\n\n\n> You are a weak local model inside a research harness.\nTranslate only the provided synthetic Japanese fixture spans.\nNo clinical, patient-care, deployment, or regulatory claim.\ngroup: group.m1_conflict\nseed: 33\nsource spans:\nA: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nA-exception: ただし、重度腎機能障害のある患者を除く。\nB: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しない� ... (truncated)\n\n|q.age_years| 18\n|cond.sepsis| 重度腎機能障害\n|cond.renal_severe| 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)\n|cond.pregnancy| 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)\n|pos:act.administer:drug.abx_a| 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)\n\nExiting...\n",
+        "timed_out": false
+      }
     },
     {
       "group_id": "group.m1_null",
-      "prompt": "route: route.direct_smt\ngroup: group.m1_null\nseed: 33\ntask: translate the synthetic Japanese fixture spans into the route target.\nscope: research harness, source-grounded, no clinical claim.",
+      "parsed_response": null,
+      "prompt": "You are a weak local model inside a research harness.\nTranslate only the provided synthetic Japanese fixture spans.\nNo clinical, patient-care, deployment, or regulatory claim.\ngroup: group.m1_null\nseed: 33\nsource spans:\nA: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nA-exception: ただし、重度腎機能障害のある患者を除く。\nControl: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。\nroute: route.direct_smt\nOutput only SMT-LIB text. Do not use Markdown.\nUse only these symbols: |q.age_years|, |cond.sepsis|, |cond.renal_severe|, |cond.pregnancy|, |pos:act.administer:drug.abx_a|.\nEnd with (check-sat).",
       "record_id": "io_route_direct_smt_group_m1_null_33",
-      "response": "(set-logic QF_LRA)\n(assert (and (< |q.age_years| 18))\n(check-sat)",
-      "response_hash": "7345685b639a382361af83bdc777063106a5cbadfc60b7790de874780da63749",
+      "response": "|q.age_years| 18\n|cond.sepsis| 18\n|cond.renal_severe| 18\n|cond.pregnancy| 0\n|pos:act.administer:drug.abx_a| 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。",
+      "response_hash": "ca7ae2798dcf30a82b370470cb05bbe051becf8974bd4b83e8383a622db86c8e",
       "route_id": "route.direct_smt",
       "row": {
         "admitted": false,
         "diagnostics": [
-          "target_parse_error"
+          "target_parse_error",
+          "ai_schema_violation"
         ],
         "expected": "semantic_no_conflict",
         "group_id": "group.m1_null",
@@ -605,25 +800,64 @@ window.CKC_RUN = {
         "verdict": "target_syntax_failure",
         "verdict_correct": false
       },
-      "seed": 33
+      "seed": 33,
+      "subprocess": {
+        "command": {
+          "args": [
+            "-m",
+            ".local/models/qwen2.5-0.5b-instruct-q2_k.gguf",
+            "-p",
+            "<prompt>",
+            "-n",
+            "180",
+            "--ctx-size",
+            "1536",
+            "--temp",
+            "0.2",
+            "--top-k",
+            "20",
+            "--seed",
+            "33",
+            "--no-display-prompt",
+            "--single-turn",
+            "--simple-io",
+            "--no-show-timings",
+            "--log-verbosity",
+            "1",
+            "--no-log-prefix",
+            "--no-log-timestamps",
+            "--no-warmup",
+            "--no-perf"
+          ],
+          "executable": ".local/bin/llama-cli"
+        },
+        "error": null,
+        "exit_status": 0,
+        "signal": null,
+        "stdout": "\nLoading model... \n\n\n▄▄ ▄▄\n██ ██\n██ ██  ▀▀█▄ ███▄███▄  ▀▀█▄    ▄████ ████▄ ████▄\n██ ██ ▄█▀██ ██ ██ ██ ▄█▀██    ██    ██ ██ ██ ██\n██ ██ ▀█▄██ ██ ██ ██ ▀█▄██ ██ ▀████ ████▀ ████▀\n                                    ██    ██\n                                    ▀▀    ▀▀\n\nbuild      : b9592-ac4cddeb0\nmodel      : qwen2.5-0.5b-instruct-q2_k.gguf\nmodalities : text\n\navailable commands:\n  /exit or Ctrl+C     stop or exit\n  /regen              regenerate the last response\n  /clear              clear the chat history\n  /read <file>        add a text file\n  /glob <pattern>     add text files using globbing pattern\n\n\n> You are a weak local model inside a research harness.\nTranslate only the provided synthetic Japanese fixture spans.\nNo clinical, patient-care, deployment, or regulatory claim.\ngroup: group.m1_null\nseed: 33\nsource spans:\nA: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nA-exception: ただし、重度腎機能障害のある患者を除く。\nControl: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。\nroute: route ... (truncated)\n\n|q.age_years| 18\n|cond.sepsis| 18\n|cond.renal_severe| 18\n|cond.pregnancy| 0\n|pos:act.administer:drug.abx_a| 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\n\nExiting...\n",
+        "timed_out": false
+      }
     },
     {
       "group_id": "group.m1_conflict",
-      "prompt": "route: route.single_ir\ngroup: group.m1_conflict\nseed: 11\ntask: translate the synthetic Japanese fixture spans into the route target.\nscope: research harness, source-grounded, no clinical claim.",
+      "parsed_response": {
+        "rules": [
+          "group.m1_conflict",
+          "group.m1_conflict",
+          "group.m1_conflict"
+        ],
+        "verdict": "semantic_contradiction"
+      },
+      "prompt": "You are a weak local model inside a research harness.\nTranslate only the provided synthetic Japanese fixture spans.\nNo clinical, patient-care, deployment, or regulatory claim.\ngroup: group.m1_conflict\nseed: 11\nsource spans:\nA: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nA-exception: ただし、重度腎機能障害のある患者を除く。\nB: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。\nroute: route.single_ir\nOutput only one minified JSON object. Do not use Markdown.\nSchema: {\"rules\":[string,string],\"verdict\":\"semantic_contradiction|semantic_no_conflict\"}\nAllowed rules: rule.a.cq1.r1, rule.b.contra1",
       "record_id": "io_route_single_ir_group_m1_conflict_11",
-      "response": {
-        "group_id": "group.m1_conflict",
-        "kind": "ckc_ir_row",
-        "rules": [
-          "rule.a.cq1.r1",
-          "rule.b.contra1"
-        ]
-      },
-      "response_hash": "0de651a7e0ca5ffc0da7610980a6ab0f8534af07b01df856a6410948100da1ca",
+      "response": "{\n  \"rules\": [\"group.m1_conflict\", \"group.m1_conflict\", \"group.m1_conflict\"],\n  \"verdict\": \"semantic_contradiction\"\n}",
+      "response_hash": "7eeb7c5a6f3be9a3065c4527551c43bf151dddd6604b2cd9229a2540593bd4d4",
       "route_id": "route.single_ir",
       "row": {
-        "admitted": true,
-        "diagnostics": [],
+        "admitted": false,
+        "diagnostics": [
+          "ai_hallucinated_source"
+        ],
         "expected": "semantic_contradiction",
         "group_id": "group.m1_conflict",
         "route_id": "route.single_ir",
@@ -632,25 +866,63 @@ window.CKC_RUN = {
         "verdict": "semantic_contradiction",
         "verdict_correct": true
       },
-      "seed": 11
+      "seed": 11,
+      "subprocess": {
+        "command": {
+          "args": [
+            "-m",
+            ".local/models/qwen2.5-0.5b-instruct-q2_k.gguf",
+            "-p",
+            "<prompt>",
+            "-n",
+            "180",
+            "--ctx-size",
+            "1536",
+            "--temp",
+            "0.2",
+            "--top-k",
+            "20",
+            "--seed",
+            "11",
+            "--no-display-prompt",
+            "--single-turn",
+            "--simple-io",
+            "--no-show-timings",
+            "--log-verbosity",
+            "1",
+            "--no-log-prefix",
+            "--no-log-timestamps",
+            "--no-warmup",
+            "--no-perf"
+          ],
+          "executable": ".local/bin/llama-cli"
+        },
+        "error": null,
+        "exit_status": 0,
+        "signal": null,
+        "stdout": "\nLoading model... \n\n\n▄▄ ▄▄\n██ ██\n██ ██  ▀▀█▄ ███▄███▄  ▀▀█▄    ▄████ ████▄ ████▄\n██ ██ ▄█▀██ ██ ██ ██ ▄█▀██    ██    ██ ██ ██ ██\n██ ██ ▀█▄██ ██ ██ ██ ▀█▄██ ██ ▀████ ████▀ ████▀\n                                    ██    ██\n                                    ▀▀    ▀▀\n\nbuild      : b9592-ac4cddeb0\nmodel      : qwen2.5-0.5b-instruct-q2_k.gguf\nmodalities : text\n\navailable commands:\n  /exit or Ctrl+C     stop or exit\n  /regen              regenerate the last response\n  /clear              clear the chat history\n  /read <file>        add a text file\n  /glob <pattern>     add text files using globbing pattern\n\n\n> You are a weak local model inside a research harness.\nTranslate only the provided synthetic Japanese fixture spans.\nNo clinical, patient-care, deployment, or regulatory claim.\ngroup: group.m1_conflict\nseed: 11\nsource spans:\nA: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nA-exception: ただし、重度腎機能障害のある患者を除く。\nB: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しない� ... (truncated)\n\n```json\n{\n  \"rules\": [\"group.m1_conflict\", \"group.m1_conflict\", \"group.m1_conflict\"],\n  \"verdict\": \"semantic_contradiction\"\n}\n```\n\nExiting...\n",
+        "timed_out": false
+      }
     },
     {
       "group_id": "group.m1_null",
-      "prompt": "route: route.single_ir\ngroup: group.m1_null\nseed: 11\ntask: translate the synthetic Japanese fixture spans into the route target.\nscope: research harness, source-grounded, no clinical claim.",
+      "parsed_response": {
+        "rules": [
+          "group.m1_null",
+          "group.m1_null"
+        ],
+        "verdict": "semantic_no_conflict"
+      },
+      "prompt": "You are a weak local model inside a research harness.\nTranslate only the provided synthetic Japanese fixture spans.\nNo clinical, patient-care, deployment, or regulatory claim.\ngroup: group.m1_null\nseed: 11\nsource spans:\nA: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nA-exception: ただし、重度腎機能障害のある患者を除く。\nControl: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。\nroute: route.single_ir\nOutput only one minified JSON object. Do not use Markdown.\nSchema: {\"rules\":[string,string],\"verdict\":\"semantic_contradiction|semantic_no_conflict\"}\nAllowed rules: rule.a.cq1.r1, rule.control.child.contra1",
       "record_id": "io_route_single_ir_group_m1_null_11",
-      "response": {
-        "group_id": "group.m1_null",
-        "kind": "ckc_ir_row",
-        "rules": [
-          "rule.a.cq1.r1",
-          "rule.control.child.contra1"
-        ]
-      },
-      "response_hash": "2d4f86cbb21c4c5785f271ca6fd1ab35ad189ebc583c073e615fcfe9d57680eb",
+      "response": "{\n  \"rules\": [\"group.m1_null\", \"group.m1_null\"],\n  \"verdict\": \"semantic_no_conflict\"\n}",
+      "response_hash": "fce6e74a6cdc6d92cd415044d21c979f56e990755f872b94c5b24c3a0f6e80ac",
       "route_id": "route.single_ir",
       "row": {
-        "admitted": true,
-        "diagnostics": [],
+        "admitted": false,
+        "diagnostics": [
+          "ai_hallucinated_source"
+        ],
         "expected": "semantic_no_conflict",
         "group_id": "group.m1_null",
         "route_id": "route.single_ir",
@@ -659,25 +931,64 @@ window.CKC_RUN = {
         "verdict": "semantic_no_conflict",
         "verdict_correct": true
       },
-      "seed": 11
+      "seed": 11,
+      "subprocess": {
+        "command": {
+          "args": [
+            "-m",
+            ".local/models/qwen2.5-0.5b-instruct-q2_k.gguf",
+            "-p",
+            "<prompt>",
+            "-n",
+            "180",
+            "--ctx-size",
+            "1536",
+            "--temp",
+            "0.2",
+            "--top-k",
+            "20",
+            "--seed",
+            "11",
+            "--no-display-prompt",
+            "--single-turn",
+            "--simple-io",
+            "--no-show-timings",
+            "--log-verbosity",
+            "1",
+            "--no-log-prefix",
+            "--no-log-timestamps",
+            "--no-warmup",
+            "--no-perf"
+          ],
+          "executable": ".local/bin/llama-cli"
+        },
+        "error": null,
+        "exit_status": 0,
+        "signal": null,
+        "stdout": "\nLoading model... \n\n\n▄▄ ▄▄\n██ ██\n██ ██  ▀▀█▄ ███▄███▄  ▀▀█▄    ▄████ ████▄ ████▄\n██ ██ ▄█▀██ ██ ██ ██ ▄█▀██    ██    ██ ██ ██ ██\n██ ██ ▀█▄██ ██ ██ ██ ▀█▄██ ██ ▀████ ████▀ ████▀\n                                    ██    ██\n                                    ▀▀    ▀▀\n\nbuild      : b9592-ac4cddeb0\nmodel      : qwen2.5-0.5b-instruct-q2_k.gguf\nmodalities : text\n\navailable commands:\n  /exit or Ctrl+C     stop or exit\n  /regen              regenerate the last response\n  /clear              clear the chat history\n  /read <file>        add a text file\n  /glob <pattern>     add text files using globbing pattern\n\n\n> You are a weak local model inside a research harness.\nTranslate only the provided synthetic Japanese fixture spans.\nNo clinical, patient-care, deployment, or regulatory claim.\ngroup: group.m1_null\nseed: 11\nsource spans:\nA: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nA-exception: ただし、重度腎機能障害のある患者を除く。\nControl: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。\nroute: route ... (truncated)\n\n```json\n{\n  \"rules\": [\"group.m1_null\", \"group.m1_null\"],\n  \"verdict\": \"semantic_no_conflict\"\n}\n```\n\nExiting...\n",
+        "timed_out": false
+      }
     },
     {
       "group_id": "group.m1_conflict",
-      "prompt": "route: route.single_ir\ngroup: group.m1_conflict\nseed: 22\ntask: translate the synthetic Japanese fixture spans into the route target.\nscope: research harness, source-grounded, no clinical claim.",
+      "parsed_response": {
+        "rules": [
+          "group.m1_conflict",
+          "seed:22",
+          "source spans"
+        ],
+        "verdict": "semantic_contradiction"
+      },
+      "prompt": "You are a weak local model inside a research harness.\nTranslate only the provided synthetic Japanese fixture spans.\nNo clinical, patient-care, deployment, or regulatory claim.\ngroup: group.m1_conflict\nseed: 22\nsource spans:\nA: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nA-exception: ただし、重度腎機能障害のある患者を除く。\nB: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。\nroute: route.single_ir\nOutput only one minified JSON object. Do not use Markdown.\nSchema: {\"rules\":[string,string],\"verdict\":\"semantic_contradiction|semantic_no_conflict\"}\nAllowed rules: rule.a.cq1.r1, rule.b.contra1",
       "record_id": "io_route_single_ir_group_m1_conflict_22",
-      "response": {
-        "group_id": "group.m1_conflict",
-        "kind": "ckc_ir_row",
-        "rules": [
-          "rule.a.cq1.r1",
-          "rule.b.contra1"
-        ]
-      },
-      "response_hash": "0de651a7e0ca5ffc0da7610980a6ab0f8534af07b01df856a6410948100da1ca",
+      "response": "{\n  \"rules\": [\"group.m1_conflict\", \"seed:22\", \"source spans\"],\n  \"verdict\": \"semantic_contradiction\"\n}",
+      "response_hash": "054686094e1d63164e8bf284a2c047da104f4789c1d868688087b47ba598ade3",
       "route_id": "route.single_ir",
       "row": {
-        "admitted": true,
-        "diagnostics": [],
+        "admitted": false,
+        "diagnostics": [
+          "ai_hallucinated_source"
+        ],
         "expected": "semantic_contradiction",
         "group_id": "group.m1_conflict",
         "route_id": "route.single_ir",
@@ -686,25 +997,63 @@ window.CKC_RUN = {
         "verdict": "semantic_contradiction",
         "verdict_correct": true
       },
-      "seed": 22
+      "seed": 22,
+      "subprocess": {
+        "command": {
+          "args": [
+            "-m",
+            ".local/models/qwen2.5-0.5b-instruct-q2_k.gguf",
+            "-p",
+            "<prompt>",
+            "-n",
+            "180",
+            "--ctx-size",
+            "1536",
+            "--temp",
+            "0.2",
+            "--top-k",
+            "20",
+            "--seed",
+            "22",
+            "--no-display-prompt",
+            "--single-turn",
+            "--simple-io",
+            "--no-show-timings",
+            "--log-verbosity",
+            "1",
+            "--no-log-prefix",
+            "--no-log-timestamps",
+            "--no-warmup",
+            "--no-perf"
+          ],
+          "executable": ".local/bin/llama-cli"
+        },
+        "error": null,
+        "exit_status": 0,
+        "signal": null,
+        "stdout": "\nLoading model... \n\n\n▄▄ ▄▄\n██ ██\n██ ██  ▀▀█▄ ███▄███▄  ▀▀█▄    ▄████ ████▄ ████▄\n██ ██ ▄█▀██ ██ ██ ██ ▄█▀██    ██    ██ ██ ██ ██\n██ ██ ▀█▄██ ██ ██ ██ ▀█▄██ ██ ▀████ ████▀ ████▀\n                                    ██    ██\n                                    ▀▀    ▀▀\n\nbuild      : b9592-ac4cddeb0\nmodel      : qwen2.5-0.5b-instruct-q2_k.gguf\nmodalities : text\n\navailable commands:\n  /exit or Ctrl+C     stop or exit\n  /regen              regenerate the last response\n  /clear              clear the chat history\n  /read <file>        add a text file\n  /glob <pattern>     add text files using globbing pattern\n\n\n> You are a weak local model inside a research harness.\nTranslate only the provided synthetic Japanese fixture spans.\nNo clinical, patient-care, deployment, or regulatory claim.\ngroup: group.m1_conflict\nseed: 22\nsource spans:\nA: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nA-exception: ただし、重度腎機能障害のある患者を除く。\nB: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しない� ... (truncated)\n\n```json\n{\n  \"rules\": [\"group.m1_conflict\", \"seed:22\", \"source spans\"],\n  \"verdict\": \"semantic_contradiction\"\n}\n```\n\nExiting...\n",
+        "timed_out": false
+      }
     },
     {
       "group_id": "group.m1_null",
-      "prompt": "route: route.single_ir\ngroup: group.m1_null\nseed: 22\ntask: translate the synthetic Japanese fixture spans into the route target.\nscope: research harness, source-grounded, no clinical claim.",
-      "record_id": "io_route_single_ir_group_m1_null_22",
-      "response": {
-        "group_id": "group.m1_null",
-        "kind": "ckc_ir_row",
+      "parsed_response": {
         "rules": [
-          "rule.a.cq1.r1",
-          "rule.control.child.contra1"
-        ]
+          "group.m1_null",
+          "group.m1_null"
+        ],
+        "verdict": "semantic_no_conflict"
       },
-      "response_hash": "2d4f86cbb21c4c5785f271ca6fd1ab35ad189ebc583c073e615fcfe9d57680eb",
+      "prompt": "You are a weak local model inside a research harness.\nTranslate only the provided synthetic Japanese fixture spans.\nNo clinical, patient-care, deployment, or regulatory claim.\ngroup: group.m1_null\nseed: 22\nsource spans:\nA: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nA-exception: ただし、重度腎機能障害のある患者を除く。\nControl: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。\nroute: route.single_ir\nOutput only one minified JSON object. Do not use Markdown.\nSchema: {\"rules\":[string,string],\"verdict\":\"semantic_contradiction|semantic_no_conflict\"}\nAllowed rules: rule.a.cq1.r1, rule.control.child.contra1",
+      "record_id": "io_route_single_ir_group_m1_null_22",
+      "response": "{\n  \"rules\": [\"group.m1_null\", \"group.m1_null\"],\n  \"verdict\": \"semantic_no_conflict\"\n}",
+      "response_hash": "fce6e74a6cdc6d92cd415044d21c979f56e990755f872b94c5b24c3a0f6e80ac",
       "route_id": "route.single_ir",
       "row": {
-        "admitted": true,
-        "diagnostics": [],
+        "admitted": false,
+        "diagnostics": [
+          "ai_hallucinated_source"
+        ],
         "expected": "semantic_no_conflict",
         "group_id": "group.m1_null",
         "route_id": "route.single_ir",
@@ -713,25 +1062,63 @@ window.CKC_RUN = {
         "verdict": "semantic_no_conflict",
         "verdict_correct": true
       },
-      "seed": 22
+      "seed": 22,
+      "subprocess": {
+        "command": {
+          "args": [
+            "-m",
+            ".local/models/qwen2.5-0.5b-instruct-q2_k.gguf",
+            "-p",
+            "<prompt>",
+            "-n",
+            "180",
+            "--ctx-size",
+            "1536",
+            "--temp",
+            "0.2",
+            "--top-k",
+            "20",
+            "--seed",
+            "22",
+            "--no-display-prompt",
+            "--single-turn",
+            "--simple-io",
+            "--no-show-timings",
+            "--log-verbosity",
+            "1",
+            "--no-log-prefix",
+            "--no-log-timestamps",
+            "--no-warmup",
+            "--no-perf"
+          ],
+          "executable": ".local/bin/llama-cli"
+        },
+        "error": null,
+        "exit_status": 0,
+        "signal": null,
+        "stdout": "\nLoading model... \n\n\n▄▄ ▄▄\n██ ██\n██ ██  ▀▀█▄ ███▄███▄  ▀▀█▄    ▄████ ████▄ ████▄\n██ ██ ▄█▀██ ██ ██ ██ ▄█▀██    ██    ██ ██ ██ ██\n██ ██ ▀█▄██ ██ ██ ██ ▀█▄██ ██ ▀████ ████▀ ████▀\n                                    ██    ██\n                                    ▀▀    ▀▀\n\nbuild      : b9592-ac4cddeb0\nmodel      : qwen2.5-0.5b-instruct-q2_k.gguf\nmodalities : text\n\navailable commands:\n  /exit or Ctrl+C     stop or exit\n  /regen              regenerate the last response\n  /clear              clear the chat history\n  /read <file>        add a text file\n  /glob <pattern>     add text files using globbing pattern\n\n\n> You are a weak local model inside a research harness.\nTranslate only the provided synthetic Japanese fixture spans.\nNo clinical, patient-care, deployment, or regulatory claim.\ngroup: group.m1_null\nseed: 22\nsource spans:\nA: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nA-exception: ただし、重度腎機能障害のある患者を除く。\nControl: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。\nroute: route ... (truncated)\n\n```json\n{\n  \"rules\": [\"group.m1_null\", \"group.m1_null\"],\n  \"verdict\": \"semantic_no_conflict\"\n}\n```\n\nExiting...\n",
+        "timed_out": false
+      }
     },
     {
       "group_id": "group.m1_conflict",
-      "prompt": "route: route.single_ir\ngroup: group.m1_conflict\nseed: 33\ntask: translate the synthetic Japanese fixture spans into the route target.\nscope: research harness, source-grounded, no clinical claim.",
-      "record_id": "io_route_single_ir_group_m1_conflict_33",
-      "response": {
-        "group_id": "group.m1_conflict",
-        "kind": "ckc_ir_row",
+      "parsed_response": {
         "rules": [
-          "rule.a.cq1.r1",
-          "rule.b.contra1"
-        ]
+          "group.m1_conflict",
+          "group.m1_conflict"
+        ],
+        "verdict": "semantic_contradiction"
       },
-      "response_hash": "0de651a7e0ca5ffc0da7610980a6ab0f8534af07b01df856a6410948100da1ca",
+      "prompt": "You are a weak local model inside a research harness.\nTranslate only the provided synthetic Japanese fixture spans.\nNo clinical, patient-care, deployment, or regulatory claim.\ngroup: group.m1_conflict\nseed: 33\nsource spans:\nA: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nA-exception: ただし、重度腎機能障害のある患者を除く。\nB: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。\nroute: route.single_ir\nOutput only one minified JSON object. Do not use Markdown.\nSchema: {\"rules\":[string,string],\"verdict\":\"semantic_contradiction|semantic_no_conflict\"}\nAllowed rules: rule.a.cq1.r1, rule.b.contra1",
+      "record_id": "io_route_single_ir_group_m1_conflict_33",
+      "response": "{\n  \"rules\": [\"group.m1_conflict\", \"group.m1_conflict\"],\n  \"verdict\": \"semantic_contradiction\"\n}",
+      "response_hash": "fb42a1ef5307598dbc737d0a014641b45a990934f666ddefc9fa5846d13c1f2e",
       "route_id": "route.single_ir",
       "row": {
-        "admitted": true,
-        "diagnostics": [],
+        "admitted": false,
+        "diagnostics": [
+          "ai_hallucinated_source"
+        ],
         "expected": "semantic_contradiction",
         "group_id": "group.m1_conflict",
         "route_id": "route.single_ir",
@@ -740,25 +1127,63 @@ window.CKC_RUN = {
         "verdict": "semantic_contradiction",
         "verdict_correct": true
       },
-      "seed": 33
+      "seed": 33,
+      "subprocess": {
+        "command": {
+          "args": [
+            "-m",
+            ".local/models/qwen2.5-0.5b-instruct-q2_k.gguf",
+            "-p",
+            "<prompt>",
+            "-n",
+            "180",
+            "--ctx-size",
+            "1536",
+            "--temp",
+            "0.2",
+            "--top-k",
+            "20",
+            "--seed",
+            "33",
+            "--no-display-prompt",
+            "--single-turn",
+            "--simple-io",
+            "--no-show-timings",
+            "--log-verbosity",
+            "1",
+            "--no-log-prefix",
+            "--no-log-timestamps",
+            "--no-warmup",
+            "--no-perf"
+          ],
+          "executable": ".local/bin/llama-cli"
+        },
+        "error": null,
+        "exit_status": 0,
+        "signal": null,
+        "stdout": "\nLoading model... \n\n\n▄▄ ▄▄\n██ ██\n██ ██  ▀▀█▄ ███▄███▄  ▀▀█▄    ▄████ ████▄ ████▄\n██ ██ ▄█▀██ ██ ██ ██ ▄█▀██    ██    ██ ██ ██ ██\n██ ██ ▀█▄██ ██ ██ ██ ▀█▄██ ██ ▀████ ████▀ ████▀\n                                    ██    ██\n                                    ▀▀    ▀▀\n\nbuild      : b9592-ac4cddeb0\nmodel      : qwen2.5-0.5b-instruct-q2_k.gguf\nmodalities : text\n\navailable commands:\n  /exit or Ctrl+C     stop or exit\n  /regen              regenerate the last response\n  /clear              clear the chat history\n  /read <file>        add a text file\n  /glob <pattern>     add text files using globbing pattern\n\n\n> You are a weak local model inside a research harness.\nTranslate only the provided synthetic Japanese fixture spans.\nNo clinical, patient-care, deployment, or regulatory claim.\ngroup: group.m1_conflict\nseed: 33\nsource spans:\nA: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nA-exception: ただし、重度腎機能障害のある患者を除く。\nB: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しない� ... (truncated)\n\n```json\n{\n  \"rules\": [\"group.m1_conflict\", \"group.m1_conflict\"],\n  \"verdict\": \"semantic_contradiction\"\n}\n```\n\nExiting...\n",
+        "timed_out": false
+      }
     },
     {
       "group_id": "group.m1_null",
-      "prompt": "route: route.single_ir\ngroup: group.m1_null\nseed: 33\ntask: translate the synthetic Japanese fixture spans into the route target.\nscope: research harness, source-grounded, no clinical claim.",
-      "record_id": "io_route_single_ir_group_m1_null_33",
-      "response": {
-        "group_id": "group.m1_null",
-        "kind": "ckc_ir_row",
+      "parsed_response": {
         "rules": [
-          "rule.a.cq1.r1",
-          "rule.control.child.contra1"
-        ]
+          "group.m1_null",
+          "group.m1_null"
+        ],
+        "verdict": "semantic_no_conflict"
       },
-      "response_hash": "2d4f86cbb21c4c5785f271ca6fd1ab35ad189ebc583c073e615fcfe9d57680eb",
+      "prompt": "You are a weak local model inside a research harness.\nTranslate only the provided synthetic Japanese fixture spans.\nNo clinical, patient-care, deployment, or regulatory claim.\ngroup: group.m1_null\nseed: 33\nsource spans:\nA: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nA-exception: ただし、重度腎機能障害のある患者を除く。\nControl: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。\nroute: route.single_ir\nOutput only one minified JSON object. Do not use Markdown.\nSchema: {\"rules\":[string,string],\"verdict\":\"semantic_contradiction|semantic_no_conflict\"}\nAllowed rules: rule.a.cq1.r1, rule.control.child.contra1",
+      "record_id": "io_route_single_ir_group_m1_null_33",
+      "response": "{\n  \"rules\": [\"group.m1_null\", \"group.m1_null\"],\n  \"verdict\": \"semantic_no_conflict\"\n}",
+      "response_hash": "fce6e74a6cdc6d92cd415044d21c979f56e990755f872b94c5b24c3a0f6e80ac",
       "route_id": "route.single_ir",
       "row": {
-        "admitted": true,
-        "diagnostics": [],
+        "admitted": false,
+        "diagnostics": [
+          "ai_hallucinated_source"
+        ],
         "expected": "semantic_no_conflict",
         "group_id": "group.m1_null",
         "route_id": "route.single_ir",
@@ -767,32 +1192,72 @@ window.CKC_RUN = {
         "verdict": "semantic_no_conflict",
         "verdict_correct": true
       },
-      "seed": 33
+      "seed": 33,
+      "subprocess": {
+        "command": {
+          "args": [
+            "-m",
+            ".local/models/qwen2.5-0.5b-instruct-q2_k.gguf",
+            "-p",
+            "<prompt>",
+            "-n",
+            "180",
+            "--ctx-size",
+            "1536",
+            "--temp",
+            "0.2",
+            "--top-k",
+            "20",
+            "--seed",
+            "33",
+            "--no-display-prompt",
+            "--single-turn",
+            "--simple-io",
+            "--no-show-timings",
+            "--log-verbosity",
+            "1",
+            "--no-log-prefix",
+            "--no-log-timestamps",
+            "--no-warmup",
+            "--no-perf"
+          ],
+          "executable": ".local/bin/llama-cli"
+        },
+        "error": null,
+        "exit_status": 0,
+        "signal": null,
+        "stdout": "\nLoading model... \n\n\n▄▄ ▄▄\n██ ██\n██ ██  ▀▀█▄ ███▄███▄  ▀▀█▄    ▄████ ████▄ ████▄\n██ ██ ▄█▀██ ██ ██ ██ ▄█▀██    ██    ██ ██ ██ ██\n██ ██ ▀█▄██ ██ ██ ██ ▀█▄██ ██ ▀████ ████▀ ████▀\n                                    ██    ██\n                                    ▀▀    ▀▀\n\nbuild      : b9592-ac4cddeb0\nmodel      : qwen2.5-0.5b-instruct-q2_k.gguf\nmodalities : text\n\navailable commands:\n  /exit or Ctrl+C     stop or exit\n  /regen              regenerate the last response\n  /clear              clear the chat history\n  /read <file>        add a text file\n  /glob <pattern>     add text files using globbing pattern\n\n\n> You are a weak local model inside a research harness.\nTranslate only the provided synthetic Japanese fixture spans.\nNo clinical, patient-care, deployment, or regulatory claim.\ngroup: group.m1_null\nseed: 33\nsource spans:\nA: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nA-exception: ただし、重度腎機能障害のある患者を除く。\nControl: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。\nroute: route ... (truncated)\n\n```json\n{\n  \"rules\": [\"group.m1_null\", \"group.m1_null\"],\n  \"verdict\": \"semantic_no_conflict\"\n}\n```\n\nExiting...\n",
+        "timed_out": false
+      }
     }
   ],
   "raw_rows": [
     {
-      "admitted": true,
-      "diagnostics": [],
+      "admitted": false,
+      "diagnostics": [
+        "target_parse_error",
+        "ai_schema_violation"
+      ],
       "expected": "semantic_contradiction",
       "group_id": "group.m1_conflict",
       "route_id": "route.direct_smt",
       "seed": 11,
-      "syntax_valid": true,
-      "verdict": "semantic_contradiction",
-      "verdict_correct": true
+      "syntax_valid": false,
+      "verdict": "target_syntax_failure",
+      "verdict_correct": false
     },
     {
-      "admitted": true,
+      "admitted": false,
       "diagnostics": [
-        "false_positive_conflict"
+        "target_parse_error",
+        "ai_schema_violation"
       ],
       "expected": "semantic_no_conflict",
       "group_id": "group.m1_null",
       "route_id": "route.direct_smt",
       "seed": 11,
-      "syntax_valid": true,
-      "verdict": "semantic_contradiction",
+      "syntax_valid": false,
+      "verdict": "target_syntax_failure",
       "verdict_correct": false
     },
     {
@@ -810,11 +1275,94 @@ window.CKC_RUN = {
       "verdict_correct": false
     },
     {
-      "admitted": true,
-      "diagnostics": [],
+      "admitted": false,
+      "diagnostics": [
+        "target_parse_error",
+        "ai_schema_violation"
+      ],
       "expected": "semantic_no_conflict",
       "group_id": "group.m1_null",
       "route_id": "route.direct_smt",
+      "seed": 22,
+      "syntax_valid": false,
+      "verdict": "target_syntax_failure",
+      "verdict_correct": false
+    },
+    {
+      "admitted": false,
+      "diagnostics": [
+        "target_parse_error",
+        "ai_schema_violation"
+      ],
+      "expected": "semantic_contradiction",
+      "group_id": "group.m1_conflict",
+      "route_id": "route.direct_smt",
+      "seed": 33,
+      "syntax_valid": false,
+      "verdict": "target_syntax_failure",
+      "verdict_correct": false
+    },
+    {
+      "admitted": false,
+      "diagnostics": [
+        "target_parse_error",
+        "ai_schema_violation"
+      ],
+      "expected": "semantic_no_conflict",
+      "group_id": "group.m1_null",
+      "route_id": "route.direct_smt",
+      "seed": 33,
+      "syntax_valid": false,
+      "verdict": "target_syntax_failure",
+      "verdict_correct": false
+    },
+    {
+      "admitted": false,
+      "diagnostics": [
+        "ai_hallucinated_source"
+      ],
+      "expected": "semantic_contradiction",
+      "group_id": "group.m1_conflict",
+      "route_id": "route.single_ir",
+      "seed": 11,
+      "syntax_valid": true,
+      "verdict": "semantic_contradiction",
+      "verdict_correct": true
+    },
+    {
+      "admitted": false,
+      "diagnostics": [
+        "ai_hallucinated_source"
+      ],
+      "expected": "semantic_no_conflict",
+      "group_id": "group.m1_null",
+      "route_id": "route.single_ir",
+      "seed": 11,
+      "syntax_valid": true,
+      "verdict": "semantic_no_conflict",
+      "verdict_correct": true
+    },
+    {
+      "admitted": false,
+      "diagnostics": [
+        "ai_hallucinated_source"
+      ],
+      "expected": "semantic_contradiction",
+      "group_id": "group.m1_conflict",
+      "route_id": "route.single_ir",
+      "seed": 22,
+      "syntax_valid": true,
+      "verdict": "semantic_contradiction",
+      "verdict_correct": true
+    },
+    {
+      "admitted": false,
+      "diagnostics": [
+        "ai_hallucinated_source"
+      ],
+      "expected": "semantic_no_conflict",
+      "group_id": "group.m1_null",
+      "route_id": "route.single_ir",
       "seed": 22,
       "syntax_valid": true,
       "verdict": "semantic_no_conflict",
@@ -827,83 +1375,17 @@ window.CKC_RUN = {
       ],
       "expected": "semantic_contradiction",
       "group_id": "group.m1_conflict",
-      "route_id": "route.direct_smt",
+      "route_id": "route.single_ir",
       "seed": 33,
       "syntax_valid": true,
-      "verdict": "semantic_no_conflict",
-      "verdict_correct": false
+      "verdict": "semantic_contradiction",
+      "verdict_correct": true
     },
     {
       "admitted": false,
       "diagnostics": [
-        "target_parse_error"
+        "ai_hallucinated_source"
       ],
-      "expected": "semantic_no_conflict",
-      "group_id": "group.m1_null",
-      "route_id": "route.direct_smt",
-      "seed": 33,
-      "syntax_valid": false,
-      "verdict": "target_syntax_failure",
-      "verdict_correct": false
-    },
-    {
-      "admitted": true,
-      "diagnostics": [],
-      "expected": "semantic_contradiction",
-      "group_id": "group.m1_conflict",
-      "route_id": "route.single_ir",
-      "seed": 11,
-      "syntax_valid": true,
-      "verdict": "semantic_contradiction",
-      "verdict_correct": true
-    },
-    {
-      "admitted": true,
-      "diagnostics": [],
-      "expected": "semantic_no_conflict",
-      "group_id": "group.m1_null",
-      "route_id": "route.single_ir",
-      "seed": 11,
-      "syntax_valid": true,
-      "verdict": "semantic_no_conflict",
-      "verdict_correct": true
-    },
-    {
-      "admitted": true,
-      "diagnostics": [],
-      "expected": "semantic_contradiction",
-      "group_id": "group.m1_conflict",
-      "route_id": "route.single_ir",
-      "seed": 22,
-      "syntax_valid": true,
-      "verdict": "semantic_contradiction",
-      "verdict_correct": true
-    },
-    {
-      "admitted": true,
-      "diagnostics": [],
-      "expected": "semantic_no_conflict",
-      "group_id": "group.m1_null",
-      "route_id": "route.single_ir",
-      "seed": 22,
-      "syntax_valid": true,
-      "verdict": "semantic_no_conflict",
-      "verdict_correct": true
-    },
-    {
-      "admitted": true,
-      "diagnostics": [],
-      "expected": "semantic_contradiction",
-      "group_id": "group.m1_conflict",
-      "route_id": "route.single_ir",
-      "seed": 33,
-      "syntax_valid": true,
-      "verdict": "semantic_contradiction",
-      "verdict_correct": true
-    },
-    {
-      "admitted": true,
-      "diagnostics": [],
       "expected": "semantic_no_conflict",
       "group_id": "group.m1_null",
       "route_id": "route.single_ir",
@@ -917,10 +1399,9 @@ window.CKC_RUN = {
     "artifact_kind": "Report",
     "corpus_hash": "f265c99668925c2c1389820a7356a0a5ee95cc4d6065696610f0dcd803932208",
     "diagnostics_summary": {
-      "ai_hallucinated_source": 1,
-      "ai_schema_violation": 1,
-      "false_positive_conflict": 1,
-      "target_parse_error": 2
+      "ai_hallucinated_source": 6,
+      "ai_schema_violation": 6,
+      "target_parse_error": 6
     },
     "experiments": [
       "exp.m1_spine",
@@ -966,20 +1447,21 @@ window.CKC_RUN = {
     ],
     "generated_by": "tools/build-run.mjs",
     "lexicon_hash": "1845f637a034e254c133fd360dbf38fd17eb5fc2522f8e5467c69f7d2ac6b8c9",
-    "live_model_calls": 0,
+    "live_model_calls": 12,
+    "llama_cli": ".local/bin/llama-cli",
     "metrics": {
       "lift_table": [
         {
           "baseline": {
-            "decimal": 0.6667,
+            "decimal": 0,
             "denominator": 6,
-            "exact": "4/6",
-            "numerator": 4
+            "exact": "0/6",
+            "numerator": 0
           },
           "delta": {
-            "decimal": 0.3333,
-            "denominator": 3,
-            "exact": "1/3",
+            "decimal": 1,
+            "denominator": 1,
+            "exact": "1/1",
             "numerator": 1
           },
           "lifted": {
@@ -992,37 +1474,37 @@ window.CKC_RUN = {
         },
         {
           "baseline": {
-            "decimal": 0.5,
+            "decimal": 0,
             "denominator": 6,
-            "exact": "3/6",
-            "numerator": 3
+            "exact": "0/6",
+            "numerator": 0
           },
           "delta": {
-            "decimal": 0.5,
-            "denominator": 2,
-            "exact": "1/2",
-            "numerator": 1
+            "decimal": 0,
+            "denominator": 1,
+            "exact": "0/1",
+            "numerator": 0
           },
           "lifted": {
-            "decimal": 1,
+            "decimal": 0,
             "denominator": 6,
-            "exact": "6/6",
-            "numerator": 6
+            "exact": "0/6",
+            "numerator": 0
           },
           "metric": "admission_rate"
         },
         {
           "baseline": {
-            "decimal": 0.3333,
+            "decimal": 0,
             "denominator": 6,
-            "exact": "2/6",
-            "numerator": 2
+            "exact": "0/6",
+            "numerator": 0
           },
           "delta": {
-            "decimal": 0.6667,
-            "denominator": 3,
-            "exact": "2/3",
-            "numerator": 2
+            "decimal": 1,
+            "denominator": 1,
+            "exact": "1/1",
+            "numerator": 1
           },
           "lifted": {
             "decimal": 1,
@@ -1040,43 +1522,47 @@ window.CKC_RUN = {
             "numerator": 0
           },
           "delta": {
-            "decimal": 1,
+            "decimal": 0,
             "denominator": 1,
-            "exact": "1/1",
-            "numerator": 1
+            "exact": "0/1",
+            "numerator": 0
           },
           "lifted": {
-            "decimal": 1,
+            "decimal": 0,
             "denominator": 2,
-            "exact": "2/2",
-            "numerator": 2
+            "exact": "0/2",
+            "numerator": 0
           },
           "metric": "k_sample_stability"
         }
       ],
       "raw_rows": [
         {
-          "admitted": true,
-          "diagnostics": [],
+          "admitted": false,
+          "diagnostics": [
+            "target_parse_error",
+            "ai_schema_violation"
+          ],
           "expected": "semantic_contradiction",
           "group_id": "group.m1_conflict",
           "route_id": "route.direct_smt",
           "seed": 11,
-          "syntax_valid": true,
-          "verdict": "semantic_contradiction",
-          "verdict_correct": true
+          "syntax_valid": false,
+          "verdict": "target_syntax_failure",
+          "verdict_correct": false
         },
         {
-          "admitted": true,
+          "admitted": false,
           "diagnostics": [
-            "false_positive_conflict"
+            "target_parse_error",
+            "ai_schema_violation"
           ],
           "expected": "semantic_no_conflict",
           "group_id": "group.m1_null",
           "route_id": "route.direct_smt",
           "seed": 11,
-          "syntax_valid": true,
-          "verdict": "semantic_contradiction",
+          "syntax_valid": false,
+          "verdict": "target_syntax_failure",
           "verdict_correct": false
         },
         {
@@ -1094,11 +1580,94 @@ window.CKC_RUN = {
           "verdict_correct": false
         },
         {
-          "admitted": true,
-          "diagnostics": [],
+          "admitted": false,
+          "diagnostics": [
+            "target_parse_error",
+            "ai_schema_violation"
+          ],
           "expected": "semantic_no_conflict",
           "group_id": "group.m1_null",
           "route_id": "route.direct_smt",
+          "seed": 22,
+          "syntax_valid": false,
+          "verdict": "target_syntax_failure",
+          "verdict_correct": false
+        },
+        {
+          "admitted": false,
+          "diagnostics": [
+            "target_parse_error",
+            "ai_schema_violation"
+          ],
+          "expected": "semantic_contradiction",
+          "group_id": "group.m1_conflict",
+          "route_id": "route.direct_smt",
+          "seed": 33,
+          "syntax_valid": false,
+          "verdict": "target_syntax_failure",
+          "verdict_correct": false
+        },
+        {
+          "admitted": false,
+          "diagnostics": [
+            "target_parse_error",
+            "ai_schema_violation"
+          ],
+          "expected": "semantic_no_conflict",
+          "group_id": "group.m1_null",
+          "route_id": "route.direct_smt",
+          "seed": 33,
+          "syntax_valid": false,
+          "verdict": "target_syntax_failure",
+          "verdict_correct": false
+        },
+        {
+          "admitted": false,
+          "diagnostics": [
+            "ai_hallucinated_source"
+          ],
+          "expected": "semantic_contradiction",
+          "group_id": "group.m1_conflict",
+          "route_id": "route.single_ir",
+          "seed": 11,
+          "syntax_valid": true,
+          "verdict": "semantic_contradiction",
+          "verdict_correct": true
+        },
+        {
+          "admitted": false,
+          "diagnostics": [
+            "ai_hallucinated_source"
+          ],
+          "expected": "semantic_no_conflict",
+          "group_id": "group.m1_null",
+          "route_id": "route.single_ir",
+          "seed": 11,
+          "syntax_valid": true,
+          "verdict": "semantic_no_conflict",
+          "verdict_correct": true
+        },
+        {
+          "admitted": false,
+          "diagnostics": [
+            "ai_hallucinated_source"
+          ],
+          "expected": "semantic_contradiction",
+          "group_id": "group.m1_conflict",
+          "route_id": "route.single_ir",
+          "seed": 22,
+          "syntax_valid": true,
+          "verdict": "semantic_contradiction",
+          "verdict_correct": true
+        },
+        {
+          "admitted": false,
+          "diagnostics": [
+            "ai_hallucinated_source"
+          ],
+          "expected": "semantic_no_conflict",
+          "group_id": "group.m1_null",
+          "route_id": "route.single_ir",
           "seed": 22,
           "syntax_valid": true,
           "verdict": "semantic_no_conflict",
@@ -1111,83 +1680,17 @@ window.CKC_RUN = {
           ],
           "expected": "semantic_contradiction",
           "group_id": "group.m1_conflict",
-          "route_id": "route.direct_smt",
+          "route_id": "route.single_ir",
           "seed": 33,
           "syntax_valid": true,
-          "verdict": "semantic_no_conflict",
-          "verdict_correct": false
+          "verdict": "semantic_contradiction",
+          "verdict_correct": true
         },
         {
           "admitted": false,
           "diagnostics": [
-            "target_parse_error"
+            "ai_hallucinated_source"
           ],
-          "expected": "semantic_no_conflict",
-          "group_id": "group.m1_null",
-          "route_id": "route.direct_smt",
-          "seed": 33,
-          "syntax_valid": false,
-          "verdict": "target_syntax_failure",
-          "verdict_correct": false
-        },
-        {
-          "admitted": true,
-          "diagnostics": [],
-          "expected": "semantic_contradiction",
-          "group_id": "group.m1_conflict",
-          "route_id": "route.single_ir",
-          "seed": 11,
-          "syntax_valid": true,
-          "verdict": "semantic_contradiction",
-          "verdict_correct": true
-        },
-        {
-          "admitted": true,
-          "diagnostics": [],
-          "expected": "semantic_no_conflict",
-          "group_id": "group.m1_null",
-          "route_id": "route.single_ir",
-          "seed": 11,
-          "syntax_valid": true,
-          "verdict": "semantic_no_conflict",
-          "verdict_correct": true
-        },
-        {
-          "admitted": true,
-          "diagnostics": [],
-          "expected": "semantic_contradiction",
-          "group_id": "group.m1_conflict",
-          "route_id": "route.single_ir",
-          "seed": 22,
-          "syntax_valid": true,
-          "verdict": "semantic_contradiction",
-          "verdict_correct": true
-        },
-        {
-          "admitted": true,
-          "diagnostics": [],
-          "expected": "semantic_no_conflict",
-          "group_id": "group.m1_null",
-          "route_id": "route.single_ir",
-          "seed": 22,
-          "syntax_valid": true,
-          "verdict": "semantic_no_conflict",
-          "verdict_correct": true
-        },
-        {
-          "admitted": true,
-          "diagnostics": [],
-          "expected": "semantic_contradiction",
-          "group_id": "group.m1_conflict",
-          "route_id": "route.single_ir",
-          "seed": 33,
-          "syntax_valid": true,
-          "verdict": "semantic_contradiction",
-          "verdict_correct": true
-        },
-        {
-          "admitted": true,
-          "diagnostics": [],
           "expected": "semantic_no_conflict",
           "group_id": "group.m1_null",
           "route_id": "route.single_ir",
@@ -1200,17 +1703,24 @@ window.CKC_RUN = {
       "route_metrics": [
         {
           "admission_rate": {
-            "decimal": 0.5,
+            "decimal": 0,
             "denominator": 6,
-            "exact": "3/6",
-            "numerator": 3
+            "exact": "0/6",
+            "numerator": 0
           },
           "diagnostics": [
-            "false_positive_conflict",
             "target_parse_error",
             "ai_schema_violation",
-            "ai_hallucinated_source",
-            "target_parse_error"
+            "target_parse_error",
+            "ai_schema_violation",
+            "target_parse_error",
+            "ai_schema_violation",
+            "target_parse_error",
+            "ai_schema_violation",
+            "target_parse_error",
+            "ai_schema_violation",
+            "target_parse_error",
+            "ai_schema_violation"
           ],
           "k_sample_stability": {
             "decimal": 0,
@@ -1221,31 +1731,38 @@ window.CKC_RUN = {
           "route_id": "route.direct_smt",
           "samples": 6,
           "target_syntax_validity": {
-            "decimal": 0.6667,
+            "decimal": 0,
             "denominator": 6,
-            "exact": "4/6",
-            "numerator": 4
+            "exact": "0/6",
+            "numerator": 0
           },
           "verdict_accuracy": {
-            "decimal": 0.3333,
+            "decimal": 0,
             "denominator": 6,
-            "exact": "2/6",
-            "numerator": 2
+            "exact": "0/6",
+            "numerator": 0
           }
         },
         {
           "admission_rate": {
-            "decimal": 1,
+            "decimal": 0,
             "denominator": 6,
-            "exact": "6/6",
-            "numerator": 6
+            "exact": "0/6",
+            "numerator": 0
           },
-          "diagnostics": [],
+          "diagnostics": [
+            "ai_hallucinated_source",
+            "ai_hallucinated_source",
+            "ai_hallucinated_source",
+            "ai_hallucinated_source",
+            "ai_hallucinated_source",
+            "ai_hallucinated_source"
+          ],
           "k_sample_stability": {
-            "decimal": 1,
+            "decimal": 0,
             "denominator": 2,
-            "exact": "2/2",
-            "numerator": 2
+            "exact": "0/2",
+            "numerator": 0
           },
           "route_id": "route.single_ir",
           "samples": 6,
@@ -1264,8 +1781,10 @@ window.CKC_RUN = {
         }
       ]
     },
-    "model_identity": "recorded.one-shot.weak-ja-symbolic-stub",
-    "model_runtime": "deterministic-js-fixture-adapter",
+    "model_identity": "Qwen2.5-0.5B-Instruct-Q2_K:9ee36184e616dfc7",
+    "model_mode": "live_local_llama_cpp",
+    "model_path": ".local/models/qwen2.5-0.5b-instruct-q2_k.gguf",
+    "model_runtime": "version: 9592 (ac4cddeb0)",
     "null_results": [
       {
         "claim_tier": "s1_admitted",
@@ -1316,22 +1835,29 @@ window.CKC_RUN = {
       "documented null result"
     ]
   },
-  "report_ja_markdown": "# CKC one-shot M1-M2 研究レポート\n\nrun: `m2-one-shot`\n\n範囲: research harness、synthetic fixture measurement、source-grounded。admitted の行は one-shot symbolic verifier で verifier-checked。このレポートは臨床、患者ケア、導入、規制上の主張をしない。\n\n## M1 spine\n\n- finding: `finding.group.m1_conflict.1` / `deontic_direction_conflict`\n- documented null result: `null.group.m1_null.1` / age_intervals_disjoint\n- replay status: byte_stable_on_current_generation\n\n## 引用スパン\n\n- `region.a.cq1.rec`: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\n- `region.a.cq1.exc`: ただし、重度腎機能障害のある患者を除く。\n- `region.b.contra1`: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。\n- `region.control.child.contra1`: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。\n\n## M2 lift table\n\n| metric | direct_smt | single_ir | delta |\n| --- | ---: | ---: | ---: |\n| target_syntax_validity | 4/6 | 6/6 | 1/3 |\n| admission_rate | 3/6 | 6/6 | 1/2 |\n| verdict_accuracy | 2/6 | 6/6 | 2/3 |\n| k_sample_stability | 0/2 | 2/2 | 1/1 |\n",
-  "report_markdown": "# CKC one-shot M1-M2 research report\n\nRun: `m2-one-shot`\n\nScope: research harness; synthetic fixture measurement; source-grounded; schema-valid where admitted; verifier-checked by the one-shot symbolic verifier. This report makes no clinical, patient-care, deployment, or regulatory claim.\n\n## M1 spine result\n\n- Finding: `finding.group.m1_conflict.1` / `deontic_direction_conflict`\n- Core: `assert.rule.a.cq1.r1.pos`, `assert.rule.b.contra1.neg`\n- Documented null result: `null.group.m1_null.1` / age_intervals_disjoint\n- Replay status: byte_stable_on_current_generation\n\n## Quoted source spans\n\n- `region.a.cq1.rec`: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\n- `region.a.cq1.exc`: ただし、重度腎機能障害のある患者を除く。\n- `region.b.contra1`: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。\n- `region.control.child.contra1`: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。\n\n## M2 lift table\n\n| Metric | direct_smt | single_ir | delta |\n| --- | ---: | ---: | ---: |\n| target_syntax_validity | 4/6 | 6/6 | 1/3 |\n| admission_rate | 3/6 | 6/6 | 1/2 |\n| verdict_accuracy | 2/6 | 6/6 | 2/3 |\n| k_sample_stability | 0/2 | 2/2 | 1/1 |\n\n## Raw route rows\n\n| Route | Group | Seed | Syntax valid | Admitted | Verdict | Correct |\n| --- | --- | ---: | --- | --- | --- | --- |\n| route.direct_smt | group.m1_conflict | 11 | true | true | semantic_contradiction | true |\n| route.direct_smt | group.m1_null | 11 | true | true | semantic_contradiction | false |\n| route.direct_smt | group.m1_conflict | 22 | false | false | target_syntax_failure | false |\n| route.direct_smt | group.m1_null | 22 | true | true | semantic_no_conflict | true |\n| route.direct_smt | group.m1_conflict | 33 | true | false | semantic_no_conflict | false |\n| route.direct_smt | group.m1_null | 33 | false | false | target_syntax_failure | false |\n| route.single_ir | group.m1_conflict | 11 | true | true | semantic_contradiction | true |\n| route.single_ir | group.m1_null | 11 | true | true | semantic_no_conflict | true |\n| route.single_ir | group.m1_conflict | 22 | true | true | semantic_contradiction | true |\n| route.single_ir | group.m1_null | 22 | true | true | semantic_no_conflict | true |\n| route.single_ir | group.m1_conflict | 33 | true | true | semantic_contradiction | true |\n| route.single_ir | group.m1_null | 33 | true | true | semantic_no_conflict | true |\n\n## Failure taxonomy\n\n- false_positive_conflict: 1\n- target_parse_error: 2\n- ai_schema_violation: 1\n- ai_hallucinated_source: 1\n\n## Recorded model route identity\n\n- Model identity: recorded.one-shot.weak-ja-symbolic-stub\n- Runtime: deterministic-js-fixture-adapter\n- Live model calls: 0\n",
+  "report_ja_markdown": "# CKC one-shot M1-M2 研究レポート\n\nrun: `m2-one-shot`\n\n範囲: research harness、synthetic fixture measurement、source-grounded。admitted の行は one-shot symbolic verifier で verifier-checked。このレポートは臨床、患者ケア、導入、規制上の主張をしない。\n\n## M1 spine\n\n- finding: `finding.group.m1_conflict.1` / `deontic_direction_conflict`\n- documented null result: `null.group.m1_null.1` / age_intervals_disjoint\n- replay status: byte_stable_on_current_generation\n\n## 引用スパン\n\n- `region.a.cq1.rec`: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\n- `region.a.cq1.exc`: ただし、重度腎機能障害のある患者を除く。\n- `region.b.contra1`: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。\n- `region.control.child.contra1`: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。\n\n## M2 lift table\n\n| metric | direct_smt | single_ir | delta |\n| --- | ---: | ---: | ---: |\n| target_syntax_validity | 0/6 | 6/6 | 1/1 |\n| admission_rate | 0/6 | 0/6 | 0/1 |\n| verdict_accuracy | 0/6 | 6/6 | 1/1 |\n| k_sample_stability | 0/2 | 0/2 | 0/1 |\n",
+  "report_markdown": "# CKC one-shot M1-M2 research report\n\nRun: `m2-one-shot`\n\nScope: research harness; synthetic fixture measurement; source-grounded; schema-valid where admitted; verifier-checked by the one-shot symbolic verifier. This report makes no clinical, patient-care, deployment, or regulatory claim.\n\n## M1 spine result\n\n- Finding: `finding.group.m1_conflict.1` / `deontic_direction_conflict`\n- Core: `assert.rule.a.cq1.r1.pos`, `assert.rule.b.contra1.neg`\n- Documented null result: `null.group.m1_null.1` / age_intervals_disjoint\n- Replay status: byte_stable_on_current_generation\n\n## Quoted source spans\n\n- `region.a.cq1.rec`: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\n- `region.a.cq1.exc`: ただし、重度腎機能障害のある患者を除く。\n- `region.b.contra1`: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。\n- `region.control.child.contra1`: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。\n\n## M2 lift table\n\n| Metric | direct_smt | single_ir | delta |\n| --- | ---: | ---: | ---: |\n| target_syntax_validity | 0/6 | 6/6 | 1/1 |\n| admission_rate | 0/6 | 0/6 | 0/1 |\n| verdict_accuracy | 0/6 | 6/6 | 1/1 |\n| k_sample_stability | 0/2 | 0/2 | 0/1 |\n\n## Raw route rows\n\n| Route | Group | Seed | Syntax valid | Admitted | Verdict | Correct |\n| --- | --- | ---: | --- | --- | --- | --- |\n| route.direct_smt | group.m1_conflict | 11 | false | false | target_syntax_failure | false |\n| route.direct_smt | group.m1_null | 11 | false | false | target_syntax_failure | false |\n| route.direct_smt | group.m1_conflict | 22 | false | false | target_syntax_failure | false |\n| route.direct_smt | group.m1_null | 22 | false | false | target_syntax_failure | false |\n| route.direct_smt | group.m1_conflict | 33 | false | false | target_syntax_failure | false |\n| route.direct_smt | group.m1_null | 33 | false | false | target_syntax_failure | false |\n| route.single_ir | group.m1_conflict | 11 | true | false | semantic_contradiction | true |\n| route.single_ir | group.m1_null | 11 | true | false | semantic_no_conflict | true |\n| route.single_ir | group.m1_conflict | 22 | true | false | semantic_contradiction | true |\n| route.single_ir | group.m1_null | 22 | true | false | semantic_no_conflict | true |\n| route.single_ir | group.m1_conflict | 33 | true | false | semantic_contradiction | true |\n| route.single_ir | group.m1_null | 33 | true | false | semantic_no_conflict | true |\n\n## Failure taxonomy\n\n- target_parse_error: 6\n- ai_schema_violation: 6\n- ai_hallucinated_source: 6\n\n## Model route identity\n\n- Model identity: Qwen2.5-0.5B-Instruct-Q2_K:9ee36184e616dfc7\n- Runtime: version: 9592 (ac4cddeb0)\n- Live model calls: 12\n",
   "route_metrics": [
     {
       "admission_rate": {
-        "decimal": 0.5,
+        "decimal": 0,
         "denominator": 6,
-        "exact": "3/6",
-        "numerator": 3
+        "exact": "0/6",
+        "numerator": 0
       },
       "diagnostics": [
-        "false_positive_conflict",
         "target_parse_error",
         "ai_schema_violation",
-        "ai_hallucinated_source",
-        "target_parse_error"
+        "target_parse_error",
+        "ai_schema_violation",
+        "target_parse_error",
+        "ai_schema_violation",
+        "target_parse_error",
+        "ai_schema_violation",
+        "target_parse_error",
+        "ai_schema_violation",
+        "target_parse_error",
+        "ai_schema_violation"
       ],
       "k_sample_stability": {
         "decimal": 0,
@@ -1342,31 +1868,38 @@ window.CKC_RUN = {
       "route_id": "route.direct_smt",
       "samples": 6,
       "target_syntax_validity": {
-        "decimal": 0.6667,
+        "decimal": 0,
         "denominator": 6,
-        "exact": "4/6",
-        "numerator": 4
+        "exact": "0/6",
+        "numerator": 0
       },
       "verdict_accuracy": {
-        "decimal": 0.3333,
+        "decimal": 0,
         "denominator": 6,
-        "exact": "2/6",
-        "numerator": 2
+        "exact": "0/6",
+        "numerator": 0
       }
     },
     {
       "admission_rate": {
-        "decimal": 1,
+        "decimal": 0,
         "denominator": 6,
-        "exact": "6/6",
-        "numerator": 6
+        "exact": "0/6",
+        "numerator": 0
       },
-      "diagnostics": [],
+      "diagnostics": [
+        "ai_hallucinated_source",
+        "ai_hallucinated_source",
+        "ai_hallucinated_source",
+        "ai_hallucinated_source",
+        "ai_hallucinated_source",
+        "ai_hallucinated_source"
+      ],
       "k_sample_stability": {
-        "decimal": 1,
+        "decimal": 0,
         "denominator": 2,
-        "exact": "2/2",
-        "numerator": 2
+        "exact": "0/2",
+        "numerator": 0
       },
       "route_id": "route.single_ir",
       "samples": 6,
