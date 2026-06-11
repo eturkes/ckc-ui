@@ -110,6 +110,10 @@ function sha256(value) {
   return sha256Bytes(canonical(value));
 }
 
+function sha256Text(value) {
+  return sha256Bytes(Buffer.from(String(value), "utf8"));
+}
+
 function ratio(numerator, denominator) {
   const decimal = denominator === 0 ? null : Number((numerator / denominator).toFixed(4));
   return { numerator, denominator, exact: `${numerator}/${denominator}`, decimal };
@@ -1269,6 +1273,7 @@ function runLiveSingleIrRoute(groupId, seed, expected) {
     labels,
     cue_inputs: Object.fromEntries(labels.map((label) => [label, sourceCuesForLabel(label)])),
     prompt,
+    prompt_hash: sha256Text(prompt),
     response: extracted?.text ?? rawOutput,
     parsed_response: extracted?.value ?? null,
     response_hash: sha256(extracted?.text ?? rawOutput),
@@ -1330,6 +1335,7 @@ function scoreRows() {
         const expected = group.expectedOutcome;
         const candidate_verdict_correct = simulated.verdict === expected;
         const verdict_correct = simulated.admitted && candidate_verdict_correct;
+        const prompt = simulated.prompt ?? promptFor(routeId, group.id, seed);
         const row = {
           route_id: routeId,
           group_id: group.id,
@@ -1350,7 +1356,8 @@ function scoreRows() {
           route_id: routeId,
           group_id: group.id,
           seed,
-          prompt: simulated.prompt ?? promptFor(routeId, group.id, seed),
+          prompt,
+          prompt_hash: sha256Text(prompt),
           response: simulated.response,
           parsed_response: simulated.parsed_response ?? null,
           compiled_target: simulated.compiled_target ?? null,
@@ -1473,6 +1480,114 @@ function buildRouteTargetSummary(ioRecords) {
   };
 }
 
+function promptTemplateId(routeId, granularity) {
+  if (routeId === "route.direct_smt") return "prompt.route_direct_smt.shared_cue_smt_target.v1";
+  if (routeId === "route.single_ir" && granularity === "source_pair") return "prompt.route_single_ir.resolved_pair_json.v1";
+  if (routeId === "route.single_ir") return "prompt.route_single_ir.generic_pair_json.v1";
+  return `prompt.${routeId.replaceAll(".", "_")}.${granularity}.v1`;
+}
+
+function promptOutputContract(routeId, granularity) {
+  if (routeId === "route.direct_smt") return "self-contained SMT-LIB 2 program";
+  if (routeId === "route.single_ir" && granularity === "source_pair") {
+    return "JSON object keyed by source label; constrained by llama.cpp JSON schema";
+  }
+  if (routeId === "route.single_ir") return "JSON cue object for route_rule_ir.v0 bridge";
+  return "route-specific model output";
+}
+
+function promptCatalogPath(routeId, groupId, promptHash) {
+  return `prompts/${routeId}/${groupId}/prompt-${promptHash.slice(0, 12)}.txt`;
+}
+
+function buildPromptCatalog(ioRecords) {
+  const calls = ioRecords.map((record) => {
+    const routeCall = record.route_call;
+    const granularity = routeCall?.granularity ?? "route";
+    const promptText = routeCall?.prompt ?? record.prompt;
+    const promptHash = sha256Text(promptText);
+    return {
+      call_id: `${record.record_id}.${granularity}`,
+      model_io_record_id: record.record_id,
+      route_id: record.route_id,
+      group_id: record.group_id,
+      seed: record.seed,
+      granularity,
+      prompt_template_id: promptTemplateId(record.route_id, granularity),
+      output_contract: promptOutputContract(record.route_id, granularity),
+      prompt_hash: promptHash,
+      response_hash: routeCall?.response_hash ?? record.response_hash
+    };
+  }).sort((left, right) => [
+    left.route_id,
+    left.group_id,
+    String(left.seed),
+    left.call_id
+  ].join("|").localeCompare([
+    right.route_id,
+    right.group_id,
+    String(right.seed),
+    right.call_id
+  ].join("|")));
+
+  const byHash = new Map();
+  for (const call of calls) {
+    const record = ioRecords.find((entry) => entry.record_id === call.model_io_record_id);
+    const promptText = record.route_call?.prompt ?? record.prompt;
+    if (!byHash.has(call.prompt_hash)) {
+      byHash.set(call.prompt_hash, {
+        prompt_hash: call.prompt_hash,
+        prompt_text: promptText,
+        prompt_template_id: call.prompt_template_id,
+        output_contract: call.output_contract,
+        granularity: call.granularity,
+        route_ids: new Set(),
+        group_ids: new Set(),
+        seeds: new Set(),
+        calls: []
+      });
+    }
+    const entry = byHash.get(call.prompt_hash);
+    entry.route_ids.add(call.route_id);
+    entry.group_ids.add(call.group_id);
+    entry.seeds.add(call.seed);
+    entry.calls.push(call);
+  }
+
+  const entries = [...byHash.values()].map((entry) => {
+    const routeIds = [...entry.route_ids].sort();
+    const groupIds = [...entry.group_ids].sort();
+    const seeds = [...entry.seeds].sort((left, right) => left - right);
+    const callsForPrompt = entry.calls.sort((left, right) => left.call_id.localeCompare(right.call_id));
+    const promptPath = promptCatalogPath(routeIds[0], groupIds[0], entry.prompt_hash);
+    return {
+      prompt_id: `${entry.prompt_template_id}.${groupIds.join("_").replaceAll(".", "_")}`,
+      prompt_template_id: entry.prompt_template_id,
+      prompt_path: promptPath,
+      prompt_hash: entry.prompt_hash,
+      prompt_chars: [...entry.prompt_text].length,
+      route_ids: routeIds,
+      group_ids: groupIds,
+      seeds,
+      granularity: entry.granularity,
+      output_contract: entry.output_contract,
+      call_count: callsForPrompt.length,
+      calls: callsForPrompt,
+      prompt_text: entry.prompt_text
+    };
+  }).sort((left, right) => left.prompt_path.localeCompare(right.prompt_path));
+
+  return {
+    artifact_kind: "PromptCatalog",
+    schema_version: "prompt_catalog.v0",
+    scope: "Exact prompt bytes passed to the local llama.cpp process through the -p argument for M2 route calls.",
+    prompt_hash_method: "sha256(utf8(prompt_text))",
+    prompt_count: entries.length,
+    call_count: calls.length,
+    entries
+  };
+}
+
 function buildTrace(artifactsByDoc, groupResults, finding, nullResult, realGuidelineIntake) {
   const nodes = [];
   const edges = [];
@@ -1527,6 +1642,57 @@ function buildTrace(artifactsByDoc, groupResults, finding, nullResult, realGuide
       }
     ]
   };
+}
+
+function markdownFence(text) {
+  const fence = String(text).includes("```") ? "````" : "```";
+  return `${fence}text\n${text}\n${fence}`;
+}
+
+function promptCatalogMarkdown(promptCatalog) {
+  const promptRows = promptCatalog.entries.map((entry) => `| \`${entry.prompt_id}\` | ${entry.route_ids.map((id) => `\`${id}\``).join(", ")} | ${entry.group_ids.map((id) => `\`${id}\``).join(", ")} | ${entry.seeds.join(", ")} | ${entry.call_count} | \`${entry.prompt_hash}\` | \`${entry.prompt_path}\` |`).join("\n");
+  const promptBlocks = promptCatalog.entries.map((entry) => [
+    `### ${entry.prompt_id}`,
+    "",
+    `- Template: \`${entry.prompt_template_id}\``,
+    `- Output contract: ${entry.output_contract}`,
+    `- Prompt hash: \`${entry.prompt_hash}\``,
+    `- Calls: ${entry.call_count}`,
+    "",
+    markdownFence(entry.prompt_text)
+  ].join("\n")).join("\n\n");
+  return `## LLM prompts
+
+Prompt hash method: \`${promptCatalog.prompt_hash_method}\`. These are the exact prompt texts passed to llama.cpp through \`-p\`; per-call responses remain in \`model_io/**\`.
+
+| Prompt | Route | Groups | Seeds | Calls | SHA-256 | Path |
+| --- | --- | --- | --- | ---: | --- | --- |
+${promptRows}
+
+${promptBlocks}`;
+}
+
+function promptCatalogJapaneseMarkdown(promptCatalog) {
+  const promptRows = promptCatalog.entries.map((entry) => `| \`${entry.prompt_id}\` | ${entry.route_ids.map((id) => `\`${id}\``).join(", ")} | ${entry.group_ids.map((id) => `\`${id}\``).join(", ")} | ${entry.seeds.join(", ")} | ${entry.call_count} | \`${entry.prompt_hash}\` | \`${entry.prompt_path}\` |`).join("\n");
+  const promptBlocks = promptCatalog.entries.map((entry) => [
+    `### ${entry.prompt_id}`,
+    "",
+    `- template: \`${entry.prompt_template_id}\``,
+    `- output contract: ${entry.output_contract}`,
+    `- prompt hash: \`${entry.prompt_hash}\``,
+    `- calls: ${entry.call_count}`,
+    "",
+    markdownFence(entry.prompt_text)
+  ].join("\n")).join("\n\n");
+  return `## LLM prompts
+
+hash method: \`${promptCatalog.prompt_hash_method}\`。以下は llama.cpp の \`-p\` に渡した exact prompt text。call ごとの response は \`model_io/**\` に残す。
+
+| prompt | route | groups | seeds | calls | SHA-256 | path |
+| --- | --- | --- | --- | ---: | --- | --- |
+${promptRows}
+
+${promptBlocks}`;
 }
 
 function markdownReport(report) {
@@ -1584,6 +1750,8 @@ ${comparisonConclusion}
 ${directAuditConclusion}
 
 ${irConclusion}
+
+${promptCatalogMarkdown(report.prompt_catalog)}
 
 ## route.single_ir compiled SMT target
 
@@ -1661,6 +1829,8 @@ ${comparisonConclusion}
 ${directAuditConclusion}
 
 ${irConclusion}
+
+${promptCatalogJapaneseMarkdown(report.prompt_catalog)}
 
 ## route.single_ir compiled SMT target
 
@@ -1927,7 +2097,7 @@ function renderBasicUi(data) {
             <td>${escapeHtml(overlap?.reasons?.join(", ") ?? "none")}</td>
             <td><code>${escapeHtml(bridge?.verdict ?? record.row.verdict)}</code></td>
           </tr>`;
-  }).join("");
+  }).join("").trimStart();
   const bridgeRuleRows = (irConflictBridge?.route_ir_rules ?? []).map((rule) => `
           <tr>
             <td><code>${escapeHtml(rule.rule_id)}</code></td>
@@ -1996,6 +2166,47 @@ function renderBasicUi(data) {
           </div>
         </details>`;
   }).join("").trimStart();
+  const promptCatalog = data.prompt_catalog;
+  const promptRows = promptCatalog.entries.map((entry) => `
+          <tr>
+            <td><code>${escapeHtml(entry.prompt_id)}</code></td>
+            <td>${entry.route_ids.map((id) => `<code>${escapeHtml(id)}</code>`).join(", ")}</td>
+            <td>${entry.group_ids.map((id) => `<code>${escapeHtml(id)}</code>`).join(", ")}</td>
+            <td>${escapeHtml(entry.seeds.join(", "))}</td>
+            <td>${escapeHtml(entry.call_count)}</td>
+            <td><code>${escapeHtml(entry.prompt_hash)}</code></td>
+            <td><code>${escapeHtml(entry.prompt_path)}</code></td>
+          </tr>`).join("");
+  const promptDetails = promptCatalog.entries.map((entry) => {
+    const callRows = entry.calls.map((call) => `
+          <tr>
+            <td><code>${escapeHtml(call.model_io_record_id)}</code></td>
+            <td><code>${escapeHtml(call.group_id)}</code></td>
+            <td>${escapeHtml(call.seed)}</td>
+            <td>${escapeHtml(call.granularity)}</td>
+            <td><code>${escapeHtml(call.response_hash)}</code></td>
+          </tr>`).join("");
+    return `
+        <details>
+          <summary><code>${escapeHtml(entry.prompt_id)}</code> / <code>${escapeHtml(shortDigest(entry.prompt_hash))}</code></summary>
+          <dl>
+            <dt>template</dt><dd><code>${escapeHtml(entry.prompt_template_id)}</code></dd>
+            <dt>output contract</dt><dd>${escapeHtml(entry.output_contract)}</dd>
+            <dt>characters</dt><dd>${escapeHtml(entry.prompt_chars)}</dd>
+            <dt>path</dt><dd><code>${escapeHtml(entry.prompt_path)}</code></dd>
+          </dl>
+          <h3>Calls using this exact prompt</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Model I/O record</th><th>Group</th><th>Seed</th><th>Granularity</th><th>Response hash</th></tr></thead>
+              <tbody>${callRows}
+              </tbody>
+            </table>
+          </div>
+          <h3>Exact prompt text</h3>
+          <pre>${escapePre(entry.prompt_text)}</pre>
+        </details>`;
+  }).join("").trimStart();
   const ioBlocks = data.model_io.map((record) => {
     const routeCall = record.route_call
       ? [
@@ -2005,6 +2216,7 @@ function renderBasicUi(data) {
             cue_inputs: record.route_call.cue_inputs,
             response: record.route_call.response,
             call_granularity: record.route_call.granularity,
+            prompt_hash: record.route_call.prompt_hash,
             prompt: record.route_call.prompt
           }, null, 2))}</pre>`
         ].join("\n")
@@ -2013,6 +2225,7 @@ function renderBasicUi(data) {
       "        <details>",
       `          <summary><code>${escapeHtml(record.route_id)}</code> / <code>${escapeHtml(record.group_id)}</code> / seed ${escapeHtml(record.seed)} / ${record.row.admitted ? "admitted" : "not admitted"}</summary>`,
       "          <h3>Prompt</h3>",
+      `          <p>Prompt hash: <code>${escapeHtml(record.prompt_hash)}</code></p>`,
       `          <pre>${escapePre(record.prompt)}</pre>`,
       routeCall,
       "          <h3>Response</h3>",
@@ -2119,6 +2332,9 @@ function renderBasicUi(data) {
     .quote { border-left: 3px solid var(--ok); background: #e4f2ec; padding: 8px 10px; margin-top: 8px; line-height: 1.45; }
     details { border: 1px solid var(--line); border-radius: 6px; padding: 9px 10px; margin-top: 8px; }
     summary { cursor: pointer; }
+    details dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 5px 10px; margin: 8px 0; font-size: .82rem; }
+    details dt { color: var(--muted); }
+    details dd { margin: 0; overflow-wrap: anywhere; }
     @media (max-width: 760px) {
       main { padding: 10px; }
       .grid { grid-template-columns: 1fr; }
@@ -2328,6 +2544,19 @@ ${transformationStepsHtml}
     </section>
 
     <section>
+      <h2>LLM prompts</h2>
+      <p>Exact prompt texts passed to the local llama.cpp process. Prompt hashes use <code>${escapeHtml(promptCatalog.prompt_hash_method)}</code>; each prompt also exists as a generated text artifact under <code>runs/${escapeHtml(report.run_id)}/prompts/</code>.</p>
+      <div class="table-wrap">
+        <table class="extra-wide">
+          <thead><tr><th>Prompt</th><th>Route</th><th>Groups</th><th>Seeds</th><th>Calls</th><th>SHA-256</th><th>Path</th></tr></thead>
+          <tbody>${promptRows}
+          </tbody>
+        </table>
+      </div>
+      ${promptDetails}
+    </section>
+
+    <section>
       <h2>Model I/O</h2>
       ${ioBlocks}
     </section>
@@ -2489,6 +2718,7 @@ async function main() {
   const sourceCueLayer = buildSourceCueLayer();
   const directSmtAudit = buildDirectSmtAudit(metrics.ioRecords);
   const routeTargetSummary = buildRouteTargetSummary(metrics.ioRecords);
+  const promptCatalog = buildPromptCatalog(metrics.ioRecords);
   const modelMeta = await modelMetadata(metrics.liveCalls);
   for (const record of metrics.ioRecords) {
     await writeJson(`model_io/${record.route_id}/${record.group_id}/seed-${record.seed}.json`, record);
@@ -2496,6 +2726,10 @@ async function main() {
       await writeText(smtFile.file, smtFile.text);
     }
   }
+  for (const entry of promptCatalog.entries) {
+    await writeText(entry.prompt_path, entry.prompt_text);
+  }
+  await writeJson("prompts/catalog.json", promptCatalog);
   await writeJson("metrics/raw_rows.json", metrics.rawRows);
   await writeJson("metrics/route_metrics.json", metrics.routeMetrics);
   await writeJson("metrics/lift_table.json", metrics.liftTable);
@@ -2535,6 +2769,16 @@ async function main() {
     },
     direct_smt_audit: directSmtAudit,
     route_target_summary: routeTargetSummary,
+    prompt_catalog: {
+      artifact_kind: promptCatalog.artifact_kind,
+      schema_version: promptCatalog.schema_version,
+      scope: promptCatalog.scope,
+      prompt_hash_method: promptCatalog.prompt_hash_method,
+      prompt_count: promptCatalog.prompt_count,
+      call_count: promptCatalog.call_count,
+      catalog_hash: sha256(promptCatalog),
+      entries: promptCatalog.entries
+    },
     source_cue_layer: {
       artifact_kind: sourceCueLayer.artifact_kind,
       extractor_id: sourceCueLayer.extractor_id,
@@ -2609,6 +2853,8 @@ async function main() {
     real_guideline_intake_hash: sha256(realGuidelineIntake),
     source_cue_layer_hash: sha256(sourceCueLayer),
     route_target_summary_hash: sha256(routeTargetSummary),
+    prompt_catalog_hash: sha256(promptCatalog),
+    prompt_template_hashes: Object.fromEntries(promptCatalog.entries.map((entry) => [entry.prompt_id, entry.prompt_hash])),
     route_ids: ["route.direct_smt", "route.single_ir"],
     report_hash: sha256(report)
   };
@@ -2645,6 +2891,7 @@ async function main() {
     raw_rows: metrics.rawRows,
     direct_smt_audit: directSmtAudit,
     route_target_summary: routeTargetSummary,
+    prompt_catalog: promptCatalog,
     source_cue_layer: sourceCueLayer,
     real_guideline_intake: realGuidelineIntake,
     model_io: metrics.ioRecords,
@@ -2674,6 +2921,8 @@ async function main() {
       "metrics/direct_smt_audit.json",
       "metrics/source_cues.json",
       "metrics/route_targets.json",
+      "prompts/catalog.json",
+      ...promptCatalog.entries.map((entry) => entry.prompt_path),
       ...(liveModel ? ["route_targets/route.single_ir/group.m1_conflict/seed-11/smt/q.overlap.smt2"] : []),
       "model_io/route.direct_smt/group.m1_conflict/seed-11.json"
     ];
@@ -2687,6 +2936,11 @@ async function main() {
       realGuidelineIntake.source_count >= 2,
       realGuidelineIntake.candidate_span_count >= 6,
       report.real_guideline_intake.scoring_scope === "not_in_locked_m1_m2_measurement",
+      promptCatalog.prompt_count === 4,
+      promptCatalog.call_count === metrics.ioRecords.length,
+      report.prompt_catalog.catalog_hash === sha256(promptCatalog),
+      metrics.ioRecords.every((record) => record.prompt_hash === sha256Text(record.prompt)),
+      metrics.ioRecords.every((record) => !record.route_call || record.route_call.prompt_hash === sha256Text(record.route_call.prompt)),
       existsSync(webDataPath),
       ...requiredFiles.map((relative) => existsSync(path.join(runDir, relative)))
     ];
