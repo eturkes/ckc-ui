@@ -3100,6 +3100,18 @@ function renderBasicUi(data) {
             <td>${escapeHtml(surface.evidence_paths.join(", "))}</td>
             <td>${escapeHtml(surface.note)}</td>
           </tr>`).join("");
+  const manuscriptFigureRows = [
+    ["fig01_route_mechanics", "Route mechanics and evidence boundaries", "Route architecture, LLM boundaries, deterministic compiler/verifier gates."],
+    ["fig02_route_metrics", "M2 route metrics", "Exact-ratio target syntax, admission, admitted accuracy, candidate accuracy, and seed stability."],
+    ["fig03_failure_taxonomy", "Failure taxonomy by route", "Non-exclusive diagnostic row-category hits for direct_smt and single_ir."],
+    ["fig04_real_source_intake", "Real guideline intake scope", "Candidate-only public-source intake coverage outside locked M1/M2 scoring."]
+  ].map(([id, title, evidence]) => `
+          <tr>
+            <td><code>${escapeHtml(id)}</code></td>
+            <td>${escapeHtml(title)}</td>
+            <td><a href="figures/manuscript/${escapeHtml(id)}.svg">SVG</a> / <a href="figures/manuscript/${escapeHtml(id)}.pdf">PDF</a></td>
+            <td>${escapeHtml(evidence)}</td>
+          </tr>`).join("");
 
   return `<!doctype html>
 <html lang="en">
@@ -3301,6 +3313,15 @@ ${transformationStepsHtml}
         <table>
           <thead><tr><th>Metric</th><th>direct_smt</th><th>single_ir</th><th>delta</th></tr></thead>
           <tbody>${liftRows}
+          </tbody>
+        </table>
+      </div>
+      <h3>Manuscript figure package</h3>
+      <p>Run <code>npm run build:figures</code> after regenerating the run bundle. The package writes ArXiv-oriented SVG sources, deterministic PDF exports, captions, a LaTeX include file, and a manifest under <code>figures/manuscript/</code>.</p>
+      <div class="table-wrap">
+        <table class="wide">
+          <thead><tr><th>Figure</th><th>Title</th><th>Exports</th><th>Evidence focus</th></tr></thead>
+          <tbody>${manuscriptFigureRows}
           </tbody>
         </table>
       </div>
@@ -3908,6 +3929,8 @@ async function main() {
       renderedUi.includes("M2 evaluation groups"),
       renderedUi.includes("Route evaluator diagnostics"),
       renderedUi.includes("scaffolded cue-translation test"),
+      renderedUi.includes("Manuscript figure package"),
+      renderedUi.includes("figures/manuscript/fig02_route_metrics.pdf"),
       renderedUi.includes("Realism audit"),
       renderedUi.includes("Real guideline candidate intake"),
       renderedUi.includes("Candidate rules"),

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Failure taxonomy by route</title>
+  <desc id="desc">Diagnostic row-category hits show direct SMT failing mainly at target syntax, while single-IR produces syntactic targets that are rejected by grounding and wrong-verdict checks.</desc>
+  <rect width="1600" height="900" fill="#ffffff"/>
+  <text x="54" y="58" font-family="Arial, Helvetica, sans-serif" font-size="32" font-weight="700" fill="#111827" text-anchor="start">Failure taxonomy by route</text>
+  <text x="54" y="92" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#596273" text-anchor="start">Diagnostic categories are non-exclusive row hits over nine route rows.</text>
+  <text x="1546" y="58" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#596273" text-anchor="end">row-category hits</text>
+  <line x1="150" y1="690" x2="1270" y2="690" stroke="#e5e9ef" stroke-width="1"/>
+  <text x="132" y="696" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" fill="#596273" text-anchor="end">0</text>
+  <line x1="150" y1="516.667" x2="1270" y2="516.667" stroke="#e5e9ef" stroke-width="1"/>
+  <text x="132" y="522.667" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" fill="#596273" text-anchor="end">3</text>
+  <line x1="150" y1="343.333" x2="1270" y2="343.333" stroke="#e5e9ef" stroke-width="1"/>
+  <text x="132" y="349.333" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" fill="#596273" text-anchor="end">6</text>
+  <line x1="150" y1="170" x2="1270" y2="170" stroke="#e5e9ef" stroke-width="1"/>
+  <text x="132" y="176" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" fill="#596273" text-anchor="end">9</text>
+  <text x="64" y="150" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#596273" text-anchor="start">row hits</text>
+  <line x1="150" y1="170" x2="150" y2="690" stroke="#c8d0da" stroke-width="2"/>
+  <line x1="150" y1="690" x2="1270" y2="690" stroke="#c8d0da" stroke-width="2"/>
+  <rect x="201" y="343.333" width="54" height="346.667" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
+  <rect x="269" y="690" width="54" height="0" rx="3" fill="#1f6f8b" stroke="#1f6f8b" stroke-width="1"/>
+  <text x="228" y="333.333" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#b45c37" text-anchor="middle">6/9</text>
+  <text x="296" y="680" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#1f6f8b" text-anchor="middle">0/9</text>
+  <text x="176" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">syntax</text>
+  <rect x="425" y="516.667" width="54" height="173.333" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
+  <rect x="493" y="170" width="54" height="520" rx="3" fill="#1f6f8b" stroke="#1f6f8b" stroke-width="1"/>
+  <text x="452" y="506.667" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#b45c37" text-anchor="middle">3/9</text>
+  <text x="520" y="160" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#1f6f8b" text-anchor="middle">9/9</text>
+  <text x="400" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">grounding</text>
+  <rect x="649" y="516.667" width="54" height="173.333" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
+  <rect x="717" y="690" width="54" height="0" rx="3" fill="#1f6f8b" stroke="#1f6f8b" stroke-width="1"/>
+  <text x="676" y="506.667" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#b45c37" text-anchor="middle">3/9</text>
+  <text x="744" y="680" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#1f6f8b" text-anchor="middle">0/9</text>
+  <text x="624" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">unsupported schema</text>
+  <rect x="873" y="690" width="54" height="0" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
+  <rect x="941" y="343.333" width="54" height="346.667" rx="3" fill="#1f6f8b" stroke="#1f6f8b" stroke-width="1"/>
+  <text x="900" y="680" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#b45c37" text-anchor="middle">0/9</text>
+  <text x="968" y="333.333" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#1f6f8b" text-anchor="middle">6/9</text>
+  <text x="848" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">wrong verdict</text>
+  <rect x="1097" y="690" width="54" height="0" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
+  <rect x="1165" y="690" width="54" height="0" rx="3" fill="#1f6f8b" stroke="#1f6f8b" stroke-width="1"/>
+  <text x="1124" y="680" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#b45c37" text-anchor="middle">0/9</text>
+  <text x="1192" y="680" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#1f6f8b" text-anchor="middle">0/9</text>
+  <text x="1072" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">process</text>
+  <rect x="1330" y="178" width="115.8" height="29" rx="12" fill="#fff0e8" stroke="#e5b69d" stroke-width="1"/>
+  <text x="1342" y="198" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="700" fill="#b45c37" text-anchor="start">direct_smt</text>
+  <rect x="1330" y="220" width="106.62" height="29" rx="12" fill="#e8f5f8" stroke="#a9cfda" stroke-width="1"/>
+  <text x="1342" y="240" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="700" fill="#1f6f8b" text-anchor="start">single_ir</text>
+  <rect x="1310" y="300" width="230" height="238" rx="8" fill="#fbfcfd" stroke="#e5e9ef" stroke-width="2"/>
+  <text x="1330" y="338" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700" fill="#111827" text-anchor="start">Residual audit</text>
+  <text x="1330" y="372" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#596273" text-anchor="start">Direct SMT: 9/9 rows</text>
+  <text x="1330" y="394" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#596273" text-anchor="start">lacked named</text>
+  <text x="1330" y="416" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#596273" text-anchor="start">assertions; exact</text>
+  <text x="1330" y="438" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#596273" text-anchor="start">template matches</text>
+  <text x="1330" y="460" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#596273" text-anchor="start">0/9.</text>
+  <line x1="54" y1="844" x2="1546" y2="844" stroke="#e5e9ef" stroke-width="1"/>
+  <text x="54" y="868" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" fill="#596273" text-anchor="start">Counts come from route_evaluation.route_category_counts. Categories can co-occur in one row, so columns are diagnostic burden rather than a partition of samples.</text>
+</svg>

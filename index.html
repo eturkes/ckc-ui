@@ -508,6 +508,39 @@ assert (not cond.pregnancy) ;</pre>
           </tbody>
         </table>
       </div>
+      <h3>Manuscript figure package</h3>
+      <p>Run <code>npm run build:figures</code> after regenerating the run bundle. The package writes ArXiv-oriented SVG sources, deterministic PDF exports, captions, a LaTeX include file, and a manifest under <code>figures/manuscript/</code>.</p>
+      <div class="table-wrap">
+        <table class="wide">
+          <thead><tr><th>Figure</th><th>Title</th><th>Exports</th><th>Evidence focus</th></tr></thead>
+          <tbody>
+          <tr>
+            <td><code>fig01_route_mechanics</code></td>
+            <td>Route mechanics and evidence boundaries</td>
+            <td><a href="figures/manuscript/fig01_route_mechanics.svg">SVG</a> / <a href="figures/manuscript/fig01_route_mechanics.pdf">PDF</a></td>
+            <td>Route architecture, LLM boundaries, deterministic compiler/verifier gates.</td>
+          </tr>
+          <tr>
+            <td><code>fig02_route_metrics</code></td>
+            <td>M2 route metrics</td>
+            <td><a href="figures/manuscript/fig02_route_metrics.svg">SVG</a> / <a href="figures/manuscript/fig02_route_metrics.pdf">PDF</a></td>
+            <td>Exact-ratio target syntax, admission, admitted accuracy, candidate accuracy, and seed stability.</td>
+          </tr>
+          <tr>
+            <td><code>fig03_failure_taxonomy</code></td>
+            <td>Failure taxonomy by route</td>
+            <td><a href="figures/manuscript/fig03_failure_taxonomy.svg">SVG</a> / <a href="figures/manuscript/fig03_failure_taxonomy.pdf">PDF</a></td>
+            <td>Non-exclusive diagnostic row-category hits for direct_smt and single_ir.</td>
+          </tr>
+          <tr>
+            <td><code>fig04_real_source_intake</code></td>
+            <td>Real guideline intake scope</td>
+            <td><a href="figures/manuscript/fig04_real_source_intake.svg">SVG</a> / <a href="figures/manuscript/fig04_real_source_intake.pdf">PDF</a></td>
+            <td>Candidate-only public-source intake coverage outside locked M1/M2 scoring.</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
       <h3>M2 evaluation groups</h3>
       <p>Evaluation strength: <code>scaffolded_cue_translation_test</code>. R3 removes exact filled JSON payloads from route.single_ir prompts and adds a holdout mutation group. The prompt still supplies schema and cue definitions, so this remains a scaffolded cue-translation test rather than raw Japanese guideline understanding.</p>
       <div class="table-wrap">
