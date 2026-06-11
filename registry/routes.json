@@ -31,11 +31,12 @@
     {
       "id": "route.ir_hop_chain",
       "shape": "model translates through several adjacent constrained JSON hops, each a deliberately small semantic delta before final route_rule_ir.v0 compilation",
-      "runtime": "registered M3 scaffold; no model calls until C4 implements hop-level prompting and replay",
-      "implementation_status": "registered_scaffold_unimplemented",
-      "schema_notes": "planned per-hop JSON schemas with prompt/response hashes for each hop",
-      "bridge_notes": "planned aggregate bridge records hop lineage, then compiles final route_rule_ir.v0 to SMT-LIB",
-      "live_model": false
+      "runtime": "project-local llama.cpp subprocess via tools/setup-local-model.mjs; three constrained JSON calls per route row",
+      "default_model": "Qwen2.5-0.5B-Instruct Q2_K GGUF",
+      "implementation_status": "implemented_fixture_harness",
+      "schema_notes": "schema.ir_hop_chain.v0 aggregate over lexical_cues, clinical_frame, and rule_rows hop schemas; each hop has prompt/response hashes",
+      "bridge_notes": "deterministic ir_hop_chain_v0_to_route_rule_ir_v0 bridge records hop lineage, then feeds the existing route_rule_ir_v0_to_smt_v0 compiler",
+      "live_model": true
     },
     {
       "id": "route.ckc_layered",

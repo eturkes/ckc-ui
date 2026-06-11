@@ -43,7 +43,7 @@
       "id": "exp.m3_routes",
       "basis": "exp.m2_lift",
       "comparison_scope": "frozen_route_registry_partial_implementation",
-      "route_registry_status": "includes implemented route.stacked_ir plus closed scaffolds for later M3 routes",
+      "route_registry_status": "includes implemented route.stacked_ir and route.ir_hop_chain plus a closed scaffold for route.ckc_layered",
       "routes": [
         "route.direct_smt",
         "route.single_ir",

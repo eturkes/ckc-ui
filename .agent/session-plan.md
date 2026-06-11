@@ -102,7 +102,7 @@ Gate:
 - `npm run verify:figures`
 
 ### C4 IR Hop-Chain Route
-status: pending
+status: done
 
 Intent: test whether several short constrained hops outperform one long route.
 

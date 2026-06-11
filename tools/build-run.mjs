@@ -57,7 +57,7 @@ let m1InputRefs = null;
 let selectedExperiment = null;
 let unimplementedRouteIds = [];
 const baselineRouteId = "route.direct_smt";
-const implementedRouteIds = new Set(["route.direct_smt", "route.single_ir", "route.stacked_ir"]);
+const implementedRouteIds = new Set(["route.direct_smt", "route.single_ir", "route.stacked_ir", "route.ir_hop_chain"]);
 const comparisonMetricIds = [
   "target_syntax_validity",
   "admission_rate",
@@ -1324,6 +1324,87 @@ function stackedIrJsonSchema(groupId) {
   };
 }
 
+const irHopChainSchemaId = "schema.ir_hop_chain.v0";
+const irHopLexicalCuesSchemaId = "schema.ir_hop_chain.lexical_cues.v0";
+const irHopClinicalFrameSchemaId = "schema.ir_hop_chain.clinical_frame.v0";
+const irHopRuleRowsSchemaId = "schema.ir_hop_chain.rule_rows.v0";
+const irHopChainBridgeId = "ir_hop_chain_v0_to_route_rule_ir_v0";
+const irHopChainHopSpecs = [
+  {
+    hop_id: "hop1.lexical_cues",
+    granularity: "hop.lexical_cues",
+    schema_id: irHopLexicalCuesSchemaId
+  },
+  {
+    hop_id: "hop2.clinical_frame",
+    granularity: "hop.clinical_frame",
+    schema_id: irHopClinicalFrameSchemaId
+  },
+  {
+    hop_id: "hop3.rule_rows",
+    granularity: "hop.rule_rows",
+    schema_id: irHopRuleRowsSchemaId
+  }
+];
+const irHopCueFieldSpecs = {
+  direction_cue: {
+    property: { enum: ["推奨する", "投与しないこと", "禁忌", "none"] }
+  },
+  action_abx_a_cue: {
+    property: { enum: ["present", "absent"] }
+  },
+  age_cue: {
+    property: { enum: ["成人_or_18歳以上", "小児_or_18歳未満", "unknown"] }
+  },
+  sepsis_cue: {
+    property: { enum: ["present", "absent"] }
+  },
+  pregnancy_cue: {
+    property: { enum: ["present", "absent"] }
+  },
+  renal_exception_cue: {
+    property: { enum: ["has_exception", "no_exception", "unknown"] }
+  }
+};
+
+function pairJsonSchemaForGroup(groupId, entrySchema) {
+  const labels = modelCaseForGroup(groupId).labels;
+  return {
+    type: "object",
+    additionalProperties: false,
+    required: labels,
+    properties: Object.fromEntries(labels.map((label) => [label, entrySchema]))
+  };
+}
+
+function irHopLexicalCueRowJsonSchema() {
+  return {
+    type: "object",
+    additionalProperties: false,
+    required: Object.keys(irHopCueFieldSpecs),
+    properties: Object.fromEntries(Object.entries(irHopCueFieldSpecs).map(([field, spec]) => [field, spec.property]))
+  };
+}
+
+function irHopLexicalCuesJsonSchema(groupId) {
+  return pairJsonSchemaForGroup(groupId, irHopLexicalCueRowJsonSchema());
+}
+
+function irHopClinicalFrameJsonSchema(groupId) {
+  return pairJsonSchemaForGroup(groupId, stackedSourceFrameJsonSchema());
+}
+
+function irHopRuleRowsJsonSchema(groupId) {
+  return pairJsonSchemaForGroup(groupId, irRuleJsonSchema());
+}
+
+function irHopJsonSchemaForHop(hopId, groupId) {
+  if (hopId === "hop1.lexical_cues") return irHopLexicalCuesJsonSchema(groupId);
+  if (hopId === "hop2.clinical_frame") return irHopClinicalFrameJsonSchema(groupId);
+  if (hopId === "hop3.rule_rows") return irHopRuleRowsJsonSchema(groupId);
+  throw new Error(`unknown ir_hop_chain hop: ${hopId}`);
+}
+
 function jsonSchemaForRoute(routeId, groupId, sourceLabel = null) {
   if (routeId === "route.single_ir") {
     if (sourceLabel) return JSON.stringify(irRuleJsonSchema());
@@ -1336,6 +1417,7 @@ function jsonSchemaForRoute(routeId, groupId, sourceLabel = null) {
     });
   }
   if (routeId === "route.stacked_ir") return JSON.stringify(stackedIrJsonSchema(groupId));
+  if (routeId === "route.ir_hop_chain") return JSON.stringify(irHopRuleRowsJsonSchema(groupId));
   return null;
 }
 
@@ -1387,6 +1469,97 @@ function promptForStackedIrPair(groupId) {
   ].join("\n");
 }
 
+function irHopLexicalCueGuideLines() {
+  return [
+    "Hop 1 contract:",
+    "- direction_cue: copy the supported source cue token: 推奨する, 投与しないこと, 禁忌, or none.",
+    "- action_abx_a_cue: present only when 抗菌薬A is in the primary excerpt.",
+    "- age_cue: 成人_or_18歳以上, 小児_or_18歳未満, or unknown.",
+    "- sepsis_cue: present only when 敗血症 is in the primary excerpt.",
+    "- pregnancy_cue: present only when 妊娠中 is in the primary excerpt.",
+    "- renal_exception_cue: has_exception only when the exception sentence excludes 重度腎機能障害; no_exception when no such exception is present."
+  ];
+}
+
+function irHopFrameGuideLines() {
+  return [
+    "Hop 2 contract:",
+    "- population: adult for 成人_or_18歳以上; child for 小児_or_18歳未満.",
+    "- condition_sepsis: copy sepsis_cue as present or absent.",
+    "- action: abx_a for action_abx_a_cue present; none for absent.",
+    "- deontic: recommend for 推奨する; contraindicate for 投与しないこと or 禁忌.",
+    "- pregnancy_scope: copy pregnancy_cue as present or absent.",
+    "- renal_exception: yes for has_exception; no for no_exception."
+  ];
+}
+
+function irHopRuleRowGuideLines() {
+  return [
+    "Hop 3 contract:",
+    "- direction: for when deontic is recommend; contraindicate when deontic is contraindicate.",
+    "- action_abx_a: present when action is abx_a; absent when action is none.",
+    "- age: copy population as adult or child.",
+    "- sepsis: copy condition_sepsis.",
+    "- pregnancy: copy pregnancy_scope.",
+    "- renal_exception: copy renal_exception as yes or no."
+  ];
+}
+
+function previousHopJsonBlock(value) {
+  return JSON.stringify(stable(value ?? {}), null, 2);
+}
+
+function promptForIrHopLexicalCues(groupId) {
+  const modelCase = modelCaseForGroup(groupId);
+  const schema = JSON.stringify(irHopLexicalCuesJsonSchema(groupId), null, 2);
+  return [
+    "You are preparing hop 1 of a staged import payload for a hospital CDS knowledge-base maintenance queue.",
+    "The excerpts are guideline-derived content for rules-engine review, not a patient-specific recommendation.",
+    "Extract only lexical cue tokens from the quoted excerpts. Do not decide whether the sources conflict.",
+    "Keep source labels unchanged. Use only the listed enum tokens and fields. Return JSON only, with no prose.",
+    `maintenance ticket: ${modelCase.case_id}`,
+    `source labels: ${modelCase.labels.join(", ")}`,
+    ...sourceCueEvidenceLines(groupId),
+    ...irHopLexicalCueGuideLines(),
+    "Required output schema:",
+    schema
+  ].join("\n");
+}
+
+function promptForIrHopClinicalFrame(groupId, lexicalCues) {
+  const modelCase = modelCaseForGroup(groupId);
+  const schema = JSON.stringify(irHopClinicalFrameJsonSchema(groupId), null, 2);
+  return [
+    "You are preparing hop 2 of a staged import payload for a hospital CDS knowledge-base maintenance queue.",
+    "Translate the prior lexical-cue JSON into a compact clinical frame. Use only the prior JSON and the hop contract.",
+    "Keep source labels unchanged. Use only the listed enum tokens and fields. Return JSON only, with no prose.",
+    `maintenance ticket: ${modelCase.case_id}`,
+    `source labels: ${modelCase.labels.join(", ")}`,
+    "Prior hop JSON:",
+    previousHopJsonBlock(lexicalCues),
+    ...irHopFrameGuideLines(),
+    "Required output schema:",
+    schema
+  ].join("\n");
+}
+
+function promptForIrHopRuleRows(groupId, clinicalFrame) {
+  const modelCase = modelCaseForGroup(groupId);
+  const schema = JSON.stringify(irHopRuleRowsJsonSchema(groupId), null, 2);
+  return [
+    "You are preparing hop 3 of a staged import payload for a hospital CDS knowledge-base maintenance queue.",
+    "Translate the prior clinical-frame JSON into downstream rule rows. Use only the prior JSON and the hop contract.",
+    "Keep source labels unchanged. Use only the listed enum tokens and fields. Return JSON only, with no prose.",
+    `maintenance ticket: ${modelCase.case_id}`,
+    `source labels: ${modelCase.labels.join(", ")}`,
+    "Prior hop JSON:",
+    previousHopJsonBlock(clinicalFrame),
+    ...irHopRuleRowGuideLines(),
+    "Required output schema:",
+    schema
+  ].join("\n");
+}
+
 function promptFor(routeId, groupId, seed) {
   const modelCase = modelCaseForGroup(groupId);
   const common = [
@@ -1432,6 +1605,7 @@ function promptFor(routeId, groupId, seed) {
     ].join("\n");
   }
   if (routeId === "route.stacked_ir") return promptForStackedIrPair(groupId);
+  if (routeId === "route.ir_hop_chain") return promptForIrHopLexicalCues(groupId);
   return [
     ...common,
     `Fill one CDS import JSON object for each source label: ${modelCase.labels.join(", ")}.`,
@@ -1453,13 +1627,15 @@ function requireLiveModelReady() {
   }
 }
 
-function llamaArgs(prompt, seed, routeId, groupId, sourceLabel = null) {
-  const schema = jsonSchemaForRoute(routeId, groupId, sourceLabel);
-  const routeArgs = routeId === "route.stacked_ir"
+function llamaArgs(prompt, seed, routeId, groupId, sourceLabel = null, options = {}) {
+  const schema = options.schema ?? jsonSchemaForRoute(routeId, groupId, sourceLabel);
+  const routeArgs = options.routeArgs ?? (routeId === "route.ir_hop_chain"
+    ? ["-n", "360", "--ctx-size", "3072", "--temp", "0", "--top-k", "1"]
+    : routeId === "route.stacked_ir"
     ? ["-n", "420", "--ctx-size", "3072", "--temp", "0", "--top-k", "1"]
     : routeId === "route.single_ir"
       ? ["-n", "220", "--ctx-size", "2048", "--temp", "0", "--top-k", "1"]
-      : ["-n", "160", "--ctx-size", "2048", "--temp", "0", "--top-k", "1"];
+      : ["-n", "160", "--ctx-size", "2048", "--temp", "0", "--top-k", "1"]);
   return [
     "-m", modelPath,
     "-p", prompt,
@@ -1478,9 +1654,9 @@ function llamaArgs(prompt, seed, routeId, groupId, sourceLabel = null) {
   ];
 }
 
-function runLlama(prompt, seed, routeId, groupId, sourceLabel = null) {
+function runLlama(prompt, seed, routeId, groupId, sourceLabel = null, options = {}) {
   requireLiveModelReady();
-  const args = llamaArgs(prompt, seed, routeId, groupId, sourceLabel);
+  const args = llamaArgs(prompt, seed, routeId, groupId, sourceLabel, options);
   const result = spawnSync(llamaCliPath, args, {
     cwd: root,
     encoding: "utf8",
@@ -1571,10 +1747,10 @@ function extractJsonObject(text) {
 }
 
 const diagnosticCategoryDefinitions = {
-  syntax: ["target_parse_error", "ai_schema_violation", "stacked_ir_schema_invalid"],
-  grounding: ["ai_hallucinated_source", "semantic_slot_missing", "stacked_ir_grounding_mismatch"],
-  bridge: ["stacked_ir_bridge_incomplete", "stacked_ir_bridge_inconsistent"],
-  compiled_target: ["stacked_ir_compiled_target_failure"],
+  syntax: ["target_parse_error", "ai_schema_violation", "stacked_ir_schema_invalid", "ir_hop_chain_schema_invalid"],
+  grounding: ["ai_hallucinated_source", "semantic_slot_missing", "stacked_ir_grounding_mismatch", "ir_hop_chain_grounding_mismatch"],
+  bridge: ["stacked_ir_bridge_incomplete", "stacked_ir_bridge_inconsistent", "ir_hop_chain_bridge_incomplete", "ir_hop_chain_bridge_inconsistent"],
+  compiled_target: ["stacked_ir_compiled_target_failure", "ir_hop_chain_compiled_target_failure"],
   unsupported_schema: ["unsupported_ir_fragment"],
   wrong_verdict: ["false_positive_conflict", "false_negative_conflict"],
   scaffold: ["deferred_gate_required"],
@@ -2256,6 +2432,428 @@ function classifyStackedIrCandidate(extracted, groupId, expected, seed) {
   };
 }
 
+function validIrHopLexicalCueRow(row) {
+  return objectHasExactKeys(row, Object.keys(irHopCueFieldSpecs))
+    && Object.entries(irHopCueFieldSpecs).every(([field, spec]) => spec.property.enum.includes(row[field]));
+}
+
+function expectedIrHopLexicalCueRow(label) {
+  const cues = sourceCuesForLabel(label);
+  return Object.fromEntries(Object.keys(irHopCueFieldSpecs).map((field) => [field, cues[field]]));
+}
+
+function cueFieldsFromIrHopLexicalCueRow(row) {
+  return {
+    direction: row.direction_cue === "推奨する"
+      ? "for"
+      : row.direction_cue === "投与しないこと" || row.direction_cue === "禁忌"
+        ? "contraindicate"
+        : "unknown",
+    action_abx_a: row.action_abx_a_cue === "present" ? "present" : row.action_abx_a_cue === "absent" ? "absent" : "unknown",
+    age: row.age_cue === "成人_or_18歳以上" ? "adult" : row.age_cue === "小児_or_18歳未満" ? "child" : "unknown",
+    sepsis: row.sepsis_cue,
+    pregnancy: row.pregnancy_cue,
+    renal_exception: row.renal_exception_cue === "has_exception" ? "yes" : row.renal_exception_cue === "no_exception" ? "no" : "unknown"
+  };
+}
+
+function frameFromIrHopLexicalCueRow(row) {
+  return stackedSourceFrameFromCueFields(cueFieldsFromIrHopLexicalCueRow(row));
+}
+
+function irHopResidual({ hopId, stage, code, label, field = null, expected = null, observed = null, baseCode = null, reason }) {
+  return {
+    hop_id: hopId,
+    stage,
+    code,
+    ...(baseCode ? { base_code: baseCode } : {}),
+    source_label: label,
+    field,
+    expected,
+    observed,
+    reason
+  };
+}
+
+function irHopFieldResidual({ hopId, label, field, expected, observed, stage, reason }) {
+  const baseCode = observed === "unknown"
+    || observed === "none"
+    || (expected === "present" && observed === "absent")
+    || (expected === "yes" && observed === "no")
+    || (expected !== "none" && observed === "none")
+    ? "semantic_slot_missing"
+    : "ai_hallucinated_source";
+  return irHopResidual({
+    hopId,
+    stage,
+    code: stage === "bridge" ? "ir_hop_chain_bridge_inconsistent" : "ir_hop_chain_grounding_mismatch",
+    baseCode,
+    label,
+    field,
+    expected,
+    observed,
+    reason
+  });
+}
+
+function irHopPairSchemaResiduals({ parsed, groupId, hopId, expectedSchema, validator, expectedEntryDescription }) {
+  const labels = modelCaseForGroup(groupId).labels;
+  const residuals = [];
+  if (!objectHasExactKeys(parsed, labels)) {
+    residuals.push(irHopResidual({
+      hopId,
+      stage: "schema",
+      code: "ir_hop_chain_schema_invalid",
+      baseCode: "ai_schema_violation",
+      label: null,
+      expected: labels,
+      observed: parsed && typeof parsed === "object" && !Array.isArray(parsed) ? Object.keys(parsed).sort() : typeof parsed,
+      reason: "Hop JSON must be an object keyed exactly by source labels."
+    }));
+    return residuals;
+  }
+  for (const label of labels) {
+    if (!validator(parsed?.[label])) {
+      residuals.push(irHopResidual({
+        hopId,
+        stage: "schema",
+        code: "ir_hop_chain_schema_invalid",
+        baseCode: "ai_schema_violation",
+        label,
+        expected: expectedSchema,
+        observed: parsed?.[label] ?? null,
+        reason: `${expectedEntryDescription} violates the hop JSON enum contract.`
+      }));
+    }
+  }
+  return residuals;
+}
+
+function irHopSchemaResiduals(hopOutputs, groupId) {
+  const residuals = [];
+  if (!hopOutputs.lexical.extracted?.value) {
+    residuals.push(irHopResidual({
+      hopId: "hop1.lexical_cues",
+      stage: "schema",
+      code: "ir_hop_chain_schema_invalid",
+      baseCode: "ai_schema_violation",
+      label: null,
+      expected: irHopLexicalCuesJsonSchema(groupId),
+      observed: "no_json_object",
+      reason: "No parseable lexical-cue JSON object was found in hop 1 output."
+    }));
+  } else {
+    residuals.push(...irHopPairSchemaResiduals({
+      parsed: hopOutputs.lexical.parsed,
+      groupId,
+      hopId: "hop1.lexical_cues",
+      expectedSchema: irHopLexicalCueRowJsonSchema(),
+      validator: validIrHopLexicalCueRow,
+      expectedEntryDescription: "lexical cue row"
+    }));
+  }
+
+  if (!hopOutputs.frame.extracted?.value) {
+    residuals.push(irHopResidual({
+      hopId: "hop2.clinical_frame",
+      stage: "schema",
+      code: "ir_hop_chain_schema_invalid",
+      baseCode: "ai_schema_violation",
+      label: null,
+      expected: irHopClinicalFrameJsonSchema(groupId),
+      observed: "no_json_object",
+      reason: "No parseable clinical-frame JSON object was found in hop 2 output."
+    }));
+  } else {
+    residuals.push(...irHopPairSchemaResiduals({
+      parsed: hopOutputs.frame.parsed,
+      groupId,
+      hopId: "hop2.clinical_frame",
+      expectedSchema: stackedSourceFrameJsonSchema(),
+      validator: validStackedSourceFrame,
+      expectedEntryDescription: "clinical frame"
+    }));
+  }
+
+  if (!hopOutputs.ruleRows.extracted?.value) {
+    residuals.push(irHopResidual({
+      hopId: "hop3.rule_rows",
+      stage: "schema",
+      code: "ir_hop_chain_schema_invalid",
+      baseCode: "ai_schema_violation",
+      label: null,
+      expected: irHopRuleRowsJsonSchema(groupId),
+      observed: "no_json_object",
+      reason: "No parseable rule-row JSON object was found in hop 3 output."
+    }));
+  } else {
+    residuals.push(...irHopPairSchemaResiduals({
+      parsed: hopOutputs.ruleRows.parsed,
+      groupId,
+      hopId: "hop3.rule_rows",
+      expectedSchema: irRuleJsonSchema(),
+      validator: validIrRow,
+      expectedEntryDescription: "rule row"
+    }));
+  }
+  return residuals;
+}
+
+function irHopGroundingResiduals({ lexicalCues, clinicalFrame, ruleRows, groupId }) {
+  const residuals = [];
+  for (const label of modelCaseForGroup(groupId).labels) {
+    if (validIrHopLexicalCueRow(lexicalCues?.[label])) {
+      const expectedCue = expectedIrHopLexicalCueRow(label);
+      for (const field of Object.keys(irHopCueFieldSpecs)) {
+        if (lexicalCues[label][field] !== expectedCue[field]) {
+          residuals.push(irHopFieldResidual({
+            hopId: "hop1.lexical_cues",
+            label,
+            field,
+            expected: expectedCue[field],
+            observed: lexicalCues[label][field],
+            stage: "grounding",
+            reason: "Lexical cue row is not grounded in the quoted source cue evidence."
+          }));
+        }
+      }
+    }
+    if (validStackedSourceFrame(clinicalFrame?.[label])) {
+      const expectedFrame = stackedSourceFrameFromCueFields(expectedCueFields(label));
+      for (const field of Object.keys(stackedSourceFrameFieldSpecs)) {
+        if (clinicalFrame[label][field] !== expectedFrame[field]) {
+          residuals.push(irHopFieldResidual({
+            hopId: "hop2.clinical_frame",
+            label,
+            field,
+            expected: expectedFrame[field],
+            observed: clinicalFrame[label][field],
+            stage: "grounding",
+            reason: "Clinical frame is not grounded in source-derived expected cue fields."
+          }));
+        }
+      }
+    }
+    if (validIrRow(ruleRows?.[label])) {
+      const expectedRow = expectedCueFields(label);
+      for (const field of Object.keys(cueFieldSpecs)) {
+        if (ruleRows[label][field] !== expectedRow[field]) {
+          residuals.push(irHopFieldResidual({
+            hopId: "hop3.rule_rows",
+            label,
+            field,
+            expected: expectedRow[field],
+            observed: ruleRows[label][field],
+            stage: "grounding",
+            reason: "Rule row is not grounded in source-derived expected cue fields."
+          }));
+        }
+      }
+    }
+  }
+  return residuals;
+}
+
+function irHopBridgeResiduals({ lexicalCues, clinicalFrame, ruleRows, groupId }) {
+  const residuals = [];
+  for (const label of modelCaseForGroup(groupId).labels) {
+    if (validIrHopLexicalCueRow(lexicalCues?.[label]) && validStackedSourceFrame(clinicalFrame?.[label])) {
+      const expectedFrame = frameFromIrHopLexicalCueRow(lexicalCues[label]);
+      for (const field of Object.keys(stackedSourceFrameFieldSpecs)) {
+        if (clinicalFrame[label][field] !== expectedFrame[field]) {
+          residuals.push(irHopFieldResidual({
+            hopId: "hop2.clinical_frame",
+            label,
+            field,
+            expected: expectedFrame[field],
+            observed: clinicalFrame[label][field],
+            stage: "bridge",
+            reason: "Clinical frame is not a deterministic translation of hop 1 lexical cues."
+          }));
+        }
+      }
+    }
+    if (validStackedSourceFrame(clinicalFrame?.[label]) && validIrRow(ruleRows?.[label])) {
+      const expectedRow = cueFieldsFromStackedSourceFrame(clinicalFrame[label]);
+      for (const field of Object.keys(cueFieldSpecs)) {
+        if (ruleRows[label][field] !== expectedRow[field]) {
+          residuals.push(irHopFieldResidual({
+            hopId: "hop3.rule_rows",
+            label,
+            field,
+            expected: expectedRow[field],
+            observed: ruleRows[label][field],
+            stage: "bridge",
+            reason: "Rule row is not a deterministic translation of hop 2 clinical frame."
+          }));
+        }
+      }
+      for (const field of ["direction", "action_abx_a", "age"]) {
+        if (ruleRows[label][field] === "unknown" || (field === "action_abx_a" && ruleRows[label][field] !== "present")) {
+          residuals.push(irHopResidual({
+            hopId: "hop3.rule_rows",
+            stage: "bridge",
+            code: "ir_hop_chain_bridge_incomplete",
+            label,
+            field,
+            expected: field === "action_abx_a" ? "present" : "known",
+            observed: ruleRows[label][field],
+            reason: "The hop chain cannot form a complete route_rule_ir.v0 rule for deterministic SMT compilation."
+          }));
+        }
+      }
+    }
+  }
+  return residuals;
+}
+
+function irHopRuleRows(parsed, groupId) {
+  return Object.fromEntries(modelCaseForGroup(groupId).labels.map((label) => [
+    label,
+    validIrRow(parsed?.[label]) ? parsed[label] : null
+  ]));
+}
+
+function classifyIrHopChainCandidate({ hopOutputs, modelCalls }, groupId, expected, seed) {
+  const lexicalCues = hopOutputs.lexical.parsed;
+  const clinicalFrame = hopOutputs.frame.parsed;
+  const ruleRows = hopOutputs.ruleRows.parsed;
+  const residuals = irHopSchemaResiduals(hopOutputs, groupId);
+  const schemaResiduals = residuals.filter((residual) => residual.stage === "schema");
+  const schemaValid = schemaResiduals.length === 0;
+  const groundingResiduals = schemaValid ? irHopGroundingResiduals({ lexicalCues, clinicalFrame, ruleRows, groupId }) : [];
+  const bridgeResiduals = schemaValid ? irHopBridgeResiduals({ lexicalCues, clinicalFrame, ruleRows, groupId }) : [];
+  residuals.push(...groundingResiduals, ...bridgeResiduals);
+
+  const bridgedRows = schemaValid ? irHopRuleRows(ruleRows, groupId) : {};
+  const bridge = schemaValid ? {
+    bridge_id: irHopChainBridgeId,
+    source_schema_id: irHopChainSchemaId,
+    target_schema_id: "schema.route_rule_ir.v0",
+    hop_schema_ids: irHopChainHopSpecs.map((hop) => hop.schema_id),
+    hop_lineage: modelCalls.map((call) => ({
+      hop_id: call.hop_id,
+      granularity: call.granularity,
+      schema_id: call.schema_id,
+      prompt_hash: call.prompt_hash,
+      response_hash: call.response_hash,
+      subprocess_exit_status: call.subprocess?.exit_status ?? null
+    })),
+    lexical_cues: lexicalCues,
+    clinical_frames: clinicalFrame,
+    rule_rows: bridgedRows,
+    residuals: [...groundingResiduals, ...bridgeResiduals]
+  } : null;
+  const routeIr = schemaValid
+    ? routeRuleIrFromRows(bridgedRows, groupId, {
+        routeId: "route.ir_hop_chain",
+        bridgeSourceSchemaId: irHopChainSchemaId,
+        bridge
+      })
+    : null;
+  const evaluated = schemaValid ? evaluateIrRows(bridgedRows, groupId) : { verdict: "target_syntax_failure", route_ir_rules: [], overlap: null };
+  const compiledTarget = routeIr ? compileRouteIrToSmt(routeIr, groupId, seed, expected) : null;
+  if (compiledTarget && !compiledTarget.syntax_valid) {
+    residuals.push(irHopResidual({
+      hopId: "hop3.rule_rows",
+      stage: "compiled_target",
+      code: "ir_hop_chain_compiled_target_failure",
+      baseCode: "unsupported_ir_fragment",
+      label: null,
+      expected: "complete route_rule_ir.v0 rules",
+      observed: compiledTarget.verdict,
+      reason: "The final hop payload did not compile into a syntax-valid SMT target."
+    }));
+  }
+  if (compiledTarget) {
+    for (const code of compiledTarget.diagnostics) {
+      residuals.push(irHopResidual({
+        hopId: "hop3.rule_rows",
+        stage: "compiled_target",
+        code,
+        label: null,
+        expected,
+        observed: compiledTarget.verdict,
+        reason: "Compiled target verdict differs from the locked expected route outcome."
+      }));
+    }
+  }
+
+  const verdict = compiledTarget?.verdict ?? evaluated.verdict;
+  const compiledDiagnosticCodes = new Set(compiledTarget?.diagnostics ?? []);
+  if (schemaValid && verdict === "unknown" && !residuals.some((residual) => residual.code === "ir_hop_chain_bridge_incomplete")) {
+    residuals.push(irHopResidual({
+      hopId: "hop3.rule_rows",
+      stage: "bridge",
+      code: "ir_hop_chain_bridge_incomplete",
+      label: null,
+      expected: "known action, direction, and age fields",
+      observed: "unknown",
+      reason: "The hop-chain payload could not be evaluated into a known conflict-task verdict."
+    }));
+  }
+  if (verdict === "semantic_contradiction" && expected === "semantic_no_conflict" && !compiledDiagnosticCodes.has("false_positive_conflict")) {
+    residuals.push(irHopResidual({
+      hopId: "hop3.rule_rows",
+      stage: "compiled_target",
+      code: "false_positive_conflict",
+      label: null,
+      expected,
+      observed: verdict,
+      reason: "Compiled target produced a conflict where the locked group is a documented null result."
+    }));
+  }
+  if (verdict === "semantic_no_conflict" && expected === "semantic_contradiction" && !compiledDiagnosticCodes.has("false_negative_conflict")) {
+    residuals.push(irHopResidual({
+      hopId: "hop3.rule_rows",
+      stage: "compiled_target",
+      code: "false_negative_conflict",
+      label: null,
+      expected,
+      observed: verdict,
+      reason: "Compiled target missed the locked semantic contradiction."
+    }));
+  }
+  const diagnostics = diagnosticCodesFromResiduals(residuals);
+  const target_syntax_valid = Boolean(compiledTarget?.syntax_valid);
+  const hopSchemaDiagnostics = {
+    "hop1.lexical_cues": schemaResiduals.filter((residual) => residual.hop_id === "hop1.lexical_cues"),
+    "hop2.clinical_frame": schemaResiduals.filter((residual) => residual.hop_id === "hop2.clinical_frame"),
+    "hop3.rule_rows": schemaResiduals.filter((residual) => residual.hop_id === "hop3.rule_rows")
+  };
+
+  return {
+    syntax_valid: target_syntax_valid,
+    target_syntax_valid,
+    model_output_syntax_valid: schemaValid,
+    admitted: target_syntax_valid && diagnostics.every((code) => !blocksAdmission(code)),
+    verdict: target_syntax_valid ? verdict : "target_syntax_failure",
+    diagnostics,
+    parsed: {
+      schema_id: irHopChainSchemaId,
+      hops: {
+        lexical_cues: lexicalCues ?? null,
+        clinical_frame: clinicalFrame ?? null,
+        rule_rows: ruleRows ?? null
+      },
+      route_ir: routeIr,
+      deterministic_bridge: bridge ? {
+        ...bridge,
+        evaluated
+      } : null,
+      stage_diagnostics: {
+        schema: hopSchemaDiagnostics,
+        grounding: groundingResiduals,
+        bridge: bridgeResiduals,
+        compiled_target: residuals.filter((residual) => residual.stage === "compiled_target")
+      },
+      residuals
+    },
+    compiled_target: compiledTarget,
+    candidate_text: JSON.stringify(stable(ruleRows ?? {}), null, 2)
+  };
+}
+
 function extractSmtCandidateText(output) {
   const cleaned = cleanModelText(output);
   const start = cleaned.indexOf("(set-logic");
@@ -2271,12 +2869,68 @@ function extractSmtCandidateText(output) {
   return cleaned;
 }
 
+function objectForNextHop(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+function runIrHopChainHop({ hopSpec, prompt, seed, groupId, labels, inputArtifact }) {
+  const schema = JSON.stringify(irHopJsonSchemaForHop(hopSpec.hop_id, groupId));
+  const subprocess = runLlama(prompt, seed, "route.ir_hop_chain", groupId, null, { schema });
+  const rawOutput = cleanModelText(subprocess.stdout, prompt);
+  const extracted = extractJsonObject(rawOutput);
+  const response = extracted?.text ?? rawOutput;
+  const parsed = extracted?.value ?? null;
+  return {
+    hop_id: hopSpec.hop_id,
+    granularity: hopSpec.granularity,
+    labels,
+    schema_id: hopSpec.schema_id,
+    input_artifact: inputArtifact,
+    prompt,
+    prompt_hash: sha256Text(prompt),
+    response,
+    parsed_response: parsed,
+    response_hash: sha256(response),
+    subprocess,
+    extracted: extracted ? { value: parsed, text: extracted.text } : null
+  };
+}
+
+function aggregateSubprocessFromModelCalls(modelCalls) {
+  const failingCall = modelCalls.find((call) => (
+    call.subprocess.exit_status !== 0 || call.subprocess.signal || call.subprocess.error || call.subprocess.timed_out
+  ));
+  const errors = modelCalls.map((call) => call.subprocess.error).filter(Boolean);
+  return {
+    exit_status: failingCall ? (failingCall.subprocess.exit_status ?? 1) : 0,
+    signal: failingCall?.subprocess.signal ?? null,
+    error: errors.length > 0 ? errors.join("; ") : null,
+    timed_out: modelCalls.some((call) => call.subprocess.timed_out),
+    command: {
+      executable: path.relative(root, llamaCliPath),
+      args: ["<ir-hop-chain-json-hop-calls>"]
+    },
+    calls: modelCalls.map((call) => ({
+      hop_id: call.hop_id,
+      granularity: call.granularity,
+      schema_id: call.schema_id,
+      labels: call.labels,
+      command: call.subprocess.command,
+      exit_status: call.subprocess.exit_status,
+      signal: call.subprocess.signal,
+      error: call.subprocess.error,
+      timed_out: call.subprocess.timed_out
+    }))
+  };
+}
+
 function runLiveRoute(routeId, groupId, seed, expected) {
   if (!routeImplemented(routeId)) {
     throw new Error(`route ${routeId} is registered but unimplemented; use --scaffold-routes for closed scaffold rows`);
   }
   if (routeId === "route.single_ir") return runLiveSingleIrRoute(groupId, seed, expected);
   if (routeId === "route.stacked_ir") return runLiveStackedIrRoute(groupId, seed, expected);
+  if (routeId === "route.ir_hop_chain") return runLiveIrHopChainRoute(groupId, seed, expected);
   const prompt = promptFor(routeId, groupId, seed);
   const subprocess = runLlama(prompt, seed, routeId, groupId);
   const rawOutput = cleanModelText(subprocess.stdout, prompt);
@@ -2298,6 +2952,84 @@ function runLiveRoute(routeId, groupId, seed, expected) {
     parsed_response: classified.parsed ?? null,
     subprocess,
     live_call_count: 1
+  };
+}
+
+function runLiveIrHopChainRoute(groupId, seed, expected) {
+  const labels = modelCaseForGroup(groupId).labels;
+  const processDiagnostics = [];
+
+  const lexicalPrompt = promptForIrHopLexicalCues(groupId);
+  const lexicalCall = runIrHopChainHop({
+    hopSpec: irHopChainHopSpecs[0],
+    prompt: lexicalPrompt,
+    seed,
+    groupId,
+    labels,
+    inputArtifact: {
+      kind: "source_excerpts",
+      cue_inputs: Object.fromEntries(labels.map((label) => [label, sourceCuesForLabel(label)]))
+    }
+  });
+
+  const framePrompt = promptForIrHopClinicalFrame(groupId, objectForNextHop(lexicalCall.parsed_response));
+  const frameCall = runIrHopChainHop({
+    hopSpec: irHopChainHopSpecs[1],
+    prompt: framePrompt,
+    seed,
+    groupId,
+    labels,
+    inputArtifact: {
+      kind: "hop_output",
+      hop_id: lexicalCall.hop_id,
+      response_hash: lexicalCall.response_hash
+    }
+  });
+
+  const ruleRowsPrompt = promptForIrHopRuleRows(groupId, objectForNextHop(frameCall.parsed_response));
+  const ruleRowsCall = runIrHopChainHop({
+    hopSpec: irHopChainHopSpecs[2],
+    prompt: ruleRowsPrompt,
+    seed,
+    groupId,
+    labels,
+    inputArtifact: {
+      kind: "hop_output",
+      hop_id: frameCall.hop_id,
+      response_hash: frameCall.response_hash
+    }
+  });
+
+  const modelCalls = [lexicalCall, frameCall, ruleRowsCall].map(({ extracted, ...call }) => call);
+  const hopOutputs = {
+    lexical: { extracted: lexicalCall.extracted, parsed: lexicalCall.parsed_response },
+    frame: { extracted: frameCall.extracted, parsed: frameCall.parsed_response },
+    ruleRows: { extracted: ruleRowsCall.extracted, parsed: ruleRowsCall.parsed_response }
+  };
+  for (const call of [lexicalCall, frameCall, ruleRowsCall]) {
+    if (call.subprocess.exit_status !== 0 || call.subprocess.signal || call.subprocess.error) processDiagnostics.push("process_crash");
+  }
+  const classified = classifyIrHopChainCandidate({ hopOutputs, modelCalls }, groupId, expected, seed);
+  const aggregateSubprocess = aggregateSubprocessFromModelCalls(modelCalls);
+  return {
+    route_id: "route.ir_hop_chain",
+    group_id: groupId,
+    seed,
+    syntax_valid: classified.syntax_valid,
+    target_syntax_valid: classified.target_syntax_valid,
+    model_output_syntax_valid: classified.model_output_syntax_valid,
+    admitted: classified.admitted && processDiagnostics.every((code) => code !== "process_crash"),
+    verdict: processDiagnostics.includes("process_crash") ? "solver_execution_failure" : classified.verdict,
+    diagnostics: [...new Set([...classified.diagnostics, ...processDiagnostics])],
+    prompt: lexicalPrompt,
+    response: classified.candidate_text,
+    parsed_response: classified.parsed ?? null,
+    compiled_target: classified.compiled_target ?? null,
+    subprocess: aggregateSubprocess,
+    route_call: null,
+    source_calls: null,
+    model_calls: modelCalls,
+    live_call_count: modelCalls.length
   };
 }
 
@@ -2497,6 +3229,7 @@ function scoreRows() {
         const verdict_correct = simulated.admitted && candidate_verdict_correct;
         const modelCallRecorded = simulated.model_call_recorded ?? true;
         const prompt = modelCallRecorded ? (simulated.prompt ?? promptFor(routeId, group.id, seed)) : null;
+        const liveCallCount = liveModel && modelCallRecorded ? (simulated.live_call_count ?? 1) : 0;
         const row = {
           route_id: routeId,
           group_id: group.id,
@@ -2504,6 +3237,7 @@ function scoreRows() {
           seed,
           measurement_status: simulated.measurement_status ?? "route_row_observed",
           model_call_recorded: modelCallRecorded,
+          live_call_count: liveCallCount,
           syntax_valid: simulated.syntax_valid,
           target_syntax_valid: simulated.target_syntax_valid ?? simulated.syntax_valid,
           model_output_syntax_valid: simulated.model_output_syntax_valid ?? simulated.syntax_valid,
@@ -2529,6 +3263,7 @@ function scoreRows() {
           compiled_target: simulated.compiled_target ?? null,
           route_call: simulated.route_call ?? null,
           source_calls: simulated.source_calls ?? null,
+          model_calls: simulated.model_calls ?? null,
           response_hash: sha256(simulated.response),
           subprocess: simulated.subprocess ?? null,
           model_call_recorded: modelCallRecorded,
@@ -2552,7 +3287,8 @@ function scoreRows() {
       samples: total,
       implementation_status: routeRegistryEntry(routeId)?.implementation_status ?? "unknown",
       measurement_statuses: [...new Set(rows.map((row) => row.measurement_status))].sort(),
-      model_call_count: rows.filter((row) => row.model_call_recorded).length,
+      model_call_row_count: rows.filter((row) => row.model_call_recorded).length,
+      model_call_count: rows.reduce((sum, row) => sum + (row.live_call_count ?? 0), 0),
       scaffolded_closed_row_count: rows.filter((row) => row.measurement_status === "scaffold_closed_unimplemented").length,
       target_syntax_validity: ratio(rows.filter((row) => row.syntax_valid).length, total),
       model_output_syntax_validity: ratio(rows.filter((row) => row.model_output_syntax_valid).length, total),
@@ -2576,7 +3312,7 @@ function buildSourceCueLayer() {
     artifact_kind: "SourceCueLayer",
     extractor_id: "lexical_cue_v1",
     scope: "shared_route_input",
-    fairness_note: "Implemented route rows are evaluated against the same deterministic source-derived cue rows. R3 prompts no longer include filled answer objects; route.direct_smt composes SMT-LIB directly from source excerpts, route.single_ir derives bounded JSON rows, and route.stacked_ir derives source_frame -> rule_row JSON before deterministic route_rule_ir.v0 to SMT-LIB compilation. Unimplemented registered routes produce closed scaffold rows only when --scaffold-routes is explicit.",
+    fairness_note: "Implemented route rows are evaluated against the same deterministic source-derived cue rows. R3 prompts no longer include filled answer objects; route.direct_smt composes SMT-LIB directly from source excerpts, route.single_ir derives bounded JSON rows, route.stacked_ir derives source_frame -> rule_row JSON, and route.ir_hop_chain derives lexical cues -> clinical frame -> rule rows before deterministic route_rule_ir.v0 to SMT-LIB compilation. Unimplemented registered routes produce closed scaffold rows only when --scaffold-routes is explicit.",
     cues: Object.fromEntries(labels.map((label) => [label, {
       ...sourceCuesForLabel(label),
       resolved_fields: expectedCueFields(label)
@@ -2827,6 +3563,9 @@ function promptTemplateId(routeId, granularity) {
   if (routeId === "route.single_ir") return "prompt.route_single_ir.cds_ticket_generic_json.v3";
   if (routeId === "route.stacked_ir" && granularity === "source_pair") return "prompt.route_stacked_ir.cds_ticket_stacked_json.v0";
   if (routeId === "route.stacked_ir") return "prompt.route_stacked_ir.cds_ticket_stacked_json.v0";
+  if (routeId === "route.ir_hop_chain" && granularity === "hop.lexical_cues") return "prompt.route_ir_hop_chain.cds_ticket_lexical_cues.v0";
+  if (routeId === "route.ir_hop_chain" && granularity === "hop.clinical_frame") return "prompt.route_ir_hop_chain.cds_ticket_clinical_frame.v0";
+  if (routeId === "route.ir_hop_chain" && granularity === "hop.rule_rows") return "prompt.route_ir_hop_chain.cds_ticket_rule_rows.v0";
   return `prompt.${routeId.replaceAll(".", "_")}.${granularity}.v3`;
 }
 
@@ -2837,6 +3576,10 @@ function promptOutputContract(routeId, granularity) {
   }
   if (routeId === "route.single_ir") return "CDS import JSON object";
   if (routeId === "route.stacked_ir") return "stacked CDS import JSON: source_frame -> rule_row -> route_rule_ir.v0 bridge";
+  if (routeId === "route.ir_hop_chain" && granularity === "hop.lexical_cues") return "hop 1 JSON: source excerpts -> lexical cue rows";
+  if (routeId === "route.ir_hop_chain" && granularity === "hop.clinical_frame") return "hop 2 JSON: lexical cue rows -> clinical frame rows";
+  if (routeId === "route.ir_hop_chain" && granularity === "hop.rule_rows") return "hop 3 JSON: clinical frame rows -> route_rule_ir.v0 cue rows";
+  if (routeId === "route.ir_hop_chain") return "IR hop-chain JSON output";
   return "route-specific model output";
 }
 
@@ -2844,26 +3587,66 @@ function promptCatalogPath(routeId, groupId, promptHash) {
   return `prompts/${routeId}/${groupId}/prompt-${promptHash.slice(0, 12)}.txt`;
 }
 
+function modelCallsForIoRecord(record) {
+  if (record.model_call_recorded === false) return [];
+  if (Array.isArray(record.model_calls) && record.model_calls.length > 0) {
+    return record.model_calls.map((call, index) => ({
+      call_index: index + 1,
+      granularity: call.granularity ?? call.hop_id ?? "route",
+      hop_id: call.hop_id ?? null,
+      schema_id: call.schema_id ?? null,
+      prompt: call.prompt,
+      prompt_hash: call.prompt_hash ?? sha256Text(call.prompt),
+      response_hash: call.response_hash ?? sha256(call.response ?? ""),
+      output_contract: call.output_contract ?? null
+    }));
+  }
+  if (record.route_call) {
+    return [{
+      call_index: 1,
+      granularity: record.route_call.granularity ?? "route",
+      hop_id: null,
+      schema_id: record.route_call.schema_id ?? null,
+      prompt: record.route_call.prompt,
+      prompt_hash: record.route_call.prompt_hash ?? sha256Text(record.route_call.prompt),
+      response_hash: record.route_call.response_hash ?? record.response_hash,
+      output_contract: record.route_call.output_contract ?? null
+    }];
+  }
+  return [{
+    call_index: 1,
+    granularity: "route",
+    hop_id: null,
+    schema_id: null,
+    prompt: record.prompt,
+    prompt_hash: record.prompt_hash ?? sha256Text(record.prompt),
+    response_hash: record.response_hash,
+    output_contract: null
+  }];
+}
+
 function buildPromptCatalog(ioRecords) {
   const modelCallRecords = ioRecords.filter((record) => record.model_call_recorded !== false);
-  const calls = modelCallRecords.map((record) => {
-    const routeCall = record.route_call;
-    const granularity = routeCall?.granularity ?? "route";
-    const promptText = routeCall?.prompt ?? record.prompt;
-    const promptHash = sha256Text(promptText);
+  const calls = modelCallRecords.flatMap((record) => modelCallsForIoRecord(record).map((modelCall) => {
+    const granularity = modelCall.granularity ?? "route";
+    const promptText = modelCall.prompt;
+    const promptHash = modelCall.prompt_hash ?? sha256Text(promptText);
     return {
-      call_id: `${record.record_id}.${granularity}`,
+      call_id: `${record.record_id}.${granularity}.${modelCall.call_index}`.replaceAll("..", "."),
       model_io_record_id: record.record_id,
       route_id: record.route_id,
       group_id: record.group_id,
       seed: record.seed,
       granularity,
+      hop_id: modelCall.hop_id ?? null,
+      schema_id: modelCall.schema_id ?? null,
       prompt_template_id: promptTemplateId(record.route_id, granularity),
-      output_contract: promptOutputContract(record.route_id, granularity),
+      output_contract: modelCall.output_contract ?? promptOutputContract(record.route_id, granularity),
       prompt_hash: promptHash,
-      response_hash: routeCall?.response_hash ?? record.response_hash
+      response_hash: modelCall.response_hash,
+      prompt_text: promptText
     };
-  }).sort((left, right) => [
+  })).sort((left, right) => [
     left.route_id,
     left.group_id,
     String(left.seed),
@@ -2877,12 +3660,10 @@ function buildPromptCatalog(ioRecords) {
 
   const byHash = new Map();
   for (const call of calls) {
-    const record = modelCallRecords.find((entry) => entry.record_id === call.model_io_record_id);
-    const promptText = record.route_call?.prompt ?? record.prompt;
     if (!byHash.has(call.prompt_hash)) {
       byHash.set(call.prompt_hash, {
         prompt_hash: call.prompt_hash,
-        prompt_text: promptText,
+        prompt_text: call.prompt_text,
         prompt_template_id: call.prompt_template_id,
         output_contract: call.output_contract,
         granularity: call.granularity,
@@ -3188,7 +3969,7 @@ ${rows}`;
 }
 
 function markdownReport(report) {
-  const rawRows = report.metrics.raw_rows.map((row) => `| ${row.route_id} | ${row.group_id} | ${row.measurement_role} | ${row.measurement_status} | ${row.model_call_recorded} | ${row.seed} | ${row.model_output_syntax_valid} | ${row.target_syntax_valid} | ${row.admitted} | ${row.verdict} | ${row.verdict_correct} | ${row.candidate_verdict_correct} | ${row.diagnostic_categories.join(", ") || "none"} |`).join("\n");
+  const rawRows = report.metrics.raw_rows.map((row) => `| ${row.route_id} | ${row.group_id} | ${row.measurement_role} | ${row.measurement_status} | ${row.model_call_recorded} | ${row.live_call_count ?? 0} | ${row.seed} | ${row.model_output_syntax_valid} | ${row.target_syntax_valid} | ${row.admitted} | ${row.verdict} | ${row.verdict_correct} | ${row.candidate_verdict_correct} | ${row.diagnostic_categories.join(", ") || "none"} |`).join("\n");
   const groupRows = report.m2_evaluation.evaluation_groups.map((group) => `| \`${group.group_id}\` | ${group.measurement_role} | ${group.source_labels.join(", ")} | ${group.expected_outcome} | ${group.mutation_note ?? "none"} |`).join("\n");
   const diagnosticCategoryRows = Object.entries(report.m2_evaluation.diagnostic_categories).map(([category, codes]) => `| ${category} | ${codes.map((code) => `\`${code}\``).join(", ")} |`).join("\n");
   const diagnostics = Object.entries(report.diagnostics_summary).map(([code, count]) => `- ${code}: ${count}`).join("\n") || "- none: 0";
@@ -3197,7 +3978,7 @@ function markdownReport(report) {
   const directAuditConclusion = `Direct SMT residual audit: exact template matches ${directAudit.exact_template_match_rate.exact}; rows without named assertions ${directAudit.missing_named_assertion_rate.exact}; rows asserting negated sepsis ${directAudit.negated_sepsis_assertion_rate.exact}. This audit is non-admission evidence for malformed direct target composition under the shared cue layer.`;
   const realGuidelineRows = report.real_guideline_intake.sources.map((source) => `| ${source.id} | ${source.license_label} | ${source.raw_cache_status} | ${source.candidate_span_count} | ${source.admitted_candidate_rule_count} | ${source.rejected_residual_count} | ${source.guideline_relation} |`).join("\n");
   const routeSectionTitle = report.route_experiment.experiment_id === "exp.m2_lift" ? "M2 route matrix" : "Route matrix";
-  const routeIntro = "Implemented routes finish at SMT-LIB under the same evaluator: direct SMT asks the model for target text, single_ir asks for bounded JSON rows, and stacked_ir asks for a source_frame -> rule_row stack before deterministic route_rule_ir.v0 compilation. Closed scaffold routes, when present, make no model calls and are not fabricated measurements.";
+  const routeIntro = "Implemented routes finish at SMT-LIB under the same evaluator: direct SMT asks the model for target text, single_ir asks for bounded JSON rows, stacked_ir asks for a source_frame -> rule_row stack, and ir_hop_chain asks for three adjacent JSON hops before deterministic route_rule_ir.v0 compilation. Closed scaffold routes, when present, make no model calls and are not fabricated measurements.";
   return `# CKC one-shot M1-M2 research report
 
 Run: \`${report.run_id}\`
@@ -3261,8 +4042,8 @@ ${routeTargetSummaryMarkdown(report.route_target_summary)}
 
 ## Raw route rows
 
-| Route | Group | Role | Status | Model call | Seed | Model syntax valid | Target syntax valid | Admitted | Verdict | Admitted correct | Candidate correct | Diagnostic categories |
-| --- | --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |
+| Route | Group | Role | Status | Model call | Live calls | Seed | Model syntax valid | Target syntax valid | Admitted | Verdict | Admitted correct | Candidate correct | Diagnostic categories |
+| --- | --- | --- | --- | --- | ---: | ---: | --- | --- | --- | --- | --- | --- | --- |
 ${rawRows}
 
 ## Route evaluator diagnostics
@@ -3292,7 +4073,7 @@ function japaneseReport(report) {
   const directAuditConclusion = `Direct SMT residual audit: exact template match ${directAudit.exact_template_match_rate.exact}、named assertion なし ${directAudit.missing_named_assertion_rate.exact}、negated sepsis assertion ${directAudit.negated_sepsis_assertion_rate.exact}。これは admission 判定外の監査情報であり、shared cue layer 下で direct target composition が malformed になることを記録する。`;
   const realGuidelineRows = report.real_guideline_intake.sources.map((source) => `| ${source.id} | ${source.license_label} | ${source.raw_cache_status} | ${source.candidate_span_count} | ${source.admitted_candidate_rule_count} | ${source.rejected_residual_count} |`).join("\n");
   const routeSectionTitle = report.route_experiment.experiment_id === "exp.m2_lift" ? "M2 route matrix" : "Route matrix";
-  const routeIntro = "implemented route は同じ evaluator の下で SMT-LIB に到達する。direct SMT は model が target text を直接構成し、single_ir は bounded JSON row、stacked_ir は source_frame -> rule_row stack を出力し、deterministic route_rule_ir.v0 compiler が SMT-LIB に変換する。closed scaffold route がある場合、model call はなく fabricated measurement ではない。";
+  const routeIntro = "implemented route は同じ evaluator の下で SMT-LIB に到達する。direct SMT は model が target text を直接構成し、single_ir は bounded JSON row、stacked_ir は source_frame -> rule_row stack、ir_hop_chain は lexical cues -> clinical frame -> rule rows の 3 hop JSON を出力し、deterministic route_rule_ir.v0 compiler が SMT-LIB に変換する。closed scaffold route がある場合、model call はなく fabricated measurement ではない。";
   return `# CKC one-shot M1-M2 研究レポート
 
 run: \`${report.run_id}\`
@@ -3803,7 +4584,8 @@ async function main() {
     const modelCallRecords = metrics.ioRecords.filter((record) => record.model_call_recorded !== false);
     const scaffoldRecords = metrics.ioRecords.filter((record) => record.model_call_recorded === false);
     const scaffoldRows = metrics.rawRows.filter((row) => row.measurement_status === "scaffold_closed_unimplemented");
-    const uniquePromptHashCount = new Set(modelCallRecords.map((record) => sha256Text(record.route_call?.prompt ?? record.prompt))).size;
+    const modelCallEntries = modelCallRecords.flatMap((record) => modelCallsForIoRecord(record));
+    const uniquePromptHashCount = new Set(modelCallEntries.map((call) => call.prompt_hash ?? sha256Text(call.prompt))).size;
     const requiredFiles = [
       "report.json",
       "report.md",
@@ -3845,7 +4627,8 @@ async function main() {
       metrics.routeMatrix.rows.every((row) => routeIds.includes(row.route_id) && comparisonMetricIds.every((metric) => row.metrics[metric]?.value?.exact)),
       metrics.routeMetrics.every((entry) => routeIds.includes(entry.route_id)),
       metrics.routeMetrics.every((entry) => Array.isArray(entry.measurement_statuses)),
-      metrics.routeMetrics.every((entry) => entry.model_call_count + entry.scaffolded_closed_row_count === entry.samples),
+      metrics.routeMetrics.every((entry) => entry.model_call_row_count + entry.scaffolded_closed_row_count === entry.samples),
+      metrics.routeMetrics.every((entry) => entry.model_call_count >= 0),
       routeTargetSummary.route_ids.join("\u0000") === routeIds.join("\u0000"),
       routeTargetSummary.routes.length === routeIds.length,
       routeTargetSummary.total_compiled_row_count === compiledTargetRecords.length,
@@ -3869,7 +4652,7 @@ async function main() {
       report.real_guideline_intake.rejected_residuals.length === realGuidelineIntake.blocking_residual_count,
       report.real_guideline_intake.scoring_scope === "not_in_locked_m1_m2_measurement",
       promptCatalog.prompt_count === uniquePromptHashCount,
-      promptCatalog.call_count === modelCallRecords.length,
+      promptCatalog.call_count === modelCallEntries.length,
       promptCatalog.entries.every((entry) => !/Import payload:\n\{/.test(entry.prompt_text)),
       promptCatalog.entries.every((entry) => !/normalized fields for /.test(entry.prompt_text)),
       report.prompt_catalog.catalog_hash === sha256(promptCatalog),
@@ -3887,6 +4670,9 @@ async function main() {
       realismAudit.surfaces.some((surface) => surface.surface_id === "report_renderer" && surface.evidence_paths.every((entry) => entry !== "index.html")),
       modelCallRecords.every((record) => record.prompt_hash === sha256Text(record.prompt)),
       modelCallRecords.every((record) => !record.route_call || record.route_call.prompt_hash === sha256Text(record.route_call.prompt)),
+      modelCallRecords.every((record) => modelCallsForIoRecord(record).every((call) => (
+        call.prompt_hash === sha256Text(call.prompt) && typeof call.response_hash === "string" && call.response_hash.length === 64
+      ))),
       unimplementedRouteIds.length === 0 || scaffoldRoutes,
       scaffoldRecords.length === scaffoldRows.length,
       scaffoldRecords.every((record) => unimplementedRouteIds.includes(record.route_id)),
@@ -3906,13 +4692,25 @@ async function main() {
           report.route_target_summary.total_smt_file_count === compiledTargetRecords.flatMap((record) => record.compiled_target?.smt_files ?? []).length,
           compiledTargetRecords.every((record) => record.compiled_target?.target_profile === "smt-lib-2"),
           modelCallRecords.every((record) => record.subprocess?.exit_status === 0),
+          modelCallRecords.every((record) => modelCallsForIoRecord(record).length === (record.row.live_call_count ?? 1)),
+          metrics.rawRows.reduce((sum, row) => sum + (row.live_call_count ?? 0), 0) === metrics.liveCalls,
           metrics.ioRecords.every((record) => record.response_hash && record.response_hash.length === 64),
           direct.target_syntax_validity.denominator === direct.samples,
           ...(single ? [single.target_syntax_validity.denominator === single.samples] : []),
           report.direct_smt_audit.exact_template_match_rate.denominator === direct.samples,
           report.direct_smt_audit.missing_named_assertion_rate.denominator === direct.samples,
           report.direct_smt_audit.negated_sepsis_assertion_rate.denominator === direct.samples,
-          ...(single ? [single.k_sample_stability.denominator === groups.length] : [])
+          ...(single ? [single.k_sample_stability.denominator === groups.length] : []),
+          ...(!routeIds.includes("route.ir_hop_chain") ? [] : [
+            routeMetricsById.get("route.ir_hop_chain")?.model_call_count === routeMetricsById.get("route.ir_hop_chain")?.samples * irHopChainHopSpecs.length,
+            metrics.ioRecords
+              .filter((record) => record.route_id === "route.ir_hop_chain")
+              .every((record) => (
+                record.model_calls?.length === irHopChainHopSpecs.length
+                && record.parsed_response?.deterministic_bridge?.hop_lineage?.length === irHopChainHopSpecs.length
+                && record.model_calls.every((call) => call.prompt_hash?.length === 64 && call.response_hash?.length === 64)
+              ))
+          ])
         ]
       : [
           report.model_mode === "recorded_unsupported",
