@@ -1,14 +1,12 @@
 {
-  "name": "ckc-manuscript-figures",
+  "name": "ckc-ui-one-shot",
   "private": true,
   "type": "module",
   "scripts": {
     "fetch:guidelines": "node tools/fetch-real-guidelines.mjs",
     "setup:model": "node tools/setup-local-model.mjs",
-    "build:figures": "node tools/build-figures.mjs",
     "build:run": "node tools/build-run.mjs --live-model",
     "build:run:recorded": "node tools/build-run.mjs --recorded-model",
-    "verify:figures": "node tools/build-figures.mjs --verify",
     "verify": "node tools/build-run.mjs --verify --live-model",
     "verify:recorded": "node tools/build-run.mjs --verify --recorded-model"
   }

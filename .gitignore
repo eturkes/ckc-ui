@@ -1,6 +1,5 @@
 /runs/
 /target/
-/index.html
 /.local/
 /corpus/raw/
 node_modules/

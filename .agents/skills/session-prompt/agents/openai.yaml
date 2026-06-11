@@ -1,6 +1,6 @@
 interface:
   display_name: "session-prompt"
-  short_description: "Start a CKC manuscript-figures session from a task."
+  short_description: "Start a CKC UI session from a task."
   default_prompt: "$session-prompt [TASK]"
 
 policy:

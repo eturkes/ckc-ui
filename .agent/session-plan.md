@@ -4,6 +4,9 @@ Status: complete.
 
 Completed: 2026-06-11. All C1-C8 queue items are `done`; this file is
 retained as historical execution state, not active `$session-prompt` wiring.
+Figure-generation gate lines below are historical; the current presentation
+surface is tracked root `index.html`, and manuscript figure artifacts/tooling
+were removed after this queue completed.
 
 Purpose: expand the M2 route comparison beyond `route.direct_smt` and
 `route.single_ir` across multiple Codex sessions while keeping each session

@@ -5889,8 +5889,8 @@ function buildRealismAudit({ realGuidelineIntake, sourceCueLayer, promptCatalog 
       surface_id: "report_renderer",
       stage: "report",
       classification: "hardcoded",
-      evidence_paths: ["tools/build-run.mjs", "runs/m2-one-shot/report.json", "runs/m2-one-shot/report.md", "runs/m2-one-shot/report.ja.md"],
-      note: "Report artifacts are deterministic renderer outputs over canonical run artifacts; browser UI rendering is out of scope."
+      evidence_paths: ["tools/build-run.mjs", "index.html", "runs/m2-one-shot/report.json", "runs/m2-one-shot/report.md", "runs/m2-one-shot/report.ja.md"],
+      note: "Report artifacts are deterministic renderer outputs over canonical run artifacts; the restored browser UI is tracked as a static presentation artifact."
     }
   ];
   const summary = Object.fromEntries(["data_driven", "fixture_authored", "prompt_scaffolded", "hardcoded"].map((classification) => [
@@ -7978,7 +7978,7 @@ async function main() {
       realismAudit.surfaces.some((surface) => surface.surface_id === "fixture_regions" && surface.classification === "data_driven"),
       realismAudit.surfaces.some((surface) => surface.surface_id === "context_overlap_and_smt_encoding" && surface.classification === "hardcoded"),
       realismAudit.surfaces.some((surface) => surface.surface_id === "llm_prompt_templates" && surface.classification === "prompt_scaffolded"),
-      realismAudit.surfaces.some((surface) => surface.surface_id === "report_renderer" && surface.evidence_paths.every((entry) => entry !== "index.html")),
+      realismAudit.surfaces.some((surface) => surface.surface_id === "report_renderer" && surface.evidence_paths.includes("index.html") && existsSync(path.join(root, "index.html"))),
       modelCallRecords.every((record) => record.prompt_hash === sha256Text(record.prompt)),
       modelCallRecords.every((record) => !record.route_call || record.route_call.prompt_hash === sha256Text(record.route_call.prompt)),
       modelCallRecords.every((record) => modelCallsForIoRecord(record).every((call) => (
@@ -8050,7 +8050,7 @@ async function main() {
   console.log(JSON.stringify({
     run_dir: path.relative(root, runDir),
     report: path.relative(root, path.join(runDir, "report.json")),
-    manuscript_figures: "figures/manuscript",
+    ui: "index.html",
     experiment_id: selectedExperimentId,
     scaffold_mode: scaffoldRoutes,
     unimplemented_route_ids: [...unimplementedRouteIds],

@@ -1,0 +1,1046 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>How IR improves this pipeline</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f2f5f7;
+      --surface: #fff;
+      --line: #d6dee5;
+      --ink: #17212b;
+      --muted: #64727f;
+      --ok: #126f54;
+      --warn: #8a5b00;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 15px;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); }
+    main { max-width: 1180px; margin: 0 auto; padding: 18px; }
+    section { border: 1px solid var(--line); border-radius: 6px; background: var(--surface); margin-bottom: 12px; }
+    section { padding: 14px; }
+    h2, h3, p { margin: 0; }
+    h2 { font-size: .98rem; margin-bottom: 8px; }
+    h3 { font-size: .86rem; margin: 10px 0 6px; }
+    p { color: var(--muted); margin-top: 4px; line-height: 1.4; }
+    code, pre { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; font-size: .82rem; }
+    code { overflow-wrap: anywhere; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 280px; overflow: auto; margin: 0; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: #101820; color: #eef6f4; }
+    .takeaway { border: 1px solid #b9ddcf; border-left: 4px solid var(--ok); border-radius: 6px; padding: 10px 12px; background: #f2faf6; margin: 10px 0; }
+    .takeaway strong { display: block; margin-bottom: 4px; }
+    .takeaway p { margin-top: 0; color: var(--ink); }
+    .flow { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px; }
+    .flow-step { border-left: 3px solid var(--line); padding: 2px 0 2px 10px; min-height: 78px; }
+    .flow-step strong { display: block; font-size: .86rem; }
+    .flow-step span { display: block; color: var(--muted); margin-top: 6px; font-size: .8rem; line-height: 1.35; }
+    .flow-step.ok { border-left-color: var(--ok); }
+    .flow-step.warn { border-left-color: var(--warn); }
+    .trace-viz { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin: 10px 0 14px; }
+    .trace-step { position: relative; border: 1px solid var(--line); border-radius: 6px; background: #fbfdfe; padding: 10px; min-width: 0; }
+    .trace-step:not(:last-child)::after { content: "->"; position: absolute; top: 18px; right: -17px; color: var(--muted); font-weight: 700; z-index: 1; }
+    .trace-head { display: grid; gap: 3px; min-height: 42px; }
+    .trace-title { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; }
+    .trace-head strong { font-size: .82rem; }
+    .trace-head span { color: var(--muted); font-size: .74rem; overflow-wrap: anywhere; }
+    .trace-head small { color: var(--muted); font-size: .68rem; overflow-wrap: anywhere; }
+    .use-badge { display: inline-flex; align-items: center; min-height: 22px; border-radius: 999px; padding: 2px 7px; border: 1px solid var(--line); font-size: .7rem; font-weight: 700; white-space: nowrap; }
+    .use-badge.llm { color: var(--warn); background: #fff1cf; border-color: #e7cf91; }
+    .use-badge.det { color: var(--ok); background: #e4f2ec; border-color: #b9ddcf; }
+    .class-badge { display: inline-flex; align-items: center; min-height: 22px; border-radius: 999px; padding: 2px 7px; border: 1px solid var(--line); font-size: .7rem; font-weight: 700; white-space: nowrap; }
+    .class-badge.data_driven { color: var(--ok); background: #e4f2ec; border-color: #b9ddcf; }
+    .class-badge.fixture_authored { color: #315c87; background: #e8f1fb; border-color: #bdd4eb; }
+    .class-badge.prompt_scaffolded { color: var(--warn); background: #fff1cf; border-color: #e7cf91; }
+    .class-badge.hardcoded { color: #8b3434; background: #fde9e7; border-color: #efbeb8; }
+    .trace-step pre { max-height: 240px; margin-top: 8px; font-size: .72rem; line-height: 1.35; }
+    .mechanics { margin-top: 12px; display: grid; gap: 10px; }
+    .mechanics-note { border-left: 3px solid var(--line); padding: 2px 0 2px 10px; color: var(--muted); font-size: .82rem; line-height: 1.4; }
+    .rules-table td pre { max-height: 130px; padding: 8px; font-size: .72rem; line-height: 1.35; }
+    .split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+    .lane { border: 1px solid var(--line); border-radius: 6px; padding: 10px; min-width: 0; }
+    .lane h3 { margin-top: 0; }
+    .lane .status { display: inline-flex; margin-top: 8px; font-weight: 650; font-size: .82rem; }
+    .status.ok { color: var(--ok); }
+    .status.warn { color: var(--warn); }
+    .lane dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 5px 10px; margin: 10px 0; font-size: .82rem; }
+    .lane dt { color: var(--muted); }
+    .lane dd { margin: 0; overflow-wrap: anywhere; }
+    table { width: 100%; border-collapse: collapse; min-width: 720px; }
+    .wide { min-width: 920px; }
+    .extra-wide { min-width: 1080px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 8px; text-align: left; vertical-align: top; font-size: .82rem; }
+    th { color: var(--muted); background: #f7fafb; }
+    .compare { min-width: 640px; }
+    .compare th { width: 170px; color: var(--ink); }
+    .compare td:nth-child(2) { border-left: 3px solid var(--warn); }
+    .compare td:nth-child(3) { border-left: 3px solid var(--ok); }
+    .table-wrap { overflow-x: auto; }
+    details { border: 1px solid var(--line); border-radius: 6px; padding: 9px 10px; margin-top: 8px; }
+    summary { cursor: pointer; }
+    @media (max-width: 760px) {
+      main { padding: 10px; }
+      .flow, .split, .trace-viz { grid-template-columns: 1fr; }
+      .trace-step:not(:last-child)::after { content: ""; display: none; }
+      .mechanics { gap: 8px; }
+      .compare { min-width: 0; }
+      .compare thead { display: none; }
+      .compare, .compare tbody, .compare tr, .compare th, .compare td { display: block; width: 100%; }
+      .compare tr { border-bottom: 1px solid var(--line); padding: 6px 0; }
+      .compare th, .compare td { border-bottom: 0; padding: 4px 8px; }
+      .compare th { background: transparent; color: var(--ink); }
+      .compare td:nth-child(2), .compare td:nth-child(3) { border-left: 0; }
+      .compare td:nth-child(2)::before { content: "direct_smt: "; color: var(--warn); font-weight: 650; }
+      .compare td:nth-child(3)::before { content: "single_ir: "; color: var(--ok); font-weight: 650; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section>
+      <h2>How IR improves this pipeline</h2>
+      <div class="takeaway">
+        <strong>Short version</strong>
+        <p>Both M2 routes now finish at SMT-LIB. Direct asks the model to write SMT-LIB; IR asks the model for one bounded pair JSON object, bridges those rows into <code>route_rule_ir.v0</code>, then compiles that IR deterministically to SMT-LIB.</p>
+      </div>
+      <p>Both routes are scored by the same source-derived evaluator. This R3 run removes the filled JSON answer from <code>route.single_ir</code> prompts and adds a holdout mutation group, but it remains a scaffolded cue-translation test because the prompt still supplies cue definitions and schema.</p>
+      <div class="flow">
+        <div class="flow-step">
+          <strong>1. Same input</strong>
+          <span>Japanese fixture spans and cue definitions are the model-facing inputs; source-derived cues are retained for evaluator grounding.</span>
+        </div>
+        <div class="flow-step warn">
+          <strong>2. Direct route</strong>
+          <span><code>route.direct_smt</code> asks the model to write a whole executable SMT-LIB target.</span>
+        </div>
+        <div class="flow-step ok">
+          <strong>3. IR route</strong>
+          <span><code>route.single_ir</code> asks for one pair JSON object derived from excerpts; this harness emits a per-row SMT-LIB target from the admitted route IR.</span>
+        </div>
+      </div>
+      <h3>Transformation rules</h3>
+      <div class="mechanics">
+        <div class="mechanics-note">There is no hidden semantic hop after the pair JSON. The model emits bounded fields from source excerpts; every later step is a deterministic table lookup, rule construction, compiler emission, and verifier check.</div>
+        <div class="table-wrap">
+          <table class="wide">
+            <thead><tr><th>Boundary</th><th>Transform</th><th>Guard</th></tr></thead>
+            <tbody>
+          <tr>
+            <td><code>source text -&gt; source_cue_layer</code></td>
+            <td>String/regexp checks extract raw cues from the fixture spans, then table-map them to normalized fields.</td>
+            <td>No model call; values live in metrics/source_cues.json.</td>
+          </tr>
+          <tr>
+            <td><code>source_cue_layer -&gt; model JSON</code></td>
+            <td>The single-IR prompt includes source excerpts, cue definitions, and a JSON schema; the model derives one bounded object keyed by source label.</td>
+            <td>Schema diagnostics reject missing keys, extra fields, invalid enum tokens, or JSON parse failure.</td>
+          </tr>
+          <tr>
+            <td><code>model JSON -&gt; route_rule_ir.v0</code></td>
+            <td>routeRuleIrFromRows keeps each valid cue_row and ruleFromIrRow converts it into one NormRule-like route rule.</td>
+            <td>Grounding diagnostics reject a row when a copied field differs from the deterministic source cue.</td>
+          </tr>
+          <tr>
+            <td><code>route_rule_ir.v0 -&gt; SMT-LIB</code></td>
+            <td>compileRouteIrToSmt emits context-overlap SMT for every complete pair and deontic SMT only when the contexts overlap.</td>
+            <td>A complete target has known action, known direction, and a bounded age interval.</td>
+          </tr>
+          <tr>
+            <td><code>SMT-LIB -&gt; route verdict</code></td>
+            <td>The verifier checks same action, opposed deontic direction, age interval overlap, and required/prohibited concept compatibility.</td>
+            <td>same_action &amp;&amp; opposed_directions &amp;&amp; context_overlap becomes semantic_contradiction; otherwise semantic_no_conflict.</td>
+          </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-wrap">
+          <table class="wide">
+            <thead><tr><th>Model JSON field</th><th>route_rule_ir.v0 field</th><th>SMT/verifier effect</th></tr></thead>
+            <tbody>
+          <tr>
+            <td><code>direction=for</code></td>
+            <td>rule.direction=for</td>
+            <td><code>(assert (! |pos:act.administer:drug.abx_a| :named |assert.&lt;rule&gt;.pos|))</code></td>
+          </tr>
+          <tr>
+            <td><code>direction=contraindicate</code></td>
+            <td>rule.direction=contraindicate</td>
+            <td><code>(assert (! (not |pos:act.administer:drug.abx_a|) :named |assert.&lt;rule&gt;.neg|))</code></td>
+          </tr>
+          <tr>
+            <td><code>action_abx_a=present</code></td>
+            <td>rule.action_key=act.administer:drug.abx_a</td>
+            <td><code>same_action requires the compared rules to use the same action key</code></td>
+          </tr>
+          <tr>
+            <td><code>age=adult</code></td>
+            <td>rule.context.age_years={ge:18}</td>
+            <td><code>(&gt;= |q.age_years| 18)</code></td>
+          </tr>
+          <tr>
+            <td><code>age=child</code></td>
+            <td>rule.context.age_years={lt:18}</td>
+            <td><code>(&lt; |q.age_years| 18)</code></td>
+          </tr>
+          <tr>
+            <td><code>sepsis=present</code></td>
+            <td>append cond.sepsis to rule.context.required</td>
+            <td><code>|cond.sepsis|</code></td>
+          </tr>
+          <tr>
+            <td><code>pregnancy=present</code></td>
+            <td>append cond.pregnancy to rule.context.required</td>
+            <td><code>|cond.pregnancy|</code></td>
+          </tr>
+          <tr>
+            <td><code>renal_exception=yes</code></td>
+            <td>append cond.renal_severe to rule.context.prohibited</td>
+            <td><code>(not |cond.renal_severe|)</code></td>
+          </tr>
+          <tr>
+            <td><code>unknown value or incomplete rule</code></td>
+            <td>rule is retained as incomplete/unknown</td>
+            <td><code>no admitted SMT target; diagnostic unsupported_ir_fragment</code></td>
+          </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-wrap">
+          <table class="extra-wide rules-table">
+            <thead><tr><th>Source</th><th>Resolved cue input</th><th>Model JSON row</th><th>Route IR rule</th><th>Emitted fragments</th></tr></thead>
+            <tbody>
+          <tr>
+            <td><code>A</code></td>
+            <td>direction=推奨する; age=成人_or_18歳以上; sepsis=present; pregnancy=absent; renal_exception=has_exception</td>
+            <td><code>{&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;direction&quot;:&quot;contraindicate&quot;,&quot;pregnancy&quot;:&quot;present&quot;,&quot;renal_exception&quot;:&quot;no&quot;,&quot;sepsis&quot;:&quot;absent&quot;}</code></td>
+            <td><code>route.rule.a; contraindicate; act.administer:drug.abx_a; {&quot;age_years&quot;:{&quot;ge&quot;:18},&quot;prohibited&quot;:[],&quot;required&quot;:[&quot;cond.pregnancy&quot;]}</code></td>
+            <td><pre>context: (and |cond.sepsis| (&gt;= |q.age_years| 18) |cond.pregnancy|)
+deontic: (not |pos:act.administer:drug.abx_a|) named assert.route.rule.a.neg</pre></td>
+          </tr>
+          <tr>
+            <td><code>B</code></td>
+            <td>direction=投与しないこと; age=成人_or_18歳以上; sepsis=present; pregnancy=present; renal_exception=no_exception</td>
+            <td><code>{&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;direction&quot;:&quot;contraindicate&quot;,&quot;pregnancy&quot;:&quot;present&quot;,&quot;renal_exception&quot;:&quot;no&quot;,&quot;sepsis&quot;:&quot;absent&quot;}</code></td>
+            <td><code>route.rule.b; contraindicate; act.administer:drug.abx_a; {&quot;age_years&quot;:{&quot;ge&quot;:18},&quot;prohibited&quot;:[],&quot;required&quot;:[&quot;cond.pregnancy&quot;]}</code></td>
+            <td><pre>context: (and |cond.sepsis| (&gt;= |q.age_years| 18) |cond.pregnancy|)
+deontic: (not |pos:act.administer:drug.abx_a|) named assert.route.rule.b.neg</pre></td>
+          </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <h3>Text to SMT trace</h3>
+      <p>Representative admitted row: <code>route.single_ir</code> / <code>group.m1_conflict</code> / seed 11. Each step is a recorded artifact or deterministic transform used for the scored route row.</p>
+      <div class="trace-viz">
+
+        <div class="trace-step">
+          <div class="trace-head">
+            <div class="trace-title">
+              <strong>1 Source spans</strong>
+              <span class="use-badge det">No LLM</span>
+            </div>
+            <span>fixture regions</span>
+            <small>committed fixture text</small>
+          </div>
+          <pre>A primary: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
+A exception: ただし、重度腎機能障害のある患者を除く。
+
+B primary: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。</pre>
+        </div>
+        <div class="trace-step">
+          <div class="trace-head">
+            <div class="trace-title">
+              <strong>2 Lexical cues</strong>
+              <span class="use-badge det">No LLM</span>
+            </div>
+            <span>lexical_cue_v1</span>
+            <small>deterministic cue extractor</small>
+          </div>
+          <pre>A
+direction_cue=推奨する
+age_cue=成人_or_18歳以上
+action_abx_a_cue=present
+sepsis_cue=present
+pregnancy_cue=absent
+renal_exception_cue=has_exception
+resolved={&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;direction&quot;:&quot;for&quot;,&quot;pregnancy&quot;:&quot;absent&quot;,&quot;renal_exception&quot;:&quot;yes&quot;,&quot;sepsis&quot;:&quot;present&quot;}
+
+B
+direction_cue=投与しないこと
+age_cue=成人_or_18歳以上
+action_abx_a_cue=present
+sepsis_cue=present
+pregnancy_cue=present
+renal_exception_cue=no_exception
+resolved={&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;direction&quot;:&quot;contraindicate&quot;,&quot;pregnancy&quot;:&quot;present&quot;,&quot;renal_exception&quot;:&quot;no&quot;,&quot;sepsis&quot;:&quot;present&quot;}</pre>
+        </div>
+        <div class="trace-step">
+          <div class="trace-head">
+            <div class="trace-title">
+              <strong>3 Model JSON</strong>
+              <span class="use-badge llm">LLM</span>
+            </div>
+            <span>1 constrained pair call</span>
+            <small>Qwen2.5-0.5B-Instruct-Q2_K</small>
+          </div>
+          <pre>{
+  &quot;A&quot;: {
+    &quot;action_abx_a&quot;: &quot;present&quot;,
+    &quot;age&quot;: &quot;adult&quot;,
+    &quot;direction&quot;: &quot;contraindicate&quot;,
+    &quot;pregnancy&quot;: &quot;present&quot;,
+    &quot;renal_exception&quot;: &quot;no&quot;,
+    &quot;sepsis&quot;: &quot;absent&quot;
+  },
+  &quot;B&quot;: {
+    &quot;action_abx_a&quot;: &quot;present&quot;,
+    &quot;age&quot;: &quot;adult&quot;,
+    &quot;direction&quot;: &quot;contraindicate&quot;,
+    &quot;pregnancy&quot;: &quot;present&quot;,
+    &quot;renal_exception&quot;: &quot;no&quot;,
+    &quot;sepsis&quot;: &quot;absent&quot;
+  }
+}</pre>
+        </div>
+        <div class="trace-step">
+          <div class="trace-head">
+            <div class="trace-title">
+              <strong>4 route_rule_ir.v0</strong>
+              <span class="use-badge det">No LLM</span>
+            </div>
+            <span>route_rule_ir_v0_to_smt_v0</span>
+            <small>deterministic bridge</small>
+          </div>
+          <pre>route.rule.a
+direction=contraindicate
+action=act.administer:drug.abx_a
+context={&quot;age_years&quot;:{&quot;ge&quot;:18},&quot;prohibited&quot;:[],&quot;required&quot;:[&quot;cond.pregnancy&quot;]}
+
+route.rule.b
+direction=contraindicate
+action=act.administer:drug.abx_a
+context={&quot;age_years&quot;:{&quot;ge&quot;:18},&quot;prohibited&quot;:[],&quot;required&quot;:[&quot;cond.pregnancy&quot;]}</pre>
+        </div>
+        <div class="trace-step">
+          <div class="trace-head">
+            <div class="trace-title">
+              <strong>5 SMT-LIB</strong>
+              <span class="use-badge det">No LLM</span>
+            </div>
+            <span>2 query files</span>
+            <small>deterministic compiler/verifier</small>
+          </div>
+          <pre>context_overlap
+logic=QF_LRA
+
+(set-logic QF_LRA)
+(set-option :print-success false)
+(set-option :produce-models true)
+(declare-const |q.age_years| Real)
+(declare-const |cond.sepsis| Bool)
+(declare-const |cond.renal_severe| Bool)
+(declare-const |cond.pregnancy| Bool)
+(assert (! (and |cond.sepsis| (&gt;= |q.age_years| 18) |cond.pregnancy|) :named |ctx.route.rule.a|))
+(assert (! (and |cond.sepsis| (&gt;= |q.age_years| 18) |cond.pregnancy|) :named |ctx.route.rule.b|))
+(check-sat)
+(get-model)
+
+deontic_consistency
+logic=QF_UF
+
+(set-logic QF_UF)
+(set-option :print-success false)
+(set-option :produce-unsat-cores true)
+(declare-const |pos:act.administer:drug.abx_a| Bool)
+(assert (! |pos:act.administer:drug.abx_a| :named |assert.route.rule.a.neg|))
+(assert (! (not |pos:act.administer:drug.abx_a|) :named |assert.route.rule.b.neg|))
+(check-sat)
+(get-unsat-core)</pre>
+        </div>
+      </div>
+      <h3>LLM use map</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Stage</th><th>LLM use</th><th>Evidence boundary</th></tr></thead>
+          <tbody>
+          <tr>
+            <td>Source spans</td>
+            <td><span class="use-badge det">No LLM</span></td>
+            <td>committed fixture/source text</td>
+          </tr>
+          <tr>
+            <td>Lexical cue extraction</td>
+            <td><span class="use-badge det">No LLM</span></td>
+            <td>deterministic lexical_cue_v1</td>
+          </tr>
+          <tr>
+            <td>route.single_ir pair emission</td>
+            <td><span class="use-badge llm">LLM</span></td>
+            <td>1 constrained call to Qwen2.5-0.5B-Instruct-Q2_K</td>
+          </tr>
+          <tr>
+            <td>route_rule_ir.v0 bridge</td>
+            <td><span class="use-badge det">No LLM</span></td>
+            <td>deterministic JSON-to-rule transform</td>
+          </tr>
+          <tr>
+            <td>SMT-LIB emission and verifier scoring</td>
+            <td><span class="use-badge det">No LLM</span></td>
+            <td>deterministic compiler/verifier</td>
+          </tr>
+          <tr>
+            <td>route.direct_smt baseline</td>
+            <td><span class="use-badge llm">LLM</span></td>
+            <td>LLM emits target SMT-LIB directly for comparison</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>What changed</h3>
+      <div class="table-wrap">
+        <table class="compare">
+          <thead><tr><th></th><th>direct_smt</th><th>single_ir</th></tr></thead>
+          <tbody>
+          <tr>
+            <th>Model input</th>
+            <td>source excerpts and cue definitions</td>
+            <td>source excerpts, cue definitions, and JSON schema</td>
+          </tr>
+          <tr>
+            <th>Model output</th>
+            <td>SMT-LIB text</td>
+            <td>bounded pair JSON object</td>
+          </tr>
+          <tr>
+            <th>End of route in this harness</th>
+            <td>candidate SMT-LIB admission check</td>
+            <td>route_rule_ir.v0 -&gt; deterministic SMT-LIB compile -&gt; verifier check</td>
+          </tr>
+          <tr>
+            <th>Per-route SMT artifact</th>
+            <td>model output itself</td>
+            <td>route_targets/route.single_ir/group.m1_conflict/seed-11/smt/q.overlap.smt2</td>
+          </tr>
+          <tr>
+            <th>Spec target path</th>
+            <td>direct formal target</td>
+            <td>IR deterministically compiles to SMT-LIB</td>
+          </tr>
+          <tr>
+            <th>Representative row</th>
+            <td>rejected: not admitted: target syntax failed; not admitted: model output schema failed</td>
+            <td>admitted: semantic_no_conflict</td>
+          </tr>
+          <tr>
+            <th>Full run</th>
+            <td>0/9 admitted accuracy</td>
+            <td>0/9 admitted accuracy</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="split">
+        <div class="lane">
+          <h3>Direct route example</h3>
+          <span class="status warn">not admitted in representative conflict row</span>
+          <dl>
+            <dt>group</dt><dd><code>group.m1_conflict</code> / seed 11</dd>
+            <dt>target syntax</dt><dd>no</dd>
+            <dt>admitted</dt><dd>no</dd>
+            <dt>diagnostics</dt><dd><code>not admitted: target syntax failed; not admitted: model output schema failed</code></dd>
+          </dl>
+          <pre>-lib
+declare-const (q.age_years) 18;
+declare-const (cond.sepsis) true;
+declare-const (cond.renal_exception) true;
+declare-const (cond.pregnancy) true;
+
+assert (&gt;= q.age_years 18) ;
+assert (not cond.renal_exception) ;
+assert (not cond.pregnancy) ;</pre>
+        </div>
+        <div class="lane">
+          <h3>IR route example</h3>
+          <span class="status ok">admitted in representative conflict row</span>
+          <dl>
+            <dt>group</dt><dd><code>group.m1_conflict</code> / seed 11</dd>
+            <dt>pair calls</dt><dd>1 pair-schema call</dd>
+            <dt>model syntax</dt><dd>yes</dd>
+            <dt>target syntax</dt><dd>yes</dd>
+            <dt>admitted</dt><dd>no</dd>
+            <dt>bridge verdict</dt><dd><code>semantic_no_conflict</code></dd>
+            <dt>SMT target</dt><dd><code>smt-lib-2; 2 query file(s); deterministic verifier result</code></dd>
+          </dl>
+          <p>A: direction=contraindicate; action=present; age=adult; sepsis=absent; pregnancy=present; renal_exception=no</p>
+          <p>B: direction=contraindicate; action=present; age=adult; sepsis=absent; pregnancy=present; renal_exception=no</p>
+        </div>
+      </div>
+      <h3>Lift location</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Metric</th><th>direct_smt</th><th>single_ir</th><th>delta</th></tr></thead>
+          <tbody>
+          <tr>
+            <td>Target syntax valid</td>
+            <td>3/9</td>
+            <td>9/9</td>
+            <td>2/3</td>
+          </tr>
+          <tr>
+            <td>Rows admitted</td>
+            <td>0/9</td>
+            <td>0/9</td>
+            <td>0/1</td>
+          </tr>
+          <tr>
+            <td>Admitted verdict accuracy</td>
+            <td>0/9</td>
+            <td>0/9</td>
+            <td>0/1</td>
+          </tr>
+          <tr>
+            <td>Stable across seeds</td>
+            <td>0/3</td>
+            <td>0/3</td>
+            <td>0/1</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>M2 evaluation groups</h3>
+      <p>Evaluation strength: <code>scaffolded_cue_translation_test</code>. R3 removes exact filled JSON payloads from route.single_ir prompts and adds a holdout mutation group. The prompt still supplies schema and cue definitions, so this remains a scaffolded cue-translation test rather than raw Japanese guideline understanding.</p>
+      <div class="table-wrap">
+        <table class="wide">
+          <thead><tr><th>Group</th><th>Role</th><th>Source labels</th><th>Expected</th><th>Note</th></tr></thead>
+          <tbody>
+          <tr>
+            <td><code>group.m1_conflict</code></td>
+            <td>locked_m1_conflict</td>
+            <td>A, B</td>
+            <td><code>semantic_contradiction</code></td>
+            <td>none</td>
+          </tr>
+          <tr>
+            <td><code>group.m1_null</code></td>
+            <td>locked_m1_null</td>
+            <td>A, C</td>
+            <td><code>semantic_no_conflict</code></td>
+            <td>none</td>
+          </tr>
+          <tr>
+            <td><code>group.m2_holdout_conflict</code></td>
+            <td>holdout_mutation_conflict</td>
+            <td>A, D</td>
+            <td><code>semantic_contradiction</code></td>
+            <td>Contraindication source uses a new fixture label and phrasing with 禁忌とする instead of the original 投与しないこと sentence.</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>Route evaluator diagnostics</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Category</th><th>Codes</th></tr></thead>
+          <tbody>
+          <tr>
+            <td>grounding</td>
+            <td><code>ai_hallucinated_source</code>, <code>semantic_slot_missing</code></td>
+          </tr>
+          <tr>
+            <td>process</td>
+            <td><code>process_crash</code>, <code>solver_execution_failure</code></td>
+          </tr>
+          <tr>
+            <td>syntax</td>
+            <td><code>target_parse_error</code>, <code>ai_schema_violation</code></td>
+          </tr>
+          <tr>
+            <td>unsupported_schema</td>
+            <td><code>unsupported_ir_fragment</code></td>
+          </tr>
+          <tr>
+            <td>wrong_verdict</td>
+            <td><code>false_positive_conflict</code>, <code>false_negative_conflict</code></td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>Real guideline candidate intake</h3>
+      <p>These public-source rows are candidate-only intake artifacts. They use committed registry spans and machine hints, stay outside locked M1/M2 scoring, and make no clinical recommendation claim.</p>
+      <div class="table-wrap">
+        <table class="extra-wide">
+          <thead><tr><th>Source</th><th>Source hash</th><th>Permission hash</th><th>Spans</th><th>Candidate rules</th><th>Rejected residuals</th><th>Raw cache</th></tr></thead>
+          <tbody>
+          <tr>
+            <td><code>real.jstage.thyroid_tumor_2024.cq_recommendations</code></td>
+            <td><code>7dff117dd06a</code></td>
+            <td><code>6f0d9f3a96c7</code></td>
+            <td>4</td>
+            <td>4</td>
+            <td>0</td>
+            <td>complete</td>
+          </tr>
+          <tr>
+            <td><code>real.jstage.sepsis_dic_2025.guideline_article</code></td>
+            <td><code>161c59eb8f98</code></td>
+            <td><code>652c31add5e2</code></td>
+            <td>3</td>
+            <td>0</td>
+            <td>6</td>
+            <td>complete</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-wrap">
+        <table class="extra-wide">
+          <thead><tr><th>Source</th><th>Candidate span</th><th>CQ</th><th>Status</th><th>Direction</th><th>Strength</th><th>Certainty</th><th>Quote hash</th></tr></thead>
+          <tbody>
+          <tr>
+            <td><code>real.jstage.thyroid_tumor_2024.cq_recommendations</code></td>
+            <td><code>real.thyroid.cq2_1.recommendation</code></td>
+            <td>CQ2-1</td>
+            <td>candidate_rule_admitted</td>
+            <td>against</td>
+            <td>weak</td>
+            <td>B</td>
+            <td><code>e52d9eab1096</code></td>
+          </tr>
+          <tr>
+            <td><code>real.jstage.thyroid_tumor_2024.cq_recommendations</code></td>
+            <td><code>real.thyroid.cq3_1.recommendation</code></td>
+            <td>CQ3-1</td>
+            <td>candidate_rule_admitted</td>
+            <td>for</td>
+            <td>strong</td>
+            <td>B</td>
+            <td><code>964f186117c8</code></td>
+          </tr>
+          <tr>
+            <td><code>real.jstage.thyroid_tumor_2024.cq_recommendations</code></td>
+            <td><code>real.thyroid.cq8_1.adjuvant_rhtsh</code></td>
+            <td>CQ8-1</td>
+            <td>candidate_rule_admitted</td>
+            <td>for</td>
+            <td>weak</td>
+            <td>C</td>
+            <td><code>d037bda12db4</code></td>
+          </tr>
+          <tr>
+            <td><code>real.jstage.thyroid_tumor_2024.cq_recommendations</code></td>
+            <td><code>real.thyroid.cq8_1.metastatic_rhtsh</code></td>
+            <td>CQ8-1</td>
+            <td>candidate_rule_admitted</td>
+            <td>against</td>
+            <td>strong</td>
+            <td>D</td>
+            <td><code>ab01f20ec641</code></td>
+          </tr>
+          <tr>
+            <td><code>real.jstage.sepsis_dic_2025.guideline_article</code></td>
+            <td><code>real.sepsis_dic.diagnosis.criteria_selection</code></td>
+            <td>敗血症に伴うDICの診断方法</td>
+            <td>candidate_rule_rejected</td>
+            <td>for</td>
+            <td>statement</td>
+            <td>not_extracted</td>
+            <td><code>253775fcc77c</code></td>
+          </tr>
+          <tr>
+            <td><code>real.jstage.sepsis_dic_2025.guideline_article</code></td>
+            <td><code>real.sepsis_dic.treatment.at_rtm</code></td>
+            <td>敗血症性DICに対する抗凝固薬</td>
+            <td>candidate_rule_rejected</td>
+            <td>for</td>
+            <td>strong</td>
+            <td>B</td>
+            <td><code>15fbc365ae5a</code></td>
+          </tr>
+          <tr>
+            <td><code>real.jstage.sepsis_dic_2025.guideline_article</code></td>
+            <td><code>real.sepsis_dic.comparison.j_sscg_weak</code></td>
+            <td>JSTH DIC GL 2024 vs J-SSCG2024 comparison</td>
+            <td>candidate_rule_rejected</td>
+            <td>for</td>
+            <td>cross_guideline_strength_difference</td>
+            <td>not_extracted</td>
+            <td><code>fb94cb98ea18</code></td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <details>
+        <summary>Real-source candidate rules, residuals, and artifact paths</summary>
+        <h3>Candidate rules</h3>
+        <div class="table-wrap">
+          <table class="extra-wide">
+            <thead><tr><th>Rule</th><th>Source</th><th>Span</th><th>Direction</th><th>Action</th><th>Strength</th><th>Certainty</th><th>Rule hash</th></tr></thead>
+            <tbody>
+          <tr>
+            <td><code>real.rule.real.jstage.thyroid_tumor_2024.cq_recommendations.1</code></td>
+            <td><code>real.jstage.thyroid_tumor_2024.cq_recommendations</code></td>
+            <td><code>real.thyroid.cq2_1.recommendation</code></td>
+            <td>against</td>
+            <td><code>real.action.ultrasound_thyroid_cancer_screening</code></td>
+            <td>weak</td>
+            <td>moderate</td>
+            <td><code>1e18fb1f1cd7</code></td>
+          </tr>
+          <tr>
+            <td><code>real.rule.real.jstage.thyroid_tumor_2024.cq_recommendations.2</code></td>
+            <td><code>real.jstage.thyroid_tumor_2024.cq_recommendations</code></td>
+            <td><code>real.thyroid.cq3_1.recommendation</code></td>
+            <td>for</td>
+            <td><code>real.action.active_surveillance</code></td>
+            <td>strong</td>
+            <td>moderate</td>
+            <td><code>aad94f95e5a4</code></td>
+          </tr>
+          <tr>
+            <td><code>real.rule.real.jstage.thyroid_tumor_2024.cq_recommendations.3</code></td>
+            <td><code>real.jstage.thyroid_tumor_2024.cq_recommendations</code></td>
+            <td><code>real.thyroid.cq8_1.adjuvant_rhtsh</code></td>
+            <td>for</td>
+            <td><code>real.action.rhTSH_use</code></td>
+            <td>weak</td>
+            <td>low</td>
+            <td><code>2b15770bbae5</code></td>
+          </tr>
+          <tr>
+            <td><code>real.rule.real.jstage.thyroid_tumor_2024.cq_recommendations.4</code></td>
+            <td><code>real.jstage.thyroid_tumor_2024.cq_recommendations</code></td>
+            <td><code>real.thyroid.cq8_1.metastatic_rhtsh</code></td>
+            <td>against</td>
+            <td><code>real.action.rhTSH_use</code></td>
+            <td>strong</td>
+            <td>very_low</td>
+            <td><code>39c99465edfa</code></td>
+          </tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>Rejected residuals</h3>
+        <div class="table-wrap">
+          <table class="extra-wide">
+            <thead><tr><th>Residual</th><th>Source</th><th>Span</th><th>Code</th><th>Outcome</th><th>Field</th><th>Reason</th></tr></thead>
+            <tbody>
+          <tr>
+            <td><code>residual.real.jstage.sepsis_dic_2025.guideline_article.real.sepsis_dic.comparison.j_sscg_weak.semantic_slot_missing.certainty</code></td>
+            <td><code>real.jstage.sepsis_dic_2025.guideline_article</code></td>
+            <td><code>real.sepsis_dic.comparison.j_sscg_weak</code></td>
+            <td>semantic_slot_missing</td>
+            <td>residual</td>
+            <td>certainty</td>
+            <td>Certainty is not mapped to high/moderate/low/very_low for candidate ClinicalStatement rows.</td>
+          </tr>
+          <tr>
+            <td><code>residual.real.jstage.sepsis_dic_2025.guideline_article.real.sepsis_dic.comparison.j_sscg_weak.unsupported_ir_fragment.strength</code></td>
+            <td><code>real.jstage.sepsis_dic_2025.guideline_article</code></td>
+            <td><code>real.sepsis_dic.comparison.j_sscg_weak</code></td>
+            <td>unsupported_ir_fragment</td>
+            <td>unsupported</td>
+            <td>strength</td>
+            <td>The toy route-rule schema only admits strong or weak recommendation strength.</td>
+          </tr>
+          <tr>
+            <td><code>residual.real.jstage.sepsis_dic_2025.guideline_article.real.sepsis_dic.diagnosis.criteria_selection.semantic_slot_missing.certainty</code></td>
+            <td><code>real.jstage.sepsis_dic_2025.guideline_article</code></td>
+            <td><code>real.sepsis_dic.diagnosis.criteria_selection</code></td>
+            <td>semantic_slot_missing</td>
+            <td>residual</td>
+            <td>certainty</td>
+            <td>Certainty is not mapped to high/moderate/low/very_low for candidate ClinicalStatement rows.</td>
+          </tr>
+          <tr>
+            <td><code>residual.real.jstage.sepsis_dic_2025.guideline_article.real.sepsis_dic.diagnosis.criteria_selection.unsupported_ir_fragment.action</code></td>
+            <td><code>real.jstage.sepsis_dic_2025.guideline_article</code></td>
+            <td><code>real.sepsis_dic.diagnosis.criteria_selection</code></td>
+            <td>unsupported_ir_fragment</td>
+            <td>unsupported</td>
+            <td>action</td>
+            <td>The toy route-rule schema admits one normalized action key per candidate rule.</td>
+          </tr>
+          <tr>
+            <td><code>residual.real.jstage.sepsis_dic_2025.guideline_article.real.sepsis_dic.diagnosis.criteria_selection.unsupported_ir_fragment.strength</code></td>
+            <td><code>real.jstage.sepsis_dic_2025.guideline_article</code></td>
+            <td><code>real.sepsis_dic.diagnosis.criteria_selection</code></td>
+            <td>unsupported_ir_fragment</td>
+            <td>unsupported</td>
+            <td>strength</td>
+            <td>The toy route-rule schema only admits strong or weak recommendation strength.</td>
+          </tr>
+          <tr>
+            <td><code>residual.real.jstage.sepsis_dic_2025.guideline_article.real.sepsis_dic.treatment.at_rtm.terminology_ambiguous.action</code></td>
+            <td><code>real.jstage.sepsis_dic_2025.guideline_article</code></td>
+            <td><code>real.sepsis_dic.treatment.at_rtm</code></td>
+            <td>terminology_ambiguous</td>
+            <td>ambiguity</td>
+            <td>action</td>
+            <td>The toy route-rule schema admits one normalized action key per candidate rule.</td>
+          </tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>Candidate artifacts</h3>
+        <div class="table-wrap">
+          <table class="extra-wide">
+            <thead><tr><th>Source</th><th>SourceGraph</th><th>Segments</th><th>Normalization</th><th>Route-rule IR</th></tr></thead>
+            <tbody>
+          <tr>
+            <td><code>real.jstage.thyroid_tumor_2024.cq_recommendations</code></td>
+            <td><code>real_guidelines/artifacts/real.jstage.thyroid_tumor_2024.cq_recommendations/source_graph.json</code></td>
+            <td><code>real_guidelines/artifacts/real.jstage.thyroid_tumor_2024.cq_recommendations/segments.json</code></td>
+            <td><code>real_guidelines/artifacts/real.jstage.thyroid_tumor_2024.cq_recommendations/normalization.json</code></td>
+            <td><code>real_guidelines/artifacts/real.jstage.thyroid_tumor_2024.cq_recommendations/route_rule_ir.json</code></td>
+          </tr>
+          <tr>
+            <td><code>real.jstage.sepsis_dic_2025.guideline_article</code></td>
+            <td><code>real_guidelines/artifacts/real.jstage.sepsis_dic_2025.guideline_article/source_graph.json</code></td>
+            <td><code>real_guidelines/artifacts/real.jstage.sepsis_dic_2025.guideline_article/segments.json</code></td>
+            <td><code>real_guidelines/artifacts/real.jstage.sepsis_dic_2025.guideline_article/normalization.json</code></td>
+            <td><code>real_guidelines/artifacts/real.jstage.sepsis_dic_2025.guideline_article/route_rule_ir.json</code></td>
+          </tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+      <h3>Realism audit</h3>
+      <p>Fixture-scale audit only; this does not add any clinical, patient-care, deployment, or regulatory claim. Summary: data_driven: 8; fixture_authored: 1; hardcoded: 3; prompt_scaffolded: 2.</p>
+      <div class="table-wrap">
+        <table class="extra-wide">
+          <thead><tr><th>Surface</th><th>Stage</th><th>Classification</th><th>Evidence</th><th>Note</th></tr></thead>
+          <tbody>
+          <tr>
+            <td><code>fixture_html_sources</code></td>
+            <td>input</td>
+            <td><span class="class-badge fixture_authored">fixture_authored</span></td>
+            <td>corpus/fixtures/fixture-m1-guideline-a.html, corpus/fixtures/fixture-m1-guideline-b.html, corpus/fixtures/fixture-m1-control.html, corpus/fixtures/fixture-m2-holdout-guideline-d.html</td>
+            <td>Synthetic Japanese HTML fixtures remain authored PoC inputs.</td>
+          </tr>
+          <tr>
+            <td><code>fixture_regions</code></td>
+            <td>extract</td>
+            <td><span class="class-badge data_driven">data_driven</span></td>
+            <td>corpus/fixtures/m1_fixture_semantics.json</td>
+            <td>Region IDs, roles, and exact quoted spans are read from committed fixture semantics JSON.</td>
+          </tr>
+          <tr>
+            <td><code>fixture_groups</code></td>
+            <td>experiment</td>
+            <td><span class="class-badge data_driven">data_driven</span></td>
+            <td>registry/experiments.json</td>
+            <td>M1 fixture group membership is read from the experiment registry.</td>
+          </tr>
+          <tr>
+            <td><code>m2_evaluation_groups</code></td>
+            <td>m2_route_evaluation</td>
+            <td><span class="class-badge data_driven">data_driven</span></td>
+            <td>registry/experiments.json, corpus/gold/m1_expected.json</td>
+            <td>M2 route scoring groups, including holdout mutation roles, are read from the experiment registry and gold artifact.</td>
+          </tr>
+          <tr>
+            <td><code>expected_outcomes</code></td>
+            <td>evaluation</td>
+            <td><span class="class-badge data_driven">data_driven</span></td>
+            <td>corpus/gold/m1_expected.json</td>
+            <td>Expected group outcomes and expected cores are read from the gold artifact.</td>
+          </tr>
+          <tr>
+            <td><code>terminology_bindings</code></td>
+            <td>normalize</td>
+            <td><span class="class-badge data_driven">data_driven</span></td>
+            <td>corpus/fixtures/m1_fixture_semantics.json</td>
+            <td>Terminology binding rows are loaded per fixture instead of constructed from fixture keys.</td>
+          </tr>
+          <tr>
+            <td><code>norm_rule_specs</code></td>
+            <td>normalize</td>
+            <td><span class="class-badge data_driven">data_driven</span></td>
+            <td>corpus/fixtures/m1_fixture_semantics.json</td>
+            <td>NormRule-like direction, action, context, and source-region fields are loaded per fixture.</td>
+          </tr>
+          <tr>
+            <td><code>segment_generation</code></td>
+            <td>segment</td>
+            <td><span class="class-badge data_driven">data_driven</span></td>
+            <td>corpus/fixtures/m1_fixture_semantics.json</td>
+            <td>Segments are generated from loaded region rows and source offsets.</td>
+          </tr>
+          <tr>
+            <td><code>context_overlap_and_smt_encoding</code></td>
+            <td>compile</td>
+            <td><span class="class-badge hardcoded">hardcoded</span></td>
+            <td>tools/build-run.mjs</td>
+            <td>The toy interval/concept overlap logic and SMT-LIB emitter are still one-shot harness code.</td>
+          </tr>
+          <tr>
+            <td><code>symbolic_verifier</code></td>
+            <td>verify</td>
+            <td><span class="class-badge hardcoded">hardcoded</span></td>
+            <td>tools/build-run.mjs</td>
+            <td>The one-shot symbolic verifier simulates the M1 solver result for fixture-scale evidence.</td>
+          </tr>
+          <tr>
+            <td><code>source_cue_layer</code></td>
+            <td>m2_route_input</td>
+            <td><span class="class-badge prompt_scaffolded">prompt_scaffolded</span></td>
+            <td>metrics/source_cues.json</td>
+            <td>Shared cue layer lexical_cue_v1 is deterministic, but exists to scaffold M2 route prompts.</td>
+          </tr>
+          <tr>
+            <td><code>llm_prompt_templates</code></td>
+            <td>m2_route_prompt</td>
+            <td><span class="class-badge prompt_scaffolded">prompt_scaffolded</span></td>
+            <td>prompts/catalog.json, prompts/route.direct_smt/group.m1_conflict/prompt-6b8c048fbe30.txt, prompts/route.direct_smt/group.m1_null/prompt-0493613ce0e2.txt, prompts/route.direct_smt/group.m2_holdout_conflict/prompt-10cf17651f8d.txt, prompts/route.single_ir/group.m1_conflict/prompt-06d871a12aa0.txt, prompts/route.single_ir/group.m1_null/prompt-59defb5161bb.txt, prompts/route.single_ir/group.m2_holdout_conflict/prompt-0f224812ad90.txt</td>
+            <td>Prompt templates are explicit experiment scaffolding and are cataloged byte-for-byte.</td>
+          </tr>
+          <tr>
+            <td><code>real_guideline_intake</code></td>
+            <td>source_intake</td>
+            <td><span class="class-badge data_driven">data_driven</span></td>
+            <td>corpus/real_guidelines/japanese_guidelines.json, corpus/raw/real-guidelines/manifest.json, real_guidelines/artifacts/real.jstage.thyroid_tumor_2024.cq_recommendations/source_graph.json, real_guidelines/artifacts/real.jstage.thyroid_tumor_2024.cq_recommendations/segments.json, real_guidelines/artifacts/real.jstage.thyroid_tumor_2024.cq_recommendations/normalization.json, real_guidelines/artifacts/real.jstage.thyroid_tumor_2024.cq_recommendations/route_rule_ir.json, real_guidelines/artifacts/real.jstage.sepsis_dic_2025.guideline_article/source_graph.json, real_guidelines/artifacts/real.jstage.sepsis_dic_2025.guideline_article/segments.json, real_guidelines/artifacts/real.jstage.sepsis_dic_2025.guideline_article/normalization.json, real_guidelines/artifacts/real.jstage.sepsis_dic_2025.guideline_article/route_rule_ir.json</td>
+            <td>Real guideline source metadata, candidate spans, machine-hint normalization, and candidate route-rule IR are registry-driven and remain outside locked M1/M2 scoring.</td>
+          </tr>
+          <tr>
+            <td><code>report_and_ui_renderer</code></td>
+            <td>report</td>
+            <td><span class="class-badge hardcoded">hardcoded</span></td>
+            <td>tools/build-run.mjs, index.html</td>
+            <td>Report and UI layout are deterministic renderer code over canonical run artifacts.</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <details>
+        <summary>Evidence details: shared cues, route IR, compiled SMT, and checks</summary>
+        <p>M1 compiled group artifacts emit SMT-LIB under <code>groups/&lt;group&gt;/smt/</code>. M2 <code>route.single_ir</code> rows also emit per-route SMT-LIB under <code>route_targets/route.single_ir/</code> after deterministic compilation from <code>route_rule_ir.v0</code>.</p>
+        <h3>Shared source cues</h3>
+        <div class="table-wrap">
+          <table class="extra-wide">
+            <thead><tr><th>Source</th><th>Direction cue</th><th>Age cue</th><th>Action cue</th><th>Sepsis</th><th>Pregnancy</th><th>Renal exception</th><th>Resolved IR fields</th></tr></thead>
+            <tbody>
+          <tr>
+            <td><code>A</code></td>
+            <td>推奨する</td>
+            <td>成人_or_18歳以上</td>
+            <td>present</td>
+            <td>present</td>
+            <td>absent</td>
+            <td>has_exception</td>
+            <td><code>{&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;direction&quot;:&quot;for&quot;,&quot;pregnancy&quot;:&quot;absent&quot;,&quot;renal_exception&quot;:&quot;yes&quot;,&quot;sepsis&quot;:&quot;present&quot;}</code></td>
+          </tr>
+          <tr>
+            <td><code>B</code></td>
+            <td>投与しないこと</td>
+            <td>成人_or_18歳以上</td>
+            <td>present</td>
+            <td>present</td>
+            <td>present</td>
+            <td>no_exception</td>
+            <td><code>{&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;direction&quot;:&quot;contraindicate&quot;,&quot;pregnancy&quot;:&quot;present&quot;,&quot;renal_exception&quot;:&quot;no&quot;,&quot;sepsis&quot;:&quot;present&quot;}</code></td>
+          </tr>
+          <tr>
+            <td><code>C</code></td>
+            <td>禁忌</td>
+            <td>小児_or_18歳未満</td>
+            <td>present</td>
+            <td>present</td>
+            <td>absent</td>
+            <td>no_exception</td>
+            <td><code>{&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;child&quot;,&quot;direction&quot;:&quot;contraindicate&quot;,&quot;pregnancy&quot;:&quot;absent&quot;,&quot;renal_exception&quot;:&quot;no&quot;,&quot;sepsis&quot;:&quot;present&quot;}</code></td>
+          </tr>
+          <tr>
+            <td><code>D</code></td>
+            <td>禁忌</td>
+            <td>成人_or_18歳以上</td>
+            <td>present</td>
+            <td>present</td>
+            <td>present</td>
+            <td>no_exception</td>
+            <td><code>{&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;direction&quot;:&quot;contraindicate&quot;,&quot;pregnancy&quot;:&quot;present&quot;,&quot;renal_exception&quot;:&quot;no&quot;,&quot;sepsis&quot;:&quot;present&quot;}</code></td>
+          </tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>IR bridge checks</h3>
+        <div class="table-wrap">
+          <table class="wide">
+            <thead><tr><th>Group</th><th>Seed</th><th>Same action</th><th>Opposed direction</th><th>Context overlap</th><th>Reasons</th><th>Verdict</th></tr></thead>
+            <tbody><tr>
+            <td><code>group.m1_conflict</code></td>
+            <td>11</td>
+            <td>yes</td>
+            <td>no</td>
+            <td>yes</td>
+            <td>age_intervals_overlap, concepts_compatible</td>
+            <td><code>semantic_no_conflict</code></td>
+          </tr>
+          <tr>
+            <td><code>group.m1_null</code></td>
+            <td>11</td>
+            <td>yes</td>
+            <td>no</td>
+            <td>no</td>
+            <td>age_intervals_disjoint, concepts_compatible</td>
+            <td><code>semantic_no_conflict</code></td>
+          </tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>Compiled route SMT target</h3>
+        <div class="table-wrap">
+          <table class="wide">
+            <thead><tr><th>Query</th><th>File</th><th>Logic</th></tr></thead>
+            <tbody>
+          <tr>
+            <td><code>context_overlap</code></td>
+            <td><code>route_targets/route.single_ir/group.m1_conflict/seed-11/smt/q.overlap.smt2</code></td>
+            <td>QF_LRA</td>
+          </tr>
+          <tr>
+            <td><code>deontic_consistency</code></td>
+            <td><code>route_targets/route.single_ir/group.m1_conflict/seed-11/smt/q.deontic.smt2</code></td>
+            <td>QF_UF</td>
+          </tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>Pair-level call rollup</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Source labels</th><th>Pair calls</th><th>Rows</th></tr></thead>
+            <tbody>
+          <tr>
+            <td><code>A, B</code></td>
+            <td>1</td>
+            <td><code>A, B</code></td>
+          </tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>Deterministic bridge rule rows</h3>
+        <div class="table-wrap">
+          <table class="wide">
+            <thead><tr><th>Rule</th><th>Direction</th><th>Action</th><th>Context</th></tr></thead>
+            <tbody>
+          <tr>
+            <td><code>route.rule.a</code></td>
+            <td>contraindicate</td>
+            <td><code>act.administer:drug.abx_a</code></td>
+            <td><code>{&quot;age_years&quot;:{&quot;ge&quot;:18},&quot;prohibited&quot;:[],&quot;required&quot;:[&quot;cond.pregnancy&quot;]}</code></td>
+          </tr>
+          <tr>
+            <td><code>route.rule.b</code></td>
+            <td>contraindicate</td>
+            <td><code>act.administer:drug.abx_a</code></td>
+            <td><code>{&quot;age_years&quot;:{&quot;ge&quot;:18},&quot;prohibited&quot;:[],&quot;required&quot;:[&quot;cond.pregnancy&quot;]}</code></td>
+          </tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </section>
+  </main>
+</body>
+</html>

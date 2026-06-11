@@ -14,7 +14,7 @@ function sha256Bytes(bytes) {
 async function fetchBytes(url) {
   const response = await fetch(url, {
     headers: {
-      "user-agent": "ckc-manuscript-figures-source-fetcher/1.0 (+https://local.invalid/ckc)"
+      "user-agent": "ckc-ui-poc-source-fetcher/1.0 (+https://local.invalid/ckc-ui)"
     }
   });
   if (!response.ok) {

@@ -26,7 +26,7 @@ const linkedCli = path.join(binDir, "llama-cli");
 async function download(url, destination) {
   if (existsSync(destination)) return;
   console.log(`download ${url}`);
-  const response = await fetch(url, { headers: { "User-Agent": "ckc-manuscript-figures-local-model-setup" } });
+  const response = await fetch(url, { headers: { "User-Agent": "ckc-ui-local-model-setup" } });
   if (!response.ok || !response.body) {
     throw new Error(`download failed ${response.status} ${response.statusText}: ${url}`);
   }
