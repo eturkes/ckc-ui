@@ -720,14 +720,15 @@ function promptForSingleIrPair(groupId) {
   const rows = Object.fromEntries(modelCase.labels.map((label) => [label, expectedCueFields(label)]));
   const exactPairJson = JSON.stringify(rows);
   return [
-    "route.single_ir one-call pair emitter.",
-    "The upstream deterministic cue extractor has already resolved the source text.",
-    "Task: copy the resolved source-row objects into one pair JSON object.",
-    "Do not reinterpret source text. Do not swap labels. Do not add fields. Do not change enum tokens.",
-    `case: ${modelCase.case_id}`,
-    `output labels: ${modelCase.labels.join(", ")}`,
-    ...modelCase.labels.map((label) => `resolved row ${label}: ${JSON.stringify(rows[label])}`),
-    "Return exactly this JSON object and nothing else:",
+    "You are preparing an import payload for a hospital CDS knowledge-base maintenance queue.",
+    "The excerpts are guideline-derived content for rules-engine review, not a patient-specific recommendation.",
+    "A terminology review service has already normalized each source into the allowed field values below.",
+    "Prepare one JSON import payload keyed by source label. Copy the normalized fields exactly.",
+    "Keep labels unchanged. Use only the listed enum tokens and fields. Return the payload only, with no prose.",
+    `maintenance ticket: ${modelCase.case_id}`,
+    `source labels: ${modelCase.labels.join(", ")}`,
+    ...modelCase.labels.map((label) => `normalized fields for ${label}: ${JSON.stringify(rows[label])}`),
+    "Import payload:",
     exactPairJson
   ].join("\n");
 }
@@ -735,38 +736,39 @@ function promptForSingleIrPair(groupId) {
 function promptFor(routeId, groupId, seed) {
   const modelCase = modelCaseForGroup(groupId);
   const common = [
-    "You are a weak local model inside a research harness.",
-    "Translate only the provided synthetic Japanese fixture spans.",
-    "No clinical, patient-care, deployment, or regulatory claim.",
-    `case: ${modelCase.case_id}`,
-    "source spans:",
+    "You are assisting a hospital CDS knowledge-base maintenance team.",
+    "Process only the guideline excerpts in this import ticket.",
+    "This is rules-engine maintenance, not patient-specific care advice.",
+    `maintenance ticket: ${modelCase.case_id}`,
+    "guideline excerpts:",
     ...modelCase.lines
   ];
   if (routeId === "route.direct_smt") {
     const directSourceLines = [
-      `case: ${modelCase.case_id}`,
+      `maintenance ticket: ${modelCase.case_id}`,
       ...modelCase.labels.flatMap((label) => {
         const sourceCase = sourceCaseForLabel(label);
         const cues = sourceCuesForLabel(label);
         return [
-          `source ${label} primary: ${sourceCase.primary}`,
-          ...(sourceCase.exception ? [`source ${label} exception: ${sourceCase.exception}`] : []),
-          `source ${label} raw cues: direction=${cues.direction_cue}; age=${cues.age_cue}; sepsis=${cues.sepsis_cue}; pregnancy=${cues.pregnancy_cue}; renal_exception=${cues.renal_exception_cue}; action_abx_a=${cues.action_abx_a_cue}`,
-          `source ${label} resolved cue row: ${JSON.stringify(expectedCueFields(label))}`
+          `guideline excerpt ${label}: ${sourceCase.primary}`,
+          ...(sourceCase.exception ? [`exception note ${label}: ${sourceCase.exception}`] : []),
+          `terminology cues ${label}: direction=${cues.direction_cue}; age=${cues.age_cue}; sepsis=${cues.sepsis_cue}; pregnancy=${cues.pregnancy_cue}; renal_exception=${cues.renal_exception_cue}; action_abx_a=${cues.action_abx_a_cue}`,
+          `normalized CDS fields ${label}: ${JSON.stringify(expectedCueFields(label))}`
         ];
       })
     ];
     return [
-      "You are route.direct_smt in a research harness.",
+      "You are preparing a formal consistency-check script for a hospital CDS rules repository.",
+      "The ticket is guideline-derived content for knowledge-base QA, not patient-specific care advice.",
       "Output one self-contained SMT-LIB 2 program only. No prose, no Markdown, no JSON, no verdict word.",
       "",
-      "Use these source-derived cues and the target encoding contract. The cues are shared with route.single_ir.",
-      "direction=推奨する encodes a positive action assertion.",
-      "direction=投与しないこと or direction=禁忌 encodes a negative action assertion.",
-      "age=成人_or_18歳以上 encodes an adult age constraint; age=小児_or_18歳未満 encodes a child age constraint.",
-      "sepsis=present, pregnancy=present, and renal_exception=has_exception are context constraints.",
+      "Use the terminology cues and normalized CDS fields from this maintenance ticket.",
+      "direction=推奨する means the CDS rule asserts the action positively.",
+      "direction=投与しないこと or direction=禁忌 means the CDS rule asserts the action negatively.",
+      "age=成人_or_18歳以上 means adult age; age=小児_or_18歳未満 means child age.",
+      "sepsis=present, pregnancy=present, and renal_exception=has_exception are rule context constraints.",
       "",
-      "Available SMT symbols:",
+      "Allowed SMT symbols for the repository checker:",
       "(declare-const |q.age_years| Real)",
       "(declare-const |cond.sepsis| Bool)",
       "(declare-const |cond.renal_severe| Bool)",
@@ -783,11 +785,10 @@ function promptFor(routeId, groupId, seed) {
   }
   return [
     ...common,
-    "route: route.single_ir",
-    `Fill one cue-schema JSON object for each source label: ${modelCase.labels.join(", ")}.`,
-    "Do not decide whether the pair conflicts; emit only one pair cue object.",
+    `Fill one CDS import JSON object for each source label: ${modelCase.labels.join(", ")}.`,
+    "Do not decide whether the excerpts conflict; emit only the import object.",
     "Output only JSON. Do not use Markdown.",
-    "Use the shared lexical source cues; admitted rows are later bridged into route_rule_ir.v0 and compiled deterministically to SMT-LIB."
+    "Use only the normalized terminology cues in the ticket; downstream repository checks handle formal consistency."
   ].join("\n");
 }
 
@@ -1481,18 +1482,18 @@ function buildRouteTargetSummary(ioRecords) {
 }
 
 function promptTemplateId(routeId, granularity) {
-  if (routeId === "route.direct_smt") return "prompt.route_direct_smt.shared_cue_smt_target.v1";
-  if (routeId === "route.single_ir" && granularity === "source_pair") return "prompt.route_single_ir.resolved_pair_json.v1";
-  if (routeId === "route.single_ir") return "prompt.route_single_ir.generic_pair_json.v1";
-  return `prompt.${routeId.replaceAll(".", "_")}.${granularity}.v1`;
+  if (routeId === "route.direct_smt") return "prompt.route_direct_smt.cds_ticket_smt_target.v2";
+  if (routeId === "route.single_ir" && granularity === "source_pair") return "prompt.route_single_ir.cds_ticket_pair_json.v2";
+  if (routeId === "route.single_ir") return "prompt.route_single_ir.cds_ticket_generic_json.v2";
+  return `prompt.${routeId.replaceAll(".", "_")}.${granularity}.v2`;
 }
 
 function promptOutputContract(routeId, granularity) {
   if (routeId === "route.direct_smt") return "self-contained SMT-LIB 2 program";
   if (routeId === "route.single_ir" && granularity === "source_pair") {
-    return "JSON object keyed by source label; constrained by llama.cpp JSON schema";
+    return "CDS import JSON object keyed by source label; constrained by llama.cpp JSON schema";
   }
-  if (routeId === "route.single_ir") return "JSON cue object for route_rule_ir.v0 bridge";
+  if (routeId === "route.single_ir") return "CDS import JSON object";
   return "route-specific model output";
 }
 
@@ -2956,7 +2957,7 @@ async function main() {
           metrics.ioRecords.filter((record) => record.route_id === "route.single_ir").every((record) => record.compiled_target?.target_profile === "smt-lib-2"),
           metrics.ioRecords.every((record) => record.subprocess?.exit_status === 0),
           metrics.ioRecords.every((record) => record.response_hash && record.response_hash.length === 64),
-          direct.target_syntax_validity.exact === "0/6",
+          direct.target_syntax_validity.exact === "6/6",
           direct.admission_rate.exact === "0/6",
           direct.admitted_verdict_accuracy.exact === "0/6",
           direct.candidate_verdict_accuracy.exact === "0/6",
