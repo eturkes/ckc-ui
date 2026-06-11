@@ -75,7 +75,7 @@
     .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: #fff; margin-top: 10px; }
     table { width: 100%; border-collapse: collapse; min-width: 760px; }
     table.wide { min-width: 980px; }
-    table.extra-wide { min-width: 1120px; }
+    table.extra-wide { min-width: 1040px; }
     th, td { border-bottom: 1px solid var(--line); padding: 8px 9px; text-align: left; vertical-align: top; font-size: .81rem; line-height: 1.32; }
     tr:last-child th, tr:last-child td { border-bottom: 0; }
     th { color: var(--muted); background: #f7fafc; font-weight: 800; }
@@ -223,10 +223,10 @@
     <section class="band">
       <div class="wrap">
         <h2>M3 Route Ranking</h2>
-        <p>This view ranks route methods by target accuracy: how often the generated route target reached the expected verdict on the current M3 trial rows. Admission is shown separately because none of these route outputs passed the current admission gate.</p>
+        <p>This view ranks route methods by accuracy: how often the generated route target reached the expected verdict on the current M3 trial rows.</p>
         <div class="rank-strip" aria-label="Route ranking summary">
           <div class="rank-fact">
-            <strong>Highest target accuracy</strong>
+            <strong>Highest accuracy</strong>
             <span><code>route.ir_hop_chain</code> reached the expected target verdict on <code>3/4</code> trial rows.</span>
           </div>
           <div class="rank-fact">
@@ -244,12 +244,9 @@
               <tr>
                 <th>Success rank</th>
                 <th>Route</th>
-                <th>Target accuracy</th>
+                <th>Accuracy</th>
+                <th>Route description</th>
                 <th>Complexity rank</th>
-                <th>Model calls</th>
-                <th>Target syntax</th>
-                <th>Admission gate</th>
-                <th>Evidence classification</th>
               </tr>
             </thead>
             <tbody>
@@ -257,57 +254,42 @@
                 <td class="num">1</td>
                 <td><code>route.ir_hop_chain</code></td>
                 <td><span class="ratio"><span class="track"><span class="fill green" style="width:75%"></span></span><code>3/4</code></span></td>
+                <td>Several small constrained JSON hops, each a narrow semantic step, then deterministic compile to the route target.</td>
                 <td class="num">4</td>
-                <td class="num">12</td>
-                <td><span class="ratio"><span class="track"><span class="fill green" style="width:100%"></span></span><code>4/4</code></span></td>
-                <td><code>0/4</code></td>
-                <td><span class="tag amber">target_syntax_delta_only</span></td>
               </tr>
               <tr>
                 <td class="num">2</td>
                 <td><code>route.single_ir</code></td>
                 <td><span class="ratio"><span class="track"><span class="fill amber" style="width:25%"></span></span><code>1/4</code></span></td>
+                <td>One constrained JSON hop into <code>route_rule_ir.v0</code>, followed by deterministic SMT target compilation.</td>
                 <td class="num">2</td>
-                <td class="num">4</td>
-                <td><span class="ratio"><span class="track"><span class="fill green" style="width:100%"></span></span><code>4/4</code></span></td>
-                <td><code>0/4</code></td>
-                <td><span class="tag amber">target_syntax_delta_only</span></td>
               </tr>
               <tr>
                 <td class="num">2</td>
                 <td><code>route.stacked_ir</code></td>
                 <td><span class="ratio"><span class="track"><span class="fill amber" style="width:25%"></span></span><code>1/4</code></span></td>
+                <td>A compact stack of IR-shaped forms, currently source frame to rule row to route rule IR.</td>
                 <td class="num">3</td>
-                <td class="num">4</td>
-                <td><span class="ratio"><span class="track"><span class="fill green" style="width:100%"></span></span><code>4/4</code></span></td>
-                <td><code>0/4</code></td>
-                <td><span class="tag amber">target_syntax_delta_only</span></td>
               </tr>
               <tr>
                 <td class="num">2</td>
                 <td><code>route.ckc_layered</code></td>
                 <td><span class="ratio"><span class="track"><span class="fill amber" style="width:25%"></span></span><code>1/4</code></span></td>
+                <td>CKC-native stages per source label: segment-like spans, statement-like facts, then rule-like route IR.</td>
                 <td class="num">5</td>
-                <td class="num">24</td>
-                <td><span class="ratio"><span class="track"><span class="fill green" style="width:100%"></span></span><code>4/4</code></span></td>
-                <td><code>0/4</code></td>
-                <td><span class="tag amber">target_syntax_delta_only</span></td>
               </tr>
               <tr>
                 <td class="num">3</td>
                 <td><code>route.direct_smt</code></td>
                 <td><span class="ratio"><span class="track"><span class="fill red" style="width:0%"></span></span><code>0/4</code></span></td>
+                <td>The model writes SMT-LIB directly from the shared cue rows and target encoding contract.</td>
                 <td class="num">1</td>
-                <td class="num">4</td>
-                <td><span class="ratio"><span class="track"><span class="fill red" style="width:25%"></span></span><code>1/4</code></span></td>
-                <td><code>0/4</code></td>
-                <td><span class="tag amber">baseline null</span></td>
               </tr>
             </tbody>
           </table>
         </div>
         <div class="note">
-          <p>Target accuracy is the current <code>candidate_verdict_accuracy</code> metric from <code>score_breakdown.json</code>. It is useful for comparing route-method promise, but the admission gate remains <code>0/4</code> for every route, so this is not an admitted performance claim.</p>
+          <p>Accuracy is the current <code>candidate_verdict_accuracy</code> metric from <code>score_breakdown.json</code>. The current admission gate remains <code>0/4</code> for every route, so this is route-method comparison evidence, not an admitted performance claim.</p>
         </div>
       </div>
     </section>
