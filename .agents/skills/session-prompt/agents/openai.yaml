@@ -1,7 +1,7 @@
 interface:
   display_name: "session-prompt"
-  short_description: "Start or resume a CKC UI work session from a task argument."
-  default_prompt: "$session-prompt <TASK>"
+  short_description: "Start a CKC UI session from a task or advance the project session plan."
+  default_prompt: "$session-prompt [TASK]"
 
 policy:
   allow_implicit_invocation: false
