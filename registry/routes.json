@@ -9,7 +9,7 @@
     },
     {
       "id": "route.single_ir",
-      "shape": "weak local model maps one shared source-derived cue row per source through a grammar-constrained JSON hop into route_rule_ir.v0; deterministic compiler emits SMT-LIB targets before verifier scoring",
+      "shape": "weak local model maps both source-derived cue rows through one grammar-constrained pair JSON hop into route_rule_ir.v0; deterministic compiler emits SMT-LIB targets before verifier scoring",
       "runtime": "project-local llama.cpp subprocess via tools/setup-local-model.mjs",
       "default_model": "Qwen2.5-0.5B-Instruct Q2_K GGUF",
       "live_model": true

@@ -711,21 +711,20 @@ function jsonSchemaForRoute(routeId, groupId, sourceLabel = null) {
   });
 }
 
-function promptForSingleIrSource(label) {
-  const cues = sourceCuesForLabel(label);
-  const resolved = expectedCueFields(label);
+function promptForSingleIrPair(groupId) {
+  const modelCase = modelCaseForGroup(groupId);
+  const rows = Object.fromEntries(modelCase.labels.map((label) => [label, expectedCueFields(label)]));
+  const exactPairJson = JSON.stringify(rows);
   return [
-    "Task: copy one resolved source-cue row into one CKC cue-schema JSON object.",
-    "Output only JSON for this one source label. Do not decide whether any source pair conflicts.",
-    `source label: ${label}`,
-    `primary quote: ${cues.primary_quote}`,
-    ...(cues.exception_quote ? [`exception quote: ${cues.exception_quote}`] : []),
-    `raw cues: direction=${cues.direction_cue}; age=${cues.age_cue}; action_abx_a=${cues.action_abx_a_cue}; sepsis=${cues.sepsis_cue}; pregnancy=${cues.pregnancy_cue}; renal_exception=${cues.renal_exception_cue}`,
-    "resolution rules:",
-    ...Object.entries(cueFieldSpecs).map(([field, spec]) => `${field}: ${spec.mapping}`),
-    `resolved row: ${JSON.stringify(resolved)}`,
-    `JSON must be exactly this object: ${JSON.stringify(resolved)}.`,
-    "JSON:"
+    "route.single_ir one-call pair emitter.",
+    "The upstream deterministic cue extractor has already resolved the source text.",
+    "Task: copy the resolved source-row objects into one pair JSON object.",
+    "Do not reinterpret source text. Do not swap labels. Do not add fields. Do not change enum tokens.",
+    `case: ${modelCase.case_id}`,
+    `output labels: ${modelCase.labels.join(", ")}`,
+    ...modelCase.labels.map((label) => `resolved row ${label}: ${JSON.stringify(rows[label])}`),
+    "Return exactly this JSON object and nothing else:",
+    exactPairJson
   ].join("\n");
 }
 
@@ -782,7 +781,7 @@ function promptFor(routeId, groupId, seed) {
     ...common,
     "route: route.single_ir",
     `Fill one cue-schema JSON object for each source label: ${modelCase.labels.join(", ")}.`,
-    "Do not decide whether the pair conflicts; emit only one source-row cue object.",
+    "Do not decide whether the pair conflicts; emit only one pair cue object.",
     "Output only JSON. Do not use Markdown.",
     "Use the shared lexical source cues; admitted rows are later bridged into route_rule_ir.v0 and compiled deterministically to SMT-LIB."
   ].join("\n");
@@ -802,7 +801,7 @@ function requireLiveModelReady() {
 function llamaArgs(prompt, seed, routeId, groupId, sourceLabel = null) {
   const schema = jsonSchemaForRoute(routeId, groupId, sourceLabel);
   const routeArgs = routeId === "route.single_ir"
-    ? ["-n", "140", "--ctx-size", "1536", "--temp", "0", "--top-k", "1"]
+    ? ["-n", "220", "--ctx-size", "2048", "--temp", "0", "--top-k", "1"]
     : ["-n", "160", "--ctx-size", "2048", "--temp", "0", "--top-k", "1"];
   return [
     "-m", modelPath,
@@ -1225,8 +1224,8 @@ function extractSmtCandidateText(output) {
   return cleaned;
 }
 
-function runLiveRoute(routeId, groupId, seed, expected, sourceCache) {
-  if (routeId === "route.single_ir") return runLiveSingleIrRoute(groupId, seed, expected, sourceCache);
+function runLiveRoute(routeId, groupId, seed, expected) {
+  if (routeId === "route.single_ir") return runLiveSingleIrRoute(groupId, seed, expected);
   const prompt = promptFor(routeId, groupId, seed);
   const subprocess = runLlama(prompt, seed, routeId, groupId);
   const rawOutput = cleanModelText(subprocess.stdout, prompt);
@@ -1251,11 +1250,11 @@ function runLiveRoute(routeId, groupId, seed, expected, sourceCache) {
   };
 }
 
-function runLiveSingleIrSource(label, seed, groupId) {
-  const cueInputs = sourceCuesForLabel(label);
+function runLiveSingleIrRoute(groupId, seed, expected) {
+  const labels = modelCaseForGroup(groupId).labels;
   const processDiagnostics = [];
-  const prompt = promptForSingleIrSource(label);
-  const subprocess = runLlama(prompt, seed, "route.single_ir", groupId, label);
+  const prompt = promptForSingleIrPair(groupId);
+  const subprocess = runLlama(prompt, seed, "route.single_ir", groupId);
   const rawOutput = cleanModelText(subprocess.stdout, prompt);
   const extracted = extractJsonObject(rawOutput);
   const candidate = extracted?.value && typeof extracted.value === "object" && !Array.isArray(extracted.value)
@@ -1263,75 +1262,36 @@ function runLiveSingleIrSource(label, seed, groupId) {
     : {};
   if (!extracted?.value) processDiagnostics.push("ai_schema_violation");
   if (subprocess.exit_status !== 0 || subprocess.signal || subprocess.error) processDiagnostics.push("process_crash");
-  const sourceRowCall = {
-    granularity: "source_row",
+  const candidateText = JSON.stringify(stable(candidate), null, 2);
+  const classified = classifySingleIrCandidate({ value: candidate, text: candidateText }, groupId, expected, seed);
+  const routeCall = {
+    granularity: "source_pair",
+    labels,
+    cue_inputs: Object.fromEntries(labels.map((label) => [label, sourceCuesForLabel(label)])),
     prompt,
     response: extracted?.text ?? rawOutput,
     parsed_response: extracted?.value ?? null,
     response_hash: sha256(extracted?.text ?? rawOutput),
     subprocess
   };
-  const response = JSON.stringify(stable(candidate), null, 2);
-  return {
-    label,
-    cue_inputs: cueInputs,
-    response,
-    parsed_response: candidate,
-    response_hash: sha256(response),
-    call_granularity: "source_row",
-    model_calls: [sourceRowCall],
-    field_calls: [sourceRowCall],
-    diagnostics: [...new Set(processDiagnostics)],
-    live_call_count: 1
-  };
-}
-
-function runLiveSingleIrRoute(groupId, seed, expected, sourceCache) {
-  const labels = modelCaseForGroup(groupId).labels;
-  const candidate = {};
-  const sourceCalls = [];
-  const processDiagnostics = [];
-  let liveCallCount = 0;
-  for (const label of labels) {
-    const cacheKey = `${seed}:${label}`;
-    let sourceCall = sourceCache.get(cacheKey);
-    if (!sourceCall) {
-      sourceCall = runLiveSingleIrSource(label, seed, groupId);
-      sourceCache.set(cacheKey, sourceCall);
-      liveCallCount += sourceCall.live_call_count;
-    }
-    candidate[label] = sourceCall.parsed_response;
-    processDiagnostics.push(...sourceCall.diagnostics);
-    sourceCalls.push(sourceCall);
-  }
-  const candidateText = JSON.stringify(stable(candidate), null, 2);
-  const classified = classifySingleIrCandidate({ value: candidate, text: candidateText }, groupId, expected, seed);
-  const combinedPrompt = sourceCalls
-    .map((call) => `# source ${call.label}\n${JSON.stringify(call.cue_inputs, null, 2)}`)
-    .join("\n\n");
-  const sourceRowSubprocesses = sourceCalls.flatMap((call) => (call.model_calls ?? call.field_calls ?? []).map((modelCall) => ({
-    label: call.label,
-    granularity: modelCall.granularity ?? "source_row",
-    subprocess: modelCall.subprocess
-  })));
   const aggregateSubprocess = {
-    exit_status: sourceRowSubprocesses.every((call) => call.subprocess.exit_status === 0) ? 0 : 1,
-    signal: sourceRowSubprocesses.find((call) => call.subprocess.signal)?.subprocess.signal ?? null,
-    error: sourceRowSubprocesses.find((call) => call.subprocess.error)?.subprocess.error ?? null,
-    timed_out: sourceRowSubprocesses.some((call) => call.subprocess.timed_out),
+    exit_status: subprocess.exit_status,
+    signal: subprocess.signal,
+    error: subprocess.error,
+    timed_out: subprocess.timed_out,
     command: {
       executable: path.relative(root, llamaCliPath),
-      args: ["<source-local-cue-row-json-calls>"]
+      args: ["<source-pair-json-call>"]
     },
-    calls: sourceRowSubprocesses.map((call) => ({
-      label: call.label,
-      granularity: call.granularity,
-      command: call.subprocess.command,
-      exit_status: call.subprocess.exit_status,
-      signal: call.subprocess.signal,
-      error: call.subprocess.error,
-      timed_out: call.subprocess.timed_out
-    }))
+    calls: [{
+      labels,
+      granularity: routeCall.granularity,
+      command: subprocess.command,
+      exit_status: subprocess.exit_status,
+      signal: subprocess.signal,
+      error: subprocess.error,
+      timed_out: subprocess.timed_out
+    }]
   };
   return {
     route_id: "route.single_ir",
@@ -1343,13 +1303,14 @@ function runLiveSingleIrRoute(groupId, seed, expected, sourceCache) {
     admitted: classified.admitted && processDiagnostics.every((code) => code !== "process_crash"),
     verdict: processDiagnostics.includes("process_crash") ? "solver_execution_failure" : classified.verdict,
     diagnostics: [...new Set([...classified.diagnostics, ...processDiagnostics])],
-    prompt: combinedPrompt,
+    prompt,
     response: classified.candidate_text,
     parsed_response: classified.parsed ?? null,
     compiled_target: classified.compiled_target ?? null,
     subprocess: aggregateSubprocess,
-    source_calls: sourceCalls,
-    live_call_count: liveCallCount
+    route_call: routeCall,
+    source_calls: null,
+    live_call_count: 1
   };
 }
 
@@ -1358,13 +1319,12 @@ function scoreRows() {
   const seeds = [11, 22, 33];
   const rawRows = [];
   const ioRecords = [];
-  const singleIrSourceCache = new Map();
   let liveCalls = 0;
   for (const routeId of routes) {
     for (const seed of seeds) {
       for (const group of groups) {
         const simulated = liveModel
-          ? runLiveRoute(routeId, group.id, seed, group.expectedOutcome, singleIrSourceCache)
+          ? runLiveRoute(routeId, group.id, seed, group.expectedOutcome)
           : simulateRoute(routeId, group.id, seed);
         if (liveModel) liveCalls += simulated.live_call_count ?? 1;
         const expected = group.expectedOutcome;
@@ -1394,6 +1354,7 @@ function scoreRows() {
           response: simulated.response,
           parsed_response: simulated.parsed_response ?? null,
           compiled_target: simulated.compiled_target ?? null,
+          route_call: simulated.route_call ?? null,
           source_calls: simulated.source_calls ?? null,
           response_hash: sha256(simulated.response),
           subprocess: simulated.subprocess ?? null,
@@ -1448,7 +1409,7 @@ function buildSourceCueLayer() {
     artifact_kind: "SourceCueLayer",
     extractor_id: "lexical_cue_v1",
     scope: "shared_route_input",
-    fairness_note: "Both M2 routes receive the same deterministic source-derived raw cues and resolved cue rows; route.direct_smt composes SMT-LIB directly, while route.single_ir copies one resolved source-row cue object per source through a grammar-constrained JSON hop into route_rule_ir.v0, then deterministically compiles that IR to SMT-LIB before verifier scoring.",
+    fairness_note: "Both M2 routes receive the same deterministic source-derived raw cues and resolved cue rows; route.direct_smt composes SMT-LIB directly, while route.single_ir copies both resolved source-row cue objects through one grammar-constrained pair JSON hop into route_rule_ir.v0, then deterministically compiles that IR to SMT-LIB before verifier scoring.",
     cues: Object.fromEntries(labels.map((label) => [label, {
       ...sourceCuesForLabel(label),
       resolved_fields: expectedCueFields(label)
@@ -1612,7 +1573,7 @@ ${realGuidelineRows}
 
 ## M2 lift table
 
-Shared route input: \`${report.source_cue_layer.extractor_id}\` / cue hash \`${report.source_cue_layer.cue_hash}\`. Both routes finish at SMT-LIB: direct SMT asks the model for target text, while single IR copies one source-row cue object per source through a grammar-constrained JSON hop into \`route_rule_ir.v0\`, then compiles that IR deterministically to SMT-LIB before verifier scoring.
+Shared route input: \`${report.source_cue_layer.extractor_id}\` / cue hash \`${report.source_cue_layer.cue_hash}\`. Both routes finish at SMT-LIB: direct SMT asks the model for target text, while single IR copies both source-row cue objects through one grammar-constrained pair JSON hop into \`route_rule_ir.v0\`, then compiles that IR deterministically to SMT-LIB before verifier scoring.
 
 | Metric | direct_smt | single_ir | delta |
 | --- | ---: | ---: | ---: |
@@ -1689,7 +1650,7 @@ ${realGuidelineRows}
 
 ## M2 lift table
 
-shared route input: \`${report.source_cue_layer.extractor_id}\` / cue hash \`${report.source_cue_layer.cue_hash}\`。両 route は SMT-LIB を final target とする。direct SMT は model が target text を直接構成し、single IR は source ごとに source-row cue object を grammar-constrained JSON hop で \`route_rule_ir.v0\` に写してから deterministic compiler で SMT-LIB に変換し、verifier で score する。
+shared route input: \`${report.source_cue_layer.extractor_id}\` / cue hash \`${report.source_cue_layer.cue_hash}\`。両 route は SMT-LIB を final target とする。direct SMT は model が target text を直接構成し、single IR は両 source-row cue object を 1 回の grammar-constrained pair JSON hop で \`route_rule_ir.v0\` に写してから deterministic compiler で SMT-LIB に変換し、verifier で score する。
 
 | metric | direct_smt | single_ir | delta |
 | --- | ---: | ---: | ---: |
@@ -1852,8 +1813,7 @@ function renderBasicUi(data) {
   const irConflictBridge = irConflictExample?.parsed_response?.deterministic_bridge ?? null;
   const irConflictCandidate = irConflictExample?.parsed_response?.candidate ?? null;
   const irConflictTarget = irConflictExample?.compiled_target ?? null;
-  const irConflictSourceRowCallCount = (irConflictExample?.source_calls ?? [])
-    .reduce((count, call) => count + ((call.model_calls ?? call.field_calls ?? []).length), 0);
+  const irConflictPairCallCount = irConflictExample?.route_call ? 1 : 0;
   const irTraceLabels = modelCaseForGroup("group.m1_conflict").labels;
   const traceSourceText = irTraceLabels.map(sourceTraceText).join("\n\n");
   const traceCueText = irTraceLabels
@@ -1887,7 +1847,7 @@ function renderBasicUi(data) {
     },
     {
       label: "3 Model JSON",
-      transform: `${irConflictSourceRowCallCount} constrained source-row calls`,
+      transform: `${irConflictPairCallCount} constrained pair call`,
       actor: "LLM",
       actorKind: "llm",
       actorDetail: report.model_identity,
@@ -1925,7 +1885,7 @@ function renderBasicUi(data) {
   const llmUseRows = [
     ["Source spans", "no", "committed fixture/source text"],
     ["Lexical cue extraction", "no", "deterministic lexical_cue_v1"],
-    ["route.single_ir source-row emission", "yes", `${irConflictSourceRowCallCount} constrained calls to ${report.model_identity}`],
+    ["route.single_ir pair emission", "yes", `${irConflictPairCallCount} constrained call to ${report.model_identity}`],
     ["route_rule_ir.v0 bridge", "no", "deterministic JSON-to-rule transform"],
     ["SMT-LIB emission and verifier scoring", "no", "deterministic compiler/verifier"],
     ["route.direct_smt baseline", "yes", "LLM emits target SMT-LIB directly for comparison"]
@@ -1946,14 +1906,14 @@ function renderBasicUi(data) {
             <td><code>${escapeHtml(shortDigest(file.sha256))}</code></td>
           </tr>`).join("");
   const irFieldSummaries = ["A", "B"].map((label) => irFieldSummary(label, irConflictCandidate?.[label]));
-  const irConflictSourceRowCalls = irConflictSourceRowCallCount;
-  const irCallRows = (irConflictExample?.source_calls ?? []).map((call) => `
+  const irConflictPairCalls = irConflictPairCallCount;
+  const irPairCallRows = irConflictExample?.route_call ? `
           <tr>
-            <td><code>${escapeHtml(call.label)}</code></td>
-            <td>${escapeHtml((call.model_calls ?? call.field_calls ?? []).length)}</td>
-            <td><code>${escapeHtml(Object.keys(call.parsed_response ?? {}).join(", ") || "none")}</code></td>
-            <td><code>${escapeHtml(call.response_hash)}</code></td>
-          </tr>`).join("");
+            <td><code>${escapeHtml(irConflictExample.route_call.labels.join(", "))}</code></td>
+            <td>${escapeHtml(irConflictPairCalls)}</td>
+            <td><code>${escapeHtml(Object.keys(irConflictExample.route_call.parsed_response ?? {}).join(", ") || "none")}</code></td>
+            <td><code>${escapeHtml(irConflictExample.route_call.response_hash)}</code></td>
+          </tr>` : "";
   const bridgeRows = [irConflictExample, irNullExample].filter(Boolean).map((record) => {
     const bridge = record.parsed_response?.deterministic_bridge;
     const overlap = bridge?.overlap;
@@ -1977,7 +1937,7 @@ function renderBasicUi(data) {
           </tr>`).join("");
   const routeBurdenRows = [
     ["Model input", "same source cues", "same source cues"],
-    ["Model output", "SMT-LIB text", "bounded source-row JSON object"],
+    ["Model output", "SMT-LIB text", "bounded pair JSON object"],
     ["End of route in this harness", "candidate SMT-LIB admission check", "route_rule_ir.v0 -> deterministic SMT-LIB compile -> verifier check"],
     ["Per-route SMT artifact", "model output itself", irConflictTarget?.smt_files?.[0]?.file ?? "route_targets/route.single_ir/..."],
     ["Spec target path", "direct formal target", "IR deterministically compiles to SMT-LIB"],
@@ -2037,20 +1997,16 @@ function renderBasicUi(data) {
         </details>`;
   }).join("").trimStart();
   const ioBlocks = data.model_io.map((record) => {
-    const sourceCalls = record.source_calls
+    const routeCall = record.route_call
       ? [
-          "          <h3>Source-local calls</h3>",
-          ...record.source_calls.map((call) => `          <pre>${escapePre(JSON.stringify({
-            label: call.label,
-            cue_inputs: call.cue_inputs,
-            response: call.response,
-            call_granularity: call.call_granularity ?? "source_row",
-            model_calls: (call.model_calls ?? call.field_calls ?? []).map((modelCall) => ({
-              granularity: modelCall.granularity ?? "source_row",
-              prompt: modelCall.prompt,
-              response: modelCall.response
-            }))
-          }, null, 2))}</pre>`)
+          "          <h3>Pair-level call</h3>",
+          `          <pre>${escapePre(JSON.stringify({
+            labels: record.route_call.labels,
+            cue_inputs: record.route_call.cue_inputs,
+            response: record.route_call.response,
+            call_granularity: record.route_call.granularity,
+            prompt: record.route_call.prompt
+          }, null, 2))}</pre>`
         ].join("\n")
       : "";
     return [
@@ -2058,7 +2014,7 @@ function renderBasicUi(data) {
       `          <summary><code>${escapeHtml(record.route_id)}</code> / <code>${escapeHtml(record.group_id)}</code> / seed ${escapeHtml(record.seed)} / ${record.row.admitted ? "admitted" : "not admitted"}</summary>`,
       "          <h3>Prompt</h3>",
       `          <pre>${escapePre(record.prompt)}</pre>`,
-      sourceCalls,
+      routeCall,
       "          <h3>Response</h3>",
       `          <pre>${escapePre(record.response)}</pre>`,
       record.compiled_target ? "          <h3>Compiled SMT target</h3>" : "",
@@ -2209,7 +2165,7 @@ function renderBasicUi(data) {
       <h2>How IR improves this pipeline</h2>
       <div class="takeaway">
         <strong>Short version</strong>
-        <p>Both M2 routes now finish at SMT-LIB. Direct asks the model to write SMT-LIB; IR asks the model for one bounded source-row JSON object per source, bridges those rows into <code>route_rule_ir.v0</code>, then compiles that IR deterministically to SMT-LIB.</p>
+        <p>Both M2 routes now finish at SMT-LIB. Direct asks the model to write SMT-LIB; IR asks the model for one bounded pair JSON object, bridges those rows into <code>route_rule_ir.v0</code>, then compiles that IR deterministically to SMT-LIB.</p>
       </div>
       <p>Both routes use <code>${escapeHtml(data.source_cue_layer.extractor_id)}</code> (cue hash <code>${escapeHtml(shortDigest(report.source_cue_layer.cue_hash))}</code>). The current lift measurement is about moving formal-target burden away from the weak model while keeping the final target comparable.</p>
       <div class="flow">
@@ -2223,7 +2179,7 @@ function renderBasicUi(data) {
         </div>
         <div class="flow-step ok">
           <strong>3. IR route</strong>
-          <span><code>route.single_ir</code> asks for source-row JSON objects; this harness emits a per-row SMT-LIB target from the admitted route IR.</span>
+          <span><code>route.single_ir</code> asks for one pair JSON object; this harness emits a per-row SMT-LIB target from the admitted route IR.</span>
         </div>
       </div>
       <h3>Text to SMT trace</h3>
@@ -2264,7 +2220,7 @@ ${transformationStepsHtml}
           <span class="status ok">admitted in representative conflict row</span>
           <dl>
             <dt>group</dt><dd><code>${escapeHtml(irConflictExample?.group_id ?? "missing")}</code> / seed ${escapeHtml(irConflictExample?.seed ?? "missing")}</dd>
-            <dt>source-row calls</dt><dd>${escapeHtml(irConflictSourceRowCalls)} source-local row-schema calls</dd>
+            <dt>pair calls</dt><dd>${escapeHtml(irConflictPairCalls)} pair-schema call</dd>
             <dt>model syntax</dt><dd>${escapeHtml(yesNo(irConflictExample?.row?.model_output_syntax_valid))}</dd>
             <dt>target syntax</dt><dd>${escapeHtml(yesNo(irConflictExample?.row?.target_syntax_valid))}</dd>
             <dt>admitted</dt><dd>${escapeHtml(yesNo(irConflictExample?.row?.admitted))}</dd>
@@ -2310,11 +2266,11 @@ ${transformationStepsHtml}
             </tbody>
           </table>
         </div>
-        <h3>Source-local call rollup</h3>
+        <h3>Pair-level call rollup</h3>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Source</th><th>Source-row calls</th><th>Fields</th><th>Response hash</th></tr></thead>
-            <tbody>${irCallRows}
+            <thead><tr><th>Source labels</th><th>Pair calls</th><th>Rows</th><th>Response hash</th></tr></thead>
+            <tbody>${irPairCallRows}
             </tbody>
           </table>
         </div>
@@ -2738,7 +2694,7 @@ async function main() {
       ? [
           report.model_mode === "live_local_llama_cpp",
           report.live_model_calls === metrics.liveCalls,
-          report.live_model_calls === 15,
+          report.live_model_calls === 12,
           report.model_identity.startsWith("Qwen2.5-0.5B-Instruct-Q2_K:"),
           report.source_cue_layer.extractor_id === "lexical_cue_v1",
           report.route_target_summary.compiled_row_count === 6,

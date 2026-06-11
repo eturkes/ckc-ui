@@ -107,7 +107,7 @@
       <div class="chips">
         <span class="chip ok">run m2-one-shot</span>
         <span class="chip ok">live_local_llama_cpp</span>
-        <span class="chip warn">live model calls: 15</span>
+        <span class="chip warn">live model calls: 12</span>
         <span class="chip">Qwen2.5-0.5B-Instruct-Q2_K:9ee36184e616dfc7</span>
       </div>
     </header>
@@ -128,9 +128,9 @@
       <h2>How IR improves this pipeline</h2>
       <div class="takeaway">
         <strong>Short version</strong>
-        <p>Both M2 routes now finish at SMT-LIB. Direct asks the model to write SMT-LIB; IR asks the model for one bounded source-row JSON object per source, bridges those rows into <code>route_rule_ir.v0</code>, then compiles that IR deterministically to SMT-LIB.</p>
+        <p>Both M2 routes now finish at SMT-LIB. Direct asks the model to write SMT-LIB; IR asks the model for one bounded pair JSON object, bridges those rows into <code>route_rule_ir.v0</code>, then compiles that IR deterministically to SMT-LIB.</p>
       </div>
-      <p>Both routes use <code>lexical_cue_v1</code> (cue hash <code>860c6eb5b790fdf8...1baea5</code>). The current lift measurement is about moving formal-target burden away from the weak model while keeping the final target comparable.</p>
+      <p>Both routes use <code>lexical_cue_v1</code> (cue hash <code>92c20ba92a353c0e...5ecb68</code>). The current lift measurement is about moving formal-target burden away from the weak model while keeping the final target comparable.</p>
       <div class="flow">
         <div class="flow-step">
           <strong>1. Same input</strong>
@@ -142,7 +142,7 @@
         </div>
         <div class="flow-step ok">
           <strong>3. IR route</strong>
-          <span><code>route.single_ir</code> asks for source-row JSON objects; this harness emits a per-row SMT-LIB target from the admitted route IR.</span>
+          <span><code>route.single_ir</code> asks for one pair JSON object; this harness emits a per-row SMT-LIB target from the admitted route IR.</span>
         </div>
       </div>
       <h3>Text to SMT trace</h3>
@@ -196,7 +196,7 @@ resolved={&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adu
               <strong>3 Model JSON</strong>
               <span class="use-badge llm">LLM</span>
             </div>
-            <span>2 constrained source-row calls</span>
+            <span>1 constrained pair call</span>
             <small>Qwen2.5-0.5B-Instruct-Q2_K:9ee36184e616dfc7</small>
           </div>
           <pre>{
@@ -292,9 +292,9 @@ sha256=4080509bae7b3482...8e1823
             <td>deterministic lexical_cue_v1</td>
           </tr>
           <tr>
-            <td>route.single_ir source-row emission</td>
+            <td>route.single_ir pair emission</td>
             <td><span class="use-badge llm">LLM</span></td>
-            <td>2 constrained calls to Qwen2.5-0.5B-Instruct-Q2_K:9ee36184e616dfc7</td>
+            <td>1 constrained call to Qwen2.5-0.5B-Instruct-Q2_K:9ee36184e616dfc7</td>
           </tr>
           <tr>
             <td>route_rule_ir.v0 bridge</td>
@@ -327,7 +327,7 @@ sha256=4080509bae7b3482...8e1823
           <tr>
             <th>Model output</th>
             <td>SMT-LIB text</td>
-            <td>bounded source-row JSON object</td>
+            <td>bounded pair JSON object</td>
           </tr>
           <tr>
             <th>End of route in this harness</th>
@@ -375,7 +375,7 @@ assert (not (contraindicated))  # 禁忌</pre>
           <span class="status ok">admitted in representative conflict row</span>
           <dl>
             <dt>group</dt><dd><code>group.m1_conflict</code> / seed 11</dd>
-            <dt>source-row calls</dt><dd>2 source-local row-schema calls</dd>
+            <dt>pair calls</dt><dd>1 pair-schema call</dd>
             <dt>model syntax</dt><dd>yes</dd>
             <dt>target syntax</dt><dd>yes</dd>
             <dt>admitted</dt><dd>yes</dd>
@@ -505,22 +505,16 @@ assert (not (contraindicated))  # 禁忌</pre>
             </tbody>
           </table>
         </div>
-        <h3>Source-local call rollup</h3>
+        <h3>Pair-level call rollup</h3>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Source</th><th>Source-row calls</th><th>Fields</th><th>Response hash</th></tr></thead>
+            <thead><tr><th>Source labels</th><th>Pair calls</th><th>Rows</th><th>Response hash</th></tr></thead>
             <tbody>
           <tr>
-            <td><code>A</code></td>
+            <td><code>A, B</code></td>
             <td>1</td>
-            <td><code>action_abx_a, age, direction, pregnancy, renal_exception, sepsis</code></td>
-            <td><code>0b1bc2fedf06075f4bb7d9392cfec3935c8b6a756a8e1c647f7479c9c12d5aa5</code></td>
-          </tr>
-          <tr>
-            <td><code>B</code></td>
-            <td>1</td>
-            <td><code>action_abx_a, age, direction, pregnancy, renal_exception, sepsis</code></td>
-            <td><code>a75b9fabea4bf89acc134c2ca242509e15e4a2b9b623969f6c2ea35b3bb5418a</code></td>
+            <td><code>A, B</code></td>
+            <td><code>cf6d1dd354f9c722c08d0b99ddf653acd42133a811d021007d83c1c6d3d671ad</code></td>
           </tr>
             </tbody>
           </table>
@@ -1198,81 +1192,51 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
         </details>        <details>
           <summary><code>route.single_ir</code> / <code>group.m1_conflict</code> / seed 11 / admitted</summary>
           <h3>Prompt</h3>
-          <pre># source A
-{
-  &quot;source_label&quot;: &quot;A&quot;,
-  &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
-  &quot;primary_quote&quot;: &quot;成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。&quot;,
-  &quot;exception_quote&quot;: &quot;ただし、重度腎機能障害のある患者を除く。&quot;,
-  &quot;direction_cue&quot;: &quot;推奨する&quot;,
-  &quot;age_cue&quot;: &quot;成人_or_18歳以上&quot;,
-  &quot;sepsis_cue&quot;: &quot;present&quot;,
-  &quot;pregnancy_cue&quot;: &quot;absent&quot;,
-  &quot;renal_exception_cue&quot;: &quot;has_exception&quot;,
-  &quot;action_abx_a_cue&quot;: &quot;present&quot;
-}
-
-# source B
-{
-  &quot;source_label&quot;: &quot;B&quot;,
-  &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
-  &quot;primary_quote&quot;: &quot;成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。&quot;,
-  &quot;exception_quote&quot;: null,
-  &quot;direction_cue&quot;: &quot;投与しないこと&quot;,
-  &quot;age_cue&quot;: &quot;成人_or_18歳以上&quot;,
-  &quot;sepsis_cue&quot;: &quot;present&quot;,
-  &quot;pregnancy_cue&quot;: &quot;present&quot;,
-  &quot;renal_exception_cue&quot;: &quot;no_exception&quot;,
-  &quot;action_abx_a_cue&quot;: &quot;present&quot;
-}</pre>
-          <h3>Source-local calls</h3>
+          <pre>route.single_ir one-call pair emitter.
+The upstream deterministic cue extractor has already resolved the source text.
+Task: copy the resolved source-row objects into one pair JSON object.
+Do not reinterpret source text. Do not swap labels. Do not add fields. Do not change enum tokens.
+case: pair.ab
+output labels: A, B
+resolved row A: {&quot;direction&quot;:&quot;for&quot;,&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;sepsis&quot;:&quot;present&quot;,&quot;pregnancy&quot;:&quot;absent&quot;,&quot;renal_exception&quot;:&quot;yes&quot;}
+resolved row B: {&quot;direction&quot;:&quot;contraindicate&quot;,&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;sepsis&quot;:&quot;present&quot;,&quot;pregnancy&quot;:&quot;present&quot;,&quot;renal_exception&quot;:&quot;no&quot;}
+Return exactly this JSON object and nothing else:
+{&quot;A&quot;:{&quot;direction&quot;:&quot;for&quot;,&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;sepsis&quot;:&quot;present&quot;,&quot;pregnancy&quot;:&quot;absent&quot;,&quot;renal_exception&quot;:&quot;yes&quot;},&quot;B&quot;:{&quot;direction&quot;:&quot;contraindicate&quot;,&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;sepsis&quot;:&quot;present&quot;,&quot;pregnancy&quot;:&quot;present&quot;,&quot;renal_exception&quot;:&quot;no&quot;}}</pre>
+          <h3>Pair-level call</h3>
           <pre>{
-  &quot;label&quot;: &quot;A&quot;,
+  &quot;labels&quot;: [
+    &quot;A&quot;,
+    &quot;B&quot;
+  ],
   &quot;cue_inputs&quot;: {
-    &quot;action_abx_a_cue&quot;: &quot;present&quot;,
-    &quot;age_cue&quot;: &quot;成人_or_18歳以上&quot;,
-    &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
-    &quot;direction_cue&quot;: &quot;推奨する&quot;,
-    &quot;exception_quote&quot;: &quot;ただし、重度腎機能障害のある患者を除く。&quot;,
-    &quot;pregnancy_cue&quot;: &quot;absent&quot;,
-    &quot;primary_quote&quot;: &quot;成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。&quot;,
-    &quot;renal_exception_cue&quot;: &quot;has_exception&quot;,
-    &quot;sepsis_cue&quot;: &quot;present&quot;,
-    &quot;source_label&quot;: &quot;A&quot;
-  },
-  &quot;response&quot;: &quot;{\n  \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;direction\&quot;: \&quot;for\&quot;,\n  \&quot;pregnancy\&quot;: \&quot;absent\&quot;,\n  \&quot;renal_exception\&quot;: \&quot;yes\&quot;,\n  \&quot;sepsis\&quot;: \&quot;present\&quot;\n}&quot;,
-  &quot;call_granularity&quot;: &quot;source_row&quot;,
-  &quot;model_calls&quot;: [
-    {
-      &quot;granularity&quot;: &quot;source_row&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue row into one CKC cue-schema JSON object.\nOutput only JSON for this one source label. Do not decide whether any source pair conflicts.\nsource label: A\nprimary quote: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nexception quote: ただし、重度腎機能障害のある患者を除く。\nraw cues: direction=推奨する; age=成人_or_18歳以上; action_abx_a=present; sepsis=present; pregnancy=absent; renal_exception=has_exception\nresolution rules:\ndirection: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\naction_abx_a: present=&gt;present. absent=&gt;absent.\nage: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nsepsis: present=&gt;present. absent=&gt;absent.\npregnancy: present=&gt;present. absent=&gt;absent.\nrenal_exception: has_exception=&gt;yes. no_exception=&gt;no.\nresolved row: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}\nJSON must be exactly this object: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}&quot;
+    &quot;A&quot;: {
+      &quot;action_abx_a_cue&quot;: &quot;present&quot;,
+      &quot;age_cue&quot;: &quot;成人_or_18歳以上&quot;,
+      &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
+      &quot;direction_cue&quot;: &quot;推奨する&quot;,
+      &quot;exception_quote&quot;: &quot;ただし、重度腎機能障害のある患者を除く。&quot;,
+      &quot;pregnancy_cue&quot;: &quot;absent&quot;,
+      &quot;primary_quote&quot;: &quot;成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。&quot;,
+      &quot;renal_exception_cue&quot;: &quot;has_exception&quot;,
+      &quot;sepsis_cue&quot;: &quot;present&quot;,
+      &quot;source_label&quot;: &quot;A&quot;
+    },
+    &quot;B&quot;: {
+      &quot;action_abx_a_cue&quot;: &quot;present&quot;,
+      &quot;age_cue&quot;: &quot;成人_or_18歳以上&quot;,
+      &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
+      &quot;direction_cue&quot;: &quot;投与しないこと&quot;,
+      &quot;exception_quote&quot;: null,
+      &quot;pregnancy_cue&quot;: &quot;present&quot;,
+      &quot;primary_quote&quot;: &quot;成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。&quot;,
+      &quot;renal_exception_cue&quot;: &quot;no_exception&quot;,
+      &quot;sepsis_cue&quot;: &quot;present&quot;,
+      &quot;source_label&quot;: &quot;B&quot;
     }
-  ]
-}</pre>
-          <pre>{
-  &quot;label&quot;: &quot;B&quot;,
-  &quot;cue_inputs&quot;: {
-    &quot;action_abx_a_cue&quot;: &quot;present&quot;,
-    &quot;age_cue&quot;: &quot;成人_or_18歳以上&quot;,
-    &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
-    &quot;direction_cue&quot;: &quot;投与しないこと&quot;,
-    &quot;exception_quote&quot;: null,
-    &quot;pregnancy_cue&quot;: &quot;present&quot;,
-    &quot;primary_quote&quot;: &quot;成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。&quot;,
-    &quot;renal_exception_cue&quot;: &quot;no_exception&quot;,
-    &quot;sepsis_cue&quot;: &quot;present&quot;,
-    &quot;source_label&quot;: &quot;B&quot;
   },
-  &quot;response&quot;: &quot;{\n  \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n  \&quot;pregnancy\&quot;: \&quot;present\&quot;,\n  \&quot;renal_exception\&quot;: \&quot;no\&quot;,\n  \&quot;sepsis\&quot;: \&quot;present\&quot;\n}&quot;,
-  &quot;call_granularity&quot;: &quot;source_row&quot;,
-  &quot;model_calls&quot;: [
-    {
-      &quot;granularity&quot;: &quot;source_row&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue row into one CKC cue-schema JSON object.\nOutput only JSON for this one source label. Do not decide whether any source pair conflicts.\nsource label: B\nprimary quote: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。\nraw cues: direction=投与しないこと; age=成人_or_18歳以上; action_abx_a=present; sepsis=present; pregnancy=present; renal_exception=no_exception\nresolution rules:\ndirection: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\naction_abx_a: present=&gt;present. absent=&gt;absent.\nage: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nsepsis: present=&gt;present. absent=&gt;absent.\npregnancy: present=&gt;present. absent=&gt;absent.\nrenal_exception: has_exception=&gt;yes. no_exception=&gt;no.\nresolved row: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}\nJSON must be exactly this object: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}&quot;
-    }
-  ]
+  &quot;response&quot;: &quot;{\&quot;A\&quot;:{\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;},\&quot;B\&quot;:{\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}}&quot;,
+  &quot;call_granularity&quot;: &quot;source_pair&quot;,
+  &quot;prompt&quot;: &quot;route.single_ir one-call pair emitter.\nThe upstream deterministic cue extractor has already resolved the source text.\nTask: copy the resolved source-row objects into one pair JSON object.\nDo not reinterpret source text. Do not swap labels. Do not add fields. Do not change enum tokens.\ncase: pair.ab\noutput labels: A, B\nresolved row A: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}\nresolved row B: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}\nReturn exactly this JSON object and nothing else:\n{\&quot;A\&quot;:{\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;},\&quot;B\&quot;:{\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}}&quot;
 }</pre>
           <h3>Response</h3>
           <pre>{
@@ -1362,81 +1326,51 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
         </details>        <details>
           <summary><code>route.single_ir</code> / <code>group.m1_null</code> / seed 11 / admitted</summary>
           <h3>Prompt</h3>
-          <pre># source A
-{
-  &quot;source_label&quot;: &quot;A&quot;,
-  &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
-  &quot;primary_quote&quot;: &quot;成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。&quot;,
-  &quot;exception_quote&quot;: &quot;ただし、重度腎機能障害のある患者を除く。&quot;,
-  &quot;direction_cue&quot;: &quot;推奨する&quot;,
-  &quot;age_cue&quot;: &quot;成人_or_18歳以上&quot;,
-  &quot;sepsis_cue&quot;: &quot;present&quot;,
-  &quot;pregnancy_cue&quot;: &quot;absent&quot;,
-  &quot;renal_exception_cue&quot;: &quot;has_exception&quot;,
-  &quot;action_abx_a_cue&quot;: &quot;present&quot;
-}
-
-# source C
-{
-  &quot;source_label&quot;: &quot;C&quot;,
-  &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
-  &quot;primary_quote&quot;: &quot;小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。&quot;,
-  &quot;exception_quote&quot;: null,
-  &quot;direction_cue&quot;: &quot;禁忌&quot;,
-  &quot;age_cue&quot;: &quot;小児_or_18歳未満&quot;,
-  &quot;sepsis_cue&quot;: &quot;present&quot;,
-  &quot;pregnancy_cue&quot;: &quot;absent&quot;,
-  &quot;renal_exception_cue&quot;: &quot;no_exception&quot;,
-  &quot;action_abx_a_cue&quot;: &quot;present&quot;
-}</pre>
-          <h3>Source-local calls</h3>
+          <pre>route.single_ir one-call pair emitter.
+The upstream deterministic cue extractor has already resolved the source text.
+Task: copy the resolved source-row objects into one pair JSON object.
+Do not reinterpret source text. Do not swap labels. Do not add fields. Do not change enum tokens.
+case: pair.ac
+output labels: A, C
+resolved row A: {&quot;direction&quot;:&quot;for&quot;,&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;sepsis&quot;:&quot;present&quot;,&quot;pregnancy&quot;:&quot;absent&quot;,&quot;renal_exception&quot;:&quot;yes&quot;}
+resolved row C: {&quot;direction&quot;:&quot;contraindicate&quot;,&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;child&quot;,&quot;sepsis&quot;:&quot;present&quot;,&quot;pregnancy&quot;:&quot;absent&quot;,&quot;renal_exception&quot;:&quot;no&quot;}
+Return exactly this JSON object and nothing else:
+{&quot;A&quot;:{&quot;direction&quot;:&quot;for&quot;,&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;sepsis&quot;:&quot;present&quot;,&quot;pregnancy&quot;:&quot;absent&quot;,&quot;renal_exception&quot;:&quot;yes&quot;},&quot;C&quot;:{&quot;direction&quot;:&quot;contraindicate&quot;,&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;child&quot;,&quot;sepsis&quot;:&quot;present&quot;,&quot;pregnancy&quot;:&quot;absent&quot;,&quot;renal_exception&quot;:&quot;no&quot;}}</pre>
+          <h3>Pair-level call</h3>
           <pre>{
-  &quot;label&quot;: &quot;A&quot;,
+  &quot;labels&quot;: [
+    &quot;A&quot;,
+    &quot;C&quot;
+  ],
   &quot;cue_inputs&quot;: {
-    &quot;action_abx_a_cue&quot;: &quot;present&quot;,
-    &quot;age_cue&quot;: &quot;成人_or_18歳以上&quot;,
-    &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
-    &quot;direction_cue&quot;: &quot;推奨する&quot;,
-    &quot;exception_quote&quot;: &quot;ただし、重度腎機能障害のある患者を除く。&quot;,
-    &quot;pregnancy_cue&quot;: &quot;absent&quot;,
-    &quot;primary_quote&quot;: &quot;成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。&quot;,
-    &quot;renal_exception_cue&quot;: &quot;has_exception&quot;,
-    &quot;sepsis_cue&quot;: &quot;present&quot;,
-    &quot;source_label&quot;: &quot;A&quot;
-  },
-  &quot;response&quot;: &quot;{\n  \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;direction\&quot;: \&quot;for\&quot;,\n  \&quot;pregnancy\&quot;: \&quot;absent\&quot;,\n  \&quot;renal_exception\&quot;: \&quot;yes\&quot;,\n  \&quot;sepsis\&quot;: \&quot;present\&quot;\n}&quot;,
-  &quot;call_granularity&quot;: &quot;source_row&quot;,
-  &quot;model_calls&quot;: [
-    {
-      &quot;granularity&quot;: &quot;source_row&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue row into one CKC cue-schema JSON object.\nOutput only JSON for this one source label. Do not decide whether any source pair conflicts.\nsource label: A\nprimary quote: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nexception quote: ただし、重度腎機能障害のある患者を除く。\nraw cues: direction=推奨する; age=成人_or_18歳以上; action_abx_a=present; sepsis=present; pregnancy=absent; renal_exception=has_exception\nresolution rules:\ndirection: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\naction_abx_a: present=&gt;present. absent=&gt;absent.\nage: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nsepsis: present=&gt;present. absent=&gt;absent.\npregnancy: present=&gt;present. absent=&gt;absent.\nrenal_exception: has_exception=&gt;yes. no_exception=&gt;no.\nresolved row: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}\nJSON must be exactly this object: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}&quot;
+    &quot;A&quot;: {
+      &quot;action_abx_a_cue&quot;: &quot;present&quot;,
+      &quot;age_cue&quot;: &quot;成人_or_18歳以上&quot;,
+      &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
+      &quot;direction_cue&quot;: &quot;推奨する&quot;,
+      &quot;exception_quote&quot;: &quot;ただし、重度腎機能障害のある患者を除く。&quot;,
+      &quot;pregnancy_cue&quot;: &quot;absent&quot;,
+      &quot;primary_quote&quot;: &quot;成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。&quot;,
+      &quot;renal_exception_cue&quot;: &quot;has_exception&quot;,
+      &quot;sepsis_cue&quot;: &quot;present&quot;,
+      &quot;source_label&quot;: &quot;A&quot;
+    },
+    &quot;C&quot;: {
+      &quot;action_abx_a_cue&quot;: &quot;present&quot;,
+      &quot;age_cue&quot;: &quot;小児_or_18歳未満&quot;,
+      &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
+      &quot;direction_cue&quot;: &quot;禁忌&quot;,
+      &quot;exception_quote&quot;: null,
+      &quot;pregnancy_cue&quot;: &quot;absent&quot;,
+      &quot;primary_quote&quot;: &quot;小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。&quot;,
+      &quot;renal_exception_cue&quot;: &quot;no_exception&quot;,
+      &quot;sepsis_cue&quot;: &quot;present&quot;,
+      &quot;source_label&quot;: &quot;C&quot;
     }
-  ]
-}</pre>
-          <pre>{
-  &quot;label&quot;: &quot;C&quot;,
-  &quot;cue_inputs&quot;: {
-    &quot;action_abx_a_cue&quot;: &quot;present&quot;,
-    &quot;age_cue&quot;: &quot;小児_or_18歳未満&quot;,
-    &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
-    &quot;direction_cue&quot;: &quot;禁忌&quot;,
-    &quot;exception_quote&quot;: null,
-    &quot;pregnancy_cue&quot;: &quot;absent&quot;,
-    &quot;primary_quote&quot;: &quot;小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。&quot;,
-    &quot;renal_exception_cue&quot;: &quot;no_exception&quot;,
-    &quot;sepsis_cue&quot;: &quot;present&quot;,
-    &quot;source_label&quot;: &quot;C&quot;
   },
-  &quot;response&quot;: &quot;{\n  \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n  \&quot;age\&quot;: \&quot;child\&quot;,\n  \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n  \&quot;pregnancy\&quot;: \&quot;absent\&quot;,\n  \&quot;renal_exception\&quot;: \&quot;no\&quot;,\n  \&quot;sepsis\&quot;: \&quot;present\&quot;\n}&quot;,
-  &quot;call_granularity&quot;: &quot;source_row&quot;,
-  &quot;model_calls&quot;: [
-    {
-      &quot;granularity&quot;: &quot;source_row&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue row into one CKC cue-schema JSON object.\nOutput only JSON for this one source label. Do not decide whether any source pair conflicts.\nsource label: C\nprimary quote: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。\nraw cues: direction=禁忌; age=小児_or_18歳未満; action_abx_a=present; sepsis=present; pregnancy=absent; renal_exception=no_exception\nresolution rules:\ndirection: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\naction_abx_a: present=&gt;present. absent=&gt;absent.\nage: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nsepsis: present=&gt;present. absent=&gt;absent.\npregnancy: present=&gt;present. absent=&gt;absent.\nrenal_exception: has_exception=&gt;yes. no_exception=&gt;no.\nresolved row: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}\nJSON must be exactly this object: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}&quot;
-    }
-  ]
+  &quot;response&quot;: &quot;{\&quot;A\&quot;:{\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;},\&quot;C\&quot;:{\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}}&quot;,
+  &quot;call_granularity&quot;: &quot;source_pair&quot;,
+  &quot;prompt&quot;: &quot;route.single_ir one-call pair emitter.\nThe upstream deterministic cue extractor has already resolved the source text.\nTask: copy the resolved source-row objects into one pair JSON object.\nDo not reinterpret source text. Do not swap labels. Do not add fields. Do not change enum tokens.\ncase: pair.ac\noutput labels: A, C\nresolved row A: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}\nresolved row C: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}\nReturn exactly this JSON object and nothing else:\n{\&quot;A\&quot;:{\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;},\&quot;C\&quot;:{\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}}&quot;
 }</pre>
           <h3>Response</h3>
           <pre>{
@@ -1504,81 +1438,51 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
         </details>        <details>
           <summary><code>route.single_ir</code> / <code>group.m1_conflict</code> / seed 22 / admitted</summary>
           <h3>Prompt</h3>
-          <pre># source A
-{
-  &quot;source_label&quot;: &quot;A&quot;,
-  &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
-  &quot;primary_quote&quot;: &quot;成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。&quot;,
-  &quot;exception_quote&quot;: &quot;ただし、重度腎機能障害のある患者を除く。&quot;,
-  &quot;direction_cue&quot;: &quot;推奨する&quot;,
-  &quot;age_cue&quot;: &quot;成人_or_18歳以上&quot;,
-  &quot;sepsis_cue&quot;: &quot;present&quot;,
-  &quot;pregnancy_cue&quot;: &quot;absent&quot;,
-  &quot;renal_exception_cue&quot;: &quot;has_exception&quot;,
-  &quot;action_abx_a_cue&quot;: &quot;present&quot;
-}
-
-# source B
-{
-  &quot;source_label&quot;: &quot;B&quot;,
-  &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
-  &quot;primary_quote&quot;: &quot;成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。&quot;,
-  &quot;exception_quote&quot;: null,
-  &quot;direction_cue&quot;: &quot;投与しないこと&quot;,
-  &quot;age_cue&quot;: &quot;成人_or_18歳以上&quot;,
-  &quot;sepsis_cue&quot;: &quot;present&quot;,
-  &quot;pregnancy_cue&quot;: &quot;present&quot;,
-  &quot;renal_exception_cue&quot;: &quot;no_exception&quot;,
-  &quot;action_abx_a_cue&quot;: &quot;present&quot;
-}</pre>
-          <h3>Source-local calls</h3>
+          <pre>route.single_ir one-call pair emitter.
+The upstream deterministic cue extractor has already resolved the source text.
+Task: copy the resolved source-row objects into one pair JSON object.
+Do not reinterpret source text. Do not swap labels. Do not add fields. Do not change enum tokens.
+case: pair.ab
+output labels: A, B
+resolved row A: {&quot;direction&quot;:&quot;for&quot;,&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;sepsis&quot;:&quot;present&quot;,&quot;pregnancy&quot;:&quot;absent&quot;,&quot;renal_exception&quot;:&quot;yes&quot;}
+resolved row B: {&quot;direction&quot;:&quot;contraindicate&quot;,&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;sepsis&quot;:&quot;present&quot;,&quot;pregnancy&quot;:&quot;present&quot;,&quot;renal_exception&quot;:&quot;no&quot;}
+Return exactly this JSON object and nothing else:
+{&quot;A&quot;:{&quot;direction&quot;:&quot;for&quot;,&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;sepsis&quot;:&quot;present&quot;,&quot;pregnancy&quot;:&quot;absent&quot;,&quot;renal_exception&quot;:&quot;yes&quot;},&quot;B&quot;:{&quot;direction&quot;:&quot;contraindicate&quot;,&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;sepsis&quot;:&quot;present&quot;,&quot;pregnancy&quot;:&quot;present&quot;,&quot;renal_exception&quot;:&quot;no&quot;}}</pre>
+          <h3>Pair-level call</h3>
           <pre>{
-  &quot;label&quot;: &quot;A&quot;,
+  &quot;labels&quot;: [
+    &quot;A&quot;,
+    &quot;B&quot;
+  ],
   &quot;cue_inputs&quot;: {
-    &quot;action_abx_a_cue&quot;: &quot;present&quot;,
-    &quot;age_cue&quot;: &quot;成人_or_18歳以上&quot;,
-    &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
-    &quot;direction_cue&quot;: &quot;推奨する&quot;,
-    &quot;exception_quote&quot;: &quot;ただし、重度腎機能障害のある患者を除く。&quot;,
-    &quot;pregnancy_cue&quot;: &quot;absent&quot;,
-    &quot;primary_quote&quot;: &quot;成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。&quot;,
-    &quot;renal_exception_cue&quot;: &quot;has_exception&quot;,
-    &quot;sepsis_cue&quot;: &quot;present&quot;,
-    &quot;source_label&quot;: &quot;A&quot;
-  },
-  &quot;response&quot;: &quot;{\n  \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;direction\&quot;: \&quot;for\&quot;,\n  \&quot;pregnancy\&quot;: \&quot;absent\&quot;,\n  \&quot;renal_exception\&quot;: \&quot;yes\&quot;,\n  \&quot;sepsis\&quot;: \&quot;present\&quot;\n}&quot;,
-  &quot;call_granularity&quot;: &quot;source_row&quot;,
-  &quot;model_calls&quot;: [
-    {
-      &quot;granularity&quot;: &quot;source_row&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue row into one CKC cue-schema JSON object.\nOutput only JSON for this one source label. Do not decide whether any source pair conflicts.\nsource label: A\nprimary quote: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nexception quote: ただし、重度腎機能障害のある患者を除く。\nraw cues: direction=推奨する; age=成人_or_18歳以上; action_abx_a=present; sepsis=present; pregnancy=absent; renal_exception=has_exception\nresolution rules:\ndirection: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\naction_abx_a: present=&gt;present. absent=&gt;absent.\nage: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nsepsis: present=&gt;present. absent=&gt;absent.\npregnancy: present=&gt;present. absent=&gt;absent.\nrenal_exception: has_exception=&gt;yes. no_exception=&gt;no.\nresolved row: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}\nJSON must be exactly this object: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}&quot;
+    &quot;A&quot;: {
+      &quot;action_abx_a_cue&quot;: &quot;present&quot;,
+      &quot;age_cue&quot;: &quot;成人_or_18歳以上&quot;,
+      &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
+      &quot;direction_cue&quot;: &quot;推奨する&quot;,
+      &quot;exception_quote&quot;: &quot;ただし、重度腎機能障害のある患者を除く。&quot;,
+      &quot;pregnancy_cue&quot;: &quot;absent&quot;,
+      &quot;primary_quote&quot;: &quot;成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。&quot;,
+      &quot;renal_exception_cue&quot;: &quot;has_exception&quot;,
+      &quot;sepsis_cue&quot;: &quot;present&quot;,
+      &quot;source_label&quot;: &quot;A&quot;
+    },
+    &quot;B&quot;: {
+      &quot;action_abx_a_cue&quot;: &quot;present&quot;,
+      &quot;age_cue&quot;: &quot;成人_or_18歳以上&quot;,
+      &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
+      &quot;direction_cue&quot;: &quot;投与しないこと&quot;,
+      &quot;exception_quote&quot;: null,
+      &quot;pregnancy_cue&quot;: &quot;present&quot;,
+      &quot;primary_quote&quot;: &quot;成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。&quot;,
+      &quot;renal_exception_cue&quot;: &quot;no_exception&quot;,
+      &quot;sepsis_cue&quot;: &quot;present&quot;,
+      &quot;source_label&quot;: &quot;B&quot;
     }
-  ]
-}</pre>
-          <pre>{
-  &quot;label&quot;: &quot;B&quot;,
-  &quot;cue_inputs&quot;: {
-    &quot;action_abx_a_cue&quot;: &quot;present&quot;,
-    &quot;age_cue&quot;: &quot;成人_or_18歳以上&quot;,
-    &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
-    &quot;direction_cue&quot;: &quot;投与しないこと&quot;,
-    &quot;exception_quote&quot;: null,
-    &quot;pregnancy_cue&quot;: &quot;present&quot;,
-    &quot;primary_quote&quot;: &quot;成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。&quot;,
-    &quot;renal_exception_cue&quot;: &quot;no_exception&quot;,
-    &quot;sepsis_cue&quot;: &quot;present&quot;,
-    &quot;source_label&quot;: &quot;B&quot;
   },
-  &quot;response&quot;: &quot;{\n  \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n  \&quot;pregnancy\&quot;: \&quot;present\&quot;,\n  \&quot;renal_exception\&quot;: \&quot;no\&quot;,\n  \&quot;sepsis\&quot;: \&quot;present\&quot;\n}&quot;,
-  &quot;call_granularity&quot;: &quot;source_row&quot;,
-  &quot;model_calls&quot;: [
-    {
-      &quot;granularity&quot;: &quot;source_row&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue row into one CKC cue-schema JSON object.\nOutput only JSON for this one source label. Do not decide whether any source pair conflicts.\nsource label: B\nprimary quote: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。\nraw cues: direction=投与しないこと; age=成人_or_18歳以上; action_abx_a=present; sepsis=present; pregnancy=present; renal_exception=no_exception\nresolution rules:\ndirection: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\naction_abx_a: present=&gt;present. absent=&gt;absent.\nage: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nsepsis: present=&gt;present. absent=&gt;absent.\npregnancy: present=&gt;present. absent=&gt;absent.\nrenal_exception: has_exception=&gt;yes. no_exception=&gt;no.\nresolved row: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}\nJSON must be exactly this object: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}&quot;
-    }
-  ]
+  &quot;response&quot;: &quot;{\&quot;A\&quot;:{\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;},\&quot;B\&quot;:{\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}}&quot;,
+  &quot;call_granularity&quot;: &quot;source_pair&quot;,
+  &quot;prompt&quot;: &quot;route.single_ir one-call pair emitter.\nThe upstream deterministic cue extractor has already resolved the source text.\nTask: copy the resolved source-row objects into one pair JSON object.\nDo not reinterpret source text. Do not swap labels. Do not add fields. Do not change enum tokens.\ncase: pair.ab\noutput labels: A, B\nresolved row A: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}\nresolved row B: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}\nReturn exactly this JSON object and nothing else:\n{\&quot;A\&quot;:{\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;},\&quot;B\&quot;:{\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}}&quot;
 }</pre>
           <h3>Response</h3>
           <pre>{
@@ -1668,81 +1572,51 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
         </details>        <details>
           <summary><code>route.single_ir</code> / <code>group.m1_null</code> / seed 22 / admitted</summary>
           <h3>Prompt</h3>
-          <pre># source A
-{
-  &quot;source_label&quot;: &quot;A&quot;,
-  &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
-  &quot;primary_quote&quot;: &quot;成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。&quot;,
-  &quot;exception_quote&quot;: &quot;ただし、重度腎機能障害のある患者を除く。&quot;,
-  &quot;direction_cue&quot;: &quot;推奨する&quot;,
-  &quot;age_cue&quot;: &quot;成人_or_18歳以上&quot;,
-  &quot;sepsis_cue&quot;: &quot;present&quot;,
-  &quot;pregnancy_cue&quot;: &quot;absent&quot;,
-  &quot;renal_exception_cue&quot;: &quot;has_exception&quot;,
-  &quot;action_abx_a_cue&quot;: &quot;present&quot;
-}
-
-# source C
-{
-  &quot;source_label&quot;: &quot;C&quot;,
-  &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
-  &quot;primary_quote&quot;: &quot;小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。&quot;,
-  &quot;exception_quote&quot;: null,
-  &quot;direction_cue&quot;: &quot;禁忌&quot;,
-  &quot;age_cue&quot;: &quot;小児_or_18歳未満&quot;,
-  &quot;sepsis_cue&quot;: &quot;present&quot;,
-  &quot;pregnancy_cue&quot;: &quot;absent&quot;,
-  &quot;renal_exception_cue&quot;: &quot;no_exception&quot;,
-  &quot;action_abx_a_cue&quot;: &quot;present&quot;
-}</pre>
-          <h3>Source-local calls</h3>
+          <pre>route.single_ir one-call pair emitter.
+The upstream deterministic cue extractor has already resolved the source text.
+Task: copy the resolved source-row objects into one pair JSON object.
+Do not reinterpret source text. Do not swap labels. Do not add fields. Do not change enum tokens.
+case: pair.ac
+output labels: A, C
+resolved row A: {&quot;direction&quot;:&quot;for&quot;,&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;sepsis&quot;:&quot;present&quot;,&quot;pregnancy&quot;:&quot;absent&quot;,&quot;renal_exception&quot;:&quot;yes&quot;}
+resolved row C: {&quot;direction&quot;:&quot;contraindicate&quot;,&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;child&quot;,&quot;sepsis&quot;:&quot;present&quot;,&quot;pregnancy&quot;:&quot;absent&quot;,&quot;renal_exception&quot;:&quot;no&quot;}
+Return exactly this JSON object and nothing else:
+{&quot;A&quot;:{&quot;direction&quot;:&quot;for&quot;,&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;sepsis&quot;:&quot;present&quot;,&quot;pregnancy&quot;:&quot;absent&quot;,&quot;renal_exception&quot;:&quot;yes&quot;},&quot;C&quot;:{&quot;direction&quot;:&quot;contraindicate&quot;,&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;child&quot;,&quot;sepsis&quot;:&quot;present&quot;,&quot;pregnancy&quot;:&quot;absent&quot;,&quot;renal_exception&quot;:&quot;no&quot;}}</pre>
+          <h3>Pair-level call</h3>
           <pre>{
-  &quot;label&quot;: &quot;A&quot;,
+  &quot;labels&quot;: [
+    &quot;A&quot;,
+    &quot;C&quot;
+  ],
   &quot;cue_inputs&quot;: {
-    &quot;action_abx_a_cue&quot;: &quot;present&quot;,
-    &quot;age_cue&quot;: &quot;成人_or_18歳以上&quot;,
-    &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
-    &quot;direction_cue&quot;: &quot;推奨する&quot;,
-    &quot;exception_quote&quot;: &quot;ただし、重度腎機能障害のある患者を除く。&quot;,
-    &quot;pregnancy_cue&quot;: &quot;absent&quot;,
-    &quot;primary_quote&quot;: &quot;成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。&quot;,
-    &quot;renal_exception_cue&quot;: &quot;has_exception&quot;,
-    &quot;sepsis_cue&quot;: &quot;present&quot;,
-    &quot;source_label&quot;: &quot;A&quot;
-  },
-  &quot;response&quot;: &quot;{\n  \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;direction\&quot;: \&quot;for\&quot;,\n  \&quot;pregnancy\&quot;: \&quot;absent\&quot;,\n  \&quot;renal_exception\&quot;: \&quot;yes\&quot;,\n  \&quot;sepsis\&quot;: \&quot;present\&quot;\n}&quot;,
-  &quot;call_granularity&quot;: &quot;source_row&quot;,
-  &quot;model_calls&quot;: [
-    {
-      &quot;granularity&quot;: &quot;source_row&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue row into one CKC cue-schema JSON object.\nOutput only JSON for this one source label. Do not decide whether any source pair conflicts.\nsource label: A\nprimary quote: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nexception quote: ただし、重度腎機能障害のある患者を除く。\nraw cues: direction=推奨する; age=成人_or_18歳以上; action_abx_a=present; sepsis=present; pregnancy=absent; renal_exception=has_exception\nresolution rules:\ndirection: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\naction_abx_a: present=&gt;present. absent=&gt;absent.\nage: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nsepsis: present=&gt;present. absent=&gt;absent.\npregnancy: present=&gt;present. absent=&gt;absent.\nrenal_exception: has_exception=&gt;yes. no_exception=&gt;no.\nresolved row: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}\nJSON must be exactly this object: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}&quot;
+    &quot;A&quot;: {
+      &quot;action_abx_a_cue&quot;: &quot;present&quot;,
+      &quot;age_cue&quot;: &quot;成人_or_18歳以上&quot;,
+      &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
+      &quot;direction_cue&quot;: &quot;推奨する&quot;,
+      &quot;exception_quote&quot;: &quot;ただし、重度腎機能障害のある患者を除く。&quot;,
+      &quot;pregnancy_cue&quot;: &quot;absent&quot;,
+      &quot;primary_quote&quot;: &quot;成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。&quot;,
+      &quot;renal_exception_cue&quot;: &quot;has_exception&quot;,
+      &quot;sepsis_cue&quot;: &quot;present&quot;,
+      &quot;source_label&quot;: &quot;A&quot;
+    },
+    &quot;C&quot;: {
+      &quot;action_abx_a_cue&quot;: &quot;present&quot;,
+      &quot;age_cue&quot;: &quot;小児_or_18歳未満&quot;,
+      &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
+      &quot;direction_cue&quot;: &quot;禁忌&quot;,
+      &quot;exception_quote&quot;: null,
+      &quot;pregnancy_cue&quot;: &quot;absent&quot;,
+      &quot;primary_quote&quot;: &quot;小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。&quot;,
+      &quot;renal_exception_cue&quot;: &quot;no_exception&quot;,
+      &quot;sepsis_cue&quot;: &quot;present&quot;,
+      &quot;source_label&quot;: &quot;C&quot;
     }
-  ]
-}</pre>
-          <pre>{
-  &quot;label&quot;: &quot;C&quot;,
-  &quot;cue_inputs&quot;: {
-    &quot;action_abx_a_cue&quot;: &quot;present&quot;,
-    &quot;age_cue&quot;: &quot;小児_or_18歳未満&quot;,
-    &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
-    &quot;direction_cue&quot;: &quot;禁忌&quot;,
-    &quot;exception_quote&quot;: null,
-    &quot;pregnancy_cue&quot;: &quot;absent&quot;,
-    &quot;primary_quote&quot;: &quot;小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。&quot;,
-    &quot;renal_exception_cue&quot;: &quot;no_exception&quot;,
-    &quot;sepsis_cue&quot;: &quot;present&quot;,
-    &quot;source_label&quot;: &quot;C&quot;
   },
-  &quot;response&quot;: &quot;{\n  \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n  \&quot;age\&quot;: \&quot;child\&quot;,\n  \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n  \&quot;pregnancy\&quot;: \&quot;absent\&quot;,\n  \&quot;renal_exception\&quot;: \&quot;no\&quot;,\n  \&quot;sepsis\&quot;: \&quot;present\&quot;\n}&quot;,
-  &quot;call_granularity&quot;: &quot;source_row&quot;,
-  &quot;model_calls&quot;: [
-    {
-      &quot;granularity&quot;: &quot;source_row&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue row into one CKC cue-schema JSON object.\nOutput only JSON for this one source label. Do not decide whether any source pair conflicts.\nsource label: C\nprimary quote: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。\nraw cues: direction=禁忌; age=小児_or_18歳未満; action_abx_a=present; sepsis=present; pregnancy=absent; renal_exception=no_exception\nresolution rules:\ndirection: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\naction_abx_a: present=&gt;present. absent=&gt;absent.\nage: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nsepsis: present=&gt;present. absent=&gt;absent.\npregnancy: present=&gt;present. absent=&gt;absent.\nrenal_exception: has_exception=&gt;yes. no_exception=&gt;no.\nresolved row: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}\nJSON must be exactly this object: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}&quot;
-    }
-  ]
+  &quot;response&quot;: &quot;{\&quot;A\&quot;:{\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;},\&quot;C\&quot;:{\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}}&quot;,
+  &quot;call_granularity&quot;: &quot;source_pair&quot;,
+  &quot;prompt&quot;: &quot;route.single_ir one-call pair emitter.\nThe upstream deterministic cue extractor has already resolved the source text.\nTask: copy the resolved source-row objects into one pair JSON object.\nDo not reinterpret source text. Do not swap labels. Do not add fields. Do not change enum tokens.\ncase: pair.ac\noutput labels: A, C\nresolved row A: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}\nresolved row C: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}\nReturn exactly this JSON object and nothing else:\n{\&quot;A\&quot;:{\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;},\&quot;C\&quot;:{\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}}&quot;
 }</pre>
           <h3>Response</h3>
           <pre>{
@@ -1810,81 +1684,51 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
         </details>        <details>
           <summary><code>route.single_ir</code> / <code>group.m1_conflict</code> / seed 33 / admitted</summary>
           <h3>Prompt</h3>
-          <pre># source A
-{
-  &quot;source_label&quot;: &quot;A&quot;,
-  &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
-  &quot;primary_quote&quot;: &quot;成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。&quot;,
-  &quot;exception_quote&quot;: &quot;ただし、重度腎機能障害のある患者を除く。&quot;,
-  &quot;direction_cue&quot;: &quot;推奨する&quot;,
-  &quot;age_cue&quot;: &quot;成人_or_18歳以上&quot;,
-  &quot;sepsis_cue&quot;: &quot;present&quot;,
-  &quot;pregnancy_cue&quot;: &quot;absent&quot;,
-  &quot;renal_exception_cue&quot;: &quot;has_exception&quot;,
-  &quot;action_abx_a_cue&quot;: &quot;present&quot;
-}
-
-# source B
-{
-  &quot;source_label&quot;: &quot;B&quot;,
-  &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
-  &quot;primary_quote&quot;: &quot;成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。&quot;,
-  &quot;exception_quote&quot;: null,
-  &quot;direction_cue&quot;: &quot;投与しないこと&quot;,
-  &quot;age_cue&quot;: &quot;成人_or_18歳以上&quot;,
-  &quot;sepsis_cue&quot;: &quot;present&quot;,
-  &quot;pregnancy_cue&quot;: &quot;present&quot;,
-  &quot;renal_exception_cue&quot;: &quot;no_exception&quot;,
-  &quot;action_abx_a_cue&quot;: &quot;present&quot;
-}</pre>
-          <h3>Source-local calls</h3>
+          <pre>route.single_ir one-call pair emitter.
+The upstream deterministic cue extractor has already resolved the source text.
+Task: copy the resolved source-row objects into one pair JSON object.
+Do not reinterpret source text. Do not swap labels. Do not add fields. Do not change enum tokens.
+case: pair.ab
+output labels: A, B
+resolved row A: {&quot;direction&quot;:&quot;for&quot;,&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;sepsis&quot;:&quot;present&quot;,&quot;pregnancy&quot;:&quot;absent&quot;,&quot;renal_exception&quot;:&quot;yes&quot;}
+resolved row B: {&quot;direction&quot;:&quot;contraindicate&quot;,&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;sepsis&quot;:&quot;present&quot;,&quot;pregnancy&quot;:&quot;present&quot;,&quot;renal_exception&quot;:&quot;no&quot;}
+Return exactly this JSON object and nothing else:
+{&quot;A&quot;:{&quot;direction&quot;:&quot;for&quot;,&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;sepsis&quot;:&quot;present&quot;,&quot;pregnancy&quot;:&quot;absent&quot;,&quot;renal_exception&quot;:&quot;yes&quot;},&quot;B&quot;:{&quot;direction&quot;:&quot;contraindicate&quot;,&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;sepsis&quot;:&quot;present&quot;,&quot;pregnancy&quot;:&quot;present&quot;,&quot;renal_exception&quot;:&quot;no&quot;}}</pre>
+          <h3>Pair-level call</h3>
           <pre>{
-  &quot;label&quot;: &quot;A&quot;,
+  &quot;labels&quot;: [
+    &quot;A&quot;,
+    &quot;B&quot;
+  ],
   &quot;cue_inputs&quot;: {
-    &quot;action_abx_a_cue&quot;: &quot;present&quot;,
-    &quot;age_cue&quot;: &quot;成人_or_18歳以上&quot;,
-    &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
-    &quot;direction_cue&quot;: &quot;推奨する&quot;,
-    &quot;exception_quote&quot;: &quot;ただし、重度腎機能障害のある患者を除く。&quot;,
-    &quot;pregnancy_cue&quot;: &quot;absent&quot;,
-    &quot;primary_quote&quot;: &quot;成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。&quot;,
-    &quot;renal_exception_cue&quot;: &quot;has_exception&quot;,
-    &quot;sepsis_cue&quot;: &quot;present&quot;,
-    &quot;source_label&quot;: &quot;A&quot;
-  },
-  &quot;response&quot;: &quot;{\n  \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;direction\&quot;: \&quot;for\&quot;,\n  \&quot;pregnancy\&quot;: \&quot;absent\&quot;,\n  \&quot;renal_exception\&quot;: \&quot;yes\&quot;,\n  \&quot;sepsis\&quot;: \&quot;present\&quot;\n}&quot;,
-  &quot;call_granularity&quot;: &quot;source_row&quot;,
-  &quot;model_calls&quot;: [
-    {
-      &quot;granularity&quot;: &quot;source_row&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue row into one CKC cue-schema JSON object.\nOutput only JSON for this one source label. Do not decide whether any source pair conflicts.\nsource label: A\nprimary quote: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nexception quote: ただし、重度腎機能障害のある患者を除く。\nraw cues: direction=推奨する; age=成人_or_18歳以上; action_abx_a=present; sepsis=present; pregnancy=absent; renal_exception=has_exception\nresolution rules:\ndirection: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\naction_abx_a: present=&gt;present. absent=&gt;absent.\nage: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nsepsis: present=&gt;present. absent=&gt;absent.\npregnancy: present=&gt;present. absent=&gt;absent.\nrenal_exception: has_exception=&gt;yes. no_exception=&gt;no.\nresolved row: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}\nJSON must be exactly this object: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}&quot;
+    &quot;A&quot;: {
+      &quot;action_abx_a_cue&quot;: &quot;present&quot;,
+      &quot;age_cue&quot;: &quot;成人_or_18歳以上&quot;,
+      &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
+      &quot;direction_cue&quot;: &quot;推奨する&quot;,
+      &quot;exception_quote&quot;: &quot;ただし、重度腎機能障害のある患者を除く。&quot;,
+      &quot;pregnancy_cue&quot;: &quot;absent&quot;,
+      &quot;primary_quote&quot;: &quot;成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。&quot;,
+      &quot;renal_exception_cue&quot;: &quot;has_exception&quot;,
+      &quot;sepsis_cue&quot;: &quot;present&quot;,
+      &quot;source_label&quot;: &quot;A&quot;
+    },
+    &quot;B&quot;: {
+      &quot;action_abx_a_cue&quot;: &quot;present&quot;,
+      &quot;age_cue&quot;: &quot;成人_or_18歳以上&quot;,
+      &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
+      &quot;direction_cue&quot;: &quot;投与しないこと&quot;,
+      &quot;exception_quote&quot;: null,
+      &quot;pregnancy_cue&quot;: &quot;present&quot;,
+      &quot;primary_quote&quot;: &quot;成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。&quot;,
+      &quot;renal_exception_cue&quot;: &quot;no_exception&quot;,
+      &quot;sepsis_cue&quot;: &quot;present&quot;,
+      &quot;source_label&quot;: &quot;B&quot;
     }
-  ]
-}</pre>
-          <pre>{
-  &quot;label&quot;: &quot;B&quot;,
-  &quot;cue_inputs&quot;: {
-    &quot;action_abx_a_cue&quot;: &quot;present&quot;,
-    &quot;age_cue&quot;: &quot;成人_or_18歳以上&quot;,
-    &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
-    &quot;direction_cue&quot;: &quot;投与しないこと&quot;,
-    &quot;exception_quote&quot;: null,
-    &quot;pregnancy_cue&quot;: &quot;present&quot;,
-    &quot;primary_quote&quot;: &quot;成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。&quot;,
-    &quot;renal_exception_cue&quot;: &quot;no_exception&quot;,
-    &quot;sepsis_cue&quot;: &quot;present&quot;,
-    &quot;source_label&quot;: &quot;B&quot;
   },
-  &quot;response&quot;: &quot;{\n  \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n  \&quot;pregnancy\&quot;: \&quot;present\&quot;,\n  \&quot;renal_exception\&quot;: \&quot;no\&quot;,\n  \&quot;sepsis\&quot;: \&quot;present\&quot;\n}&quot;,
-  &quot;call_granularity&quot;: &quot;source_row&quot;,
-  &quot;model_calls&quot;: [
-    {
-      &quot;granularity&quot;: &quot;source_row&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue row into one CKC cue-schema JSON object.\nOutput only JSON for this one source label. Do not decide whether any source pair conflicts.\nsource label: B\nprimary quote: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。\nraw cues: direction=投与しないこと; age=成人_or_18歳以上; action_abx_a=present; sepsis=present; pregnancy=present; renal_exception=no_exception\nresolution rules:\ndirection: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\naction_abx_a: present=&gt;present. absent=&gt;absent.\nage: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nsepsis: present=&gt;present. absent=&gt;absent.\npregnancy: present=&gt;present. absent=&gt;absent.\nrenal_exception: has_exception=&gt;yes. no_exception=&gt;no.\nresolved row: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}\nJSON must be exactly this object: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}&quot;
-    }
-  ]
+  &quot;response&quot;: &quot;{\&quot;A\&quot;:{\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;},\&quot;B\&quot;:{\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}}&quot;,
+  &quot;call_granularity&quot;: &quot;source_pair&quot;,
+  &quot;prompt&quot;: &quot;route.single_ir one-call pair emitter.\nThe upstream deterministic cue extractor has already resolved the source text.\nTask: copy the resolved source-row objects into one pair JSON object.\nDo not reinterpret source text. Do not swap labels. Do not add fields. Do not change enum tokens.\ncase: pair.ab\noutput labels: A, B\nresolved row A: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}\nresolved row B: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}\nReturn exactly this JSON object and nothing else:\n{\&quot;A\&quot;:{\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;},\&quot;B\&quot;:{\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}}&quot;
 }</pre>
           <h3>Response</h3>
           <pre>{
@@ -1974,81 +1818,51 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
         </details>        <details>
           <summary><code>route.single_ir</code> / <code>group.m1_null</code> / seed 33 / admitted</summary>
           <h3>Prompt</h3>
-          <pre># source A
-{
-  &quot;source_label&quot;: &quot;A&quot;,
-  &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
-  &quot;primary_quote&quot;: &quot;成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。&quot;,
-  &quot;exception_quote&quot;: &quot;ただし、重度腎機能障害のある患者を除く。&quot;,
-  &quot;direction_cue&quot;: &quot;推奨する&quot;,
-  &quot;age_cue&quot;: &quot;成人_or_18歳以上&quot;,
-  &quot;sepsis_cue&quot;: &quot;present&quot;,
-  &quot;pregnancy_cue&quot;: &quot;absent&quot;,
-  &quot;renal_exception_cue&quot;: &quot;has_exception&quot;,
-  &quot;action_abx_a_cue&quot;: &quot;present&quot;
-}
-
-# source C
-{
-  &quot;source_label&quot;: &quot;C&quot;,
-  &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
-  &quot;primary_quote&quot;: &quot;小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。&quot;,
-  &quot;exception_quote&quot;: null,
-  &quot;direction_cue&quot;: &quot;禁忌&quot;,
-  &quot;age_cue&quot;: &quot;小児_or_18歳未満&quot;,
-  &quot;sepsis_cue&quot;: &quot;present&quot;,
-  &quot;pregnancy_cue&quot;: &quot;absent&quot;,
-  &quot;renal_exception_cue&quot;: &quot;no_exception&quot;,
-  &quot;action_abx_a_cue&quot;: &quot;present&quot;
-}</pre>
-          <h3>Source-local calls</h3>
+          <pre>route.single_ir one-call pair emitter.
+The upstream deterministic cue extractor has already resolved the source text.
+Task: copy the resolved source-row objects into one pair JSON object.
+Do not reinterpret source text. Do not swap labels. Do not add fields. Do not change enum tokens.
+case: pair.ac
+output labels: A, C
+resolved row A: {&quot;direction&quot;:&quot;for&quot;,&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;sepsis&quot;:&quot;present&quot;,&quot;pregnancy&quot;:&quot;absent&quot;,&quot;renal_exception&quot;:&quot;yes&quot;}
+resolved row C: {&quot;direction&quot;:&quot;contraindicate&quot;,&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;child&quot;,&quot;sepsis&quot;:&quot;present&quot;,&quot;pregnancy&quot;:&quot;absent&quot;,&quot;renal_exception&quot;:&quot;no&quot;}
+Return exactly this JSON object and nothing else:
+{&quot;A&quot;:{&quot;direction&quot;:&quot;for&quot;,&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;sepsis&quot;:&quot;present&quot;,&quot;pregnancy&quot;:&quot;absent&quot;,&quot;renal_exception&quot;:&quot;yes&quot;},&quot;C&quot;:{&quot;direction&quot;:&quot;contraindicate&quot;,&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;child&quot;,&quot;sepsis&quot;:&quot;present&quot;,&quot;pregnancy&quot;:&quot;absent&quot;,&quot;renal_exception&quot;:&quot;no&quot;}}</pre>
+          <h3>Pair-level call</h3>
           <pre>{
-  &quot;label&quot;: &quot;A&quot;,
+  &quot;labels&quot;: [
+    &quot;A&quot;,
+    &quot;C&quot;
+  ],
   &quot;cue_inputs&quot;: {
-    &quot;action_abx_a_cue&quot;: &quot;present&quot;,
-    &quot;age_cue&quot;: &quot;成人_or_18歳以上&quot;,
-    &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
-    &quot;direction_cue&quot;: &quot;推奨する&quot;,
-    &quot;exception_quote&quot;: &quot;ただし、重度腎機能障害のある患者を除く。&quot;,
-    &quot;pregnancy_cue&quot;: &quot;absent&quot;,
-    &quot;primary_quote&quot;: &quot;成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。&quot;,
-    &quot;renal_exception_cue&quot;: &quot;has_exception&quot;,
-    &quot;sepsis_cue&quot;: &quot;present&quot;,
-    &quot;source_label&quot;: &quot;A&quot;
-  },
-  &quot;response&quot;: &quot;{\n  \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;direction\&quot;: \&quot;for\&quot;,\n  \&quot;pregnancy\&quot;: \&quot;absent\&quot;,\n  \&quot;renal_exception\&quot;: \&quot;yes\&quot;,\n  \&quot;sepsis\&quot;: \&quot;present\&quot;\n}&quot;,
-  &quot;call_granularity&quot;: &quot;source_row&quot;,
-  &quot;model_calls&quot;: [
-    {
-      &quot;granularity&quot;: &quot;source_row&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue row into one CKC cue-schema JSON object.\nOutput only JSON for this one source label. Do not decide whether any source pair conflicts.\nsource label: A\nprimary quote: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nexception quote: ただし、重度腎機能障害のある患者を除く。\nraw cues: direction=推奨する; age=成人_or_18歳以上; action_abx_a=present; sepsis=present; pregnancy=absent; renal_exception=has_exception\nresolution rules:\ndirection: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\naction_abx_a: present=&gt;present. absent=&gt;absent.\nage: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nsepsis: present=&gt;present. absent=&gt;absent.\npregnancy: present=&gt;present. absent=&gt;absent.\nrenal_exception: has_exception=&gt;yes. no_exception=&gt;no.\nresolved row: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}\nJSON must be exactly this object: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}&quot;
+    &quot;A&quot;: {
+      &quot;action_abx_a_cue&quot;: &quot;present&quot;,
+      &quot;age_cue&quot;: &quot;成人_or_18歳以上&quot;,
+      &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
+      &quot;direction_cue&quot;: &quot;推奨する&quot;,
+      &quot;exception_quote&quot;: &quot;ただし、重度腎機能障害のある患者を除く。&quot;,
+      &quot;pregnancy_cue&quot;: &quot;absent&quot;,
+      &quot;primary_quote&quot;: &quot;成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。&quot;,
+      &quot;renal_exception_cue&quot;: &quot;has_exception&quot;,
+      &quot;sepsis_cue&quot;: &quot;present&quot;,
+      &quot;source_label&quot;: &quot;A&quot;
+    },
+    &quot;C&quot;: {
+      &quot;action_abx_a_cue&quot;: &quot;present&quot;,
+      &quot;age_cue&quot;: &quot;小児_or_18歳未満&quot;,
+      &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
+      &quot;direction_cue&quot;: &quot;禁忌&quot;,
+      &quot;exception_quote&quot;: null,
+      &quot;pregnancy_cue&quot;: &quot;absent&quot;,
+      &quot;primary_quote&quot;: &quot;小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。&quot;,
+      &quot;renal_exception_cue&quot;: &quot;no_exception&quot;,
+      &quot;sepsis_cue&quot;: &quot;present&quot;,
+      &quot;source_label&quot;: &quot;C&quot;
     }
-  ]
-}</pre>
-          <pre>{
-  &quot;label&quot;: &quot;C&quot;,
-  &quot;cue_inputs&quot;: {
-    &quot;action_abx_a_cue&quot;: &quot;present&quot;,
-    &quot;age_cue&quot;: &quot;小児_or_18歳未満&quot;,
-    &quot;cue_extractor&quot;: &quot;lexical_cue_v1&quot;,
-    &quot;direction_cue&quot;: &quot;禁忌&quot;,
-    &quot;exception_quote&quot;: null,
-    &quot;pregnancy_cue&quot;: &quot;absent&quot;,
-    &quot;primary_quote&quot;: &quot;小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。&quot;,
-    &quot;renal_exception_cue&quot;: &quot;no_exception&quot;,
-    &quot;sepsis_cue&quot;: &quot;present&quot;,
-    &quot;source_label&quot;: &quot;C&quot;
   },
-  &quot;response&quot;: &quot;{\n  \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n  \&quot;age\&quot;: \&quot;child\&quot;,\n  \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n  \&quot;pregnancy\&quot;: \&quot;absent\&quot;,\n  \&quot;renal_exception\&quot;: \&quot;no\&quot;,\n  \&quot;sepsis\&quot;: \&quot;present\&quot;\n}&quot;,
-  &quot;call_granularity&quot;: &quot;source_row&quot;,
-  &quot;model_calls&quot;: [
-    {
-      &quot;granularity&quot;: &quot;source_row&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue row into one CKC cue-schema JSON object.\nOutput only JSON for this one source label. Do not decide whether any source pair conflicts.\nsource label: C\nprimary quote: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。\nraw cues: direction=禁忌; age=小児_or_18歳未満; action_abx_a=present; sepsis=present; pregnancy=absent; renal_exception=no_exception\nresolution rules:\ndirection: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\naction_abx_a: present=&gt;present. absent=&gt;absent.\nage: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nsepsis: present=&gt;present. absent=&gt;absent.\npregnancy: present=&gt;present. absent=&gt;absent.\nrenal_exception: has_exception=&gt;yes. no_exception=&gt;no.\nresolved row: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}\nJSON must be exactly this object: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}&quot;
-    }
-  ]
+  &quot;response&quot;: &quot;{\&quot;A\&quot;:{\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;},\&quot;C\&quot;:{\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}}&quot;,
+  &quot;call_granularity&quot;: &quot;source_pair&quot;,
+  &quot;prompt&quot;: &quot;route.single_ir one-call pair emitter.\nThe upstream deterministic cue extractor has already resolved the source text.\nTask: copy the resolved source-row objects into one pair JSON object.\nDo not reinterpret source text. Do not swap labels. Do not add fields. Do not change enum tokens.\ncase: pair.ac\noutput labels: A, C\nresolved row A: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}\nresolved row C: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}\nReturn exactly this JSON object and nothing else:\n{\&quot;A\&quot;:{\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;},\&quot;C\&quot;:{\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}}&quot;
 }</pre>
           <h3>Response</h3>
           <pre>{
