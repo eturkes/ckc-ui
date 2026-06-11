@@ -1546,6 +1546,27 @@ function escapePre(value) {
   return escapeHtml(String(value).replaceAll("\t", "  ").replace(/[ ]+$/gm, ""));
 }
 
+function yesNo(value) {
+  return value ? "yes" : "no";
+}
+
+function compactJson(value) {
+  return JSON.stringify(value ?? null);
+}
+
+function shortDigest(value) {
+  const text = String(value ?? "");
+  return text.length > 24 ? `${text.slice(0, 16)}...${text.slice(-6)}` : text;
+}
+
+function routeRecord(data, routeId, groupId, seed) {
+  return data.model_io.find((record) => (
+    record.route_id === routeId
+    && record.group_id === groupId
+    && record.seed === seed
+  )) ?? null;
+}
+
 function renderBasicUi(data) {
   const report = data.report;
   const direct = data.route_metrics.find((entry) => entry.route_id === "route.direct_smt");
@@ -1558,6 +1579,13 @@ function renderBasicUi(data) {
     : `Direct SMT remains below IR admitted accuracy under the shared cue layer.`;
   const directAudit = data.direct_smt_audit;
   const directAuditConclusion = `Direct audit: exact templates ${directAudit.exact_template_match_rate.exact}; no named assertions ${directAudit.missing_named_assertion_rate.exact}; negated sepsis ${directAudit.negated_sepsis_assertion_rate.exact}.`;
+  const liftRows = data.lift_table.map((row) => `
+          <tr>
+            <td><code>${escapeHtml(row.metric)}</code></td>
+            <td>${escapeHtml(row.baseline.exact)}</td>
+            <td>${escapeHtml(row.lifted.exact)}</td>
+            <td>${escapeHtml(row.delta.exact)}</td>
+          </tr>`).join("");
   const routeRows = data.route_metrics.map((entry) => `
           <tr>
             <td><code>${escapeHtml(entry.route_id)}</code></td>
@@ -1578,6 +1606,53 @@ function renderBasicUi(data) {
             <td>${row.verdict_correct ? "yes" : "no"}</td>
             <td>${row.candidate_verdict_correct ? "yes" : "no"}</td>
             <td>${escapeHtml(row.diagnostics.join(", ") || "none")}</td>
+          </tr>`).join("");
+  const cueRows = Object.entries(data.source_cue_layer.cues).map(([label, cue]) => `
+          <tr>
+            <td><code>${escapeHtml(label)}</code></td>
+            <td>${escapeHtml(cue.direction_cue)}</td>
+            <td>${escapeHtml(cue.age_cue)}</td>
+            <td>${escapeHtml(cue.action_abx_a_cue)}</td>
+            <td>${escapeHtml(cue.sepsis_cue)}</td>
+            <td>${escapeHtml(cue.pregnancy_cue)}</td>
+            <td>${escapeHtml(cue.renal_exception_cue)}</td>
+            <td><code>${escapeHtml(compactJson(cue.resolved_fields))}</code></td>
+          </tr>`).join("");
+  const directExample = routeRecord(data, "route.direct_smt", "group.m1_conflict", 11);
+  const irConflictExample = routeRecord(data, "route.single_ir", "group.m1_conflict", 11);
+  const irNullExample = routeRecord(data, "route.single_ir", "group.m1_null", 11);
+  const directDiagnostics = directExample?.row?.diagnostics?.join(", ") || "none";
+  const irConflictBridge = irConflictExample?.parsed_response?.deterministic_bridge ?? null;
+  const irConflictCandidate = irConflictExample?.parsed_response?.candidate ?? null;
+  const irConflictFieldCalls = (irConflictExample?.source_calls ?? [])
+    .reduce((count, call) => count + (call.field_calls?.length ?? 0), 0);
+  const irCallRows = (irConflictExample?.source_calls ?? []).map((call) => `
+          <tr>
+            <td><code>${escapeHtml(call.label)}</code></td>
+            <td>${escapeHtml(call.field_calls?.length ?? 0)}</td>
+            <td><code>${escapeHtml(Object.keys(call.parsed_response ?? {}).join(", ") || "none")}</code></td>
+            <td><code>${escapeHtml(call.response_hash)}</code></td>
+          </tr>`).join("");
+  const bridgeRows = [irConflictExample, irNullExample].filter(Boolean).map((record) => {
+    const bridge = record.parsed_response?.deterministic_bridge;
+    const overlap = bridge?.overlap;
+    return `
+          <tr>
+            <td><code>${escapeHtml(record.group_id)}</code></td>
+            <td>${escapeHtml(record.seed)}</td>
+            <td>${escapeHtml(yesNo(overlap?.same_action))}</td>
+            <td>${escapeHtml(yesNo(overlap?.opposed_directions))}</td>
+            <td>${escapeHtml(yesNo(overlap?.overlaps))}</td>
+            <td>${escapeHtml(overlap?.reasons?.join(", ") ?? "none")}</td>
+            <td><code>${escapeHtml(bridge?.verdict ?? record.row.verdict)}</code></td>
+          </tr>`;
+  }).join("");
+  const bridgeRuleRows = (irConflictBridge?.route_ir_rules ?? []).map((rule) => `
+          <tr>
+            <td><code>${escapeHtml(rule.rule_id)}</code></td>
+            <td>${escapeHtml(rule.direction)}</td>
+            <td><code>${escapeHtml(rule.action_key)}</code></td>
+            <td><code>${escapeHtml(compactJson(rule.context))}</code></td>
           </tr>`).join("");
   const realGuideline = data.real_guideline_intake;
   const realGuidelineRows = realGuideline.sources.map((source) => `
@@ -1689,17 +1764,34 @@ function renderBasicUi(data) {
     h3 { font-size: .86rem; margin: 10px 0 6px; }
     p { color: var(--muted); margin-top: 4px; line-height: 1.4; }
     code, pre { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; font-size: .82rem; }
+    code { overflow-wrap: anywhere; }
     pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 280px; overflow: auto; margin: 0; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: #101820; color: #eef6f4; }
     .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
-    .chip { display: inline-flex; align-items: center; min-height: 28px; border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; background: #f7fafb; color: var(--muted); font-size: .8rem; }
+    .chip { display: inline-flex; align-items: center; max-width: 100%; min-height: 28px; border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; background: #f7fafb; color: var(--muted); font-size: .8rem; overflow-wrap: anywhere; }
     .chip.ok { color: var(--ok); background: #e4f2ec; border-color: #b9ddcf; }
     .chip.warn { color: var(--warn); background: #fff1cf; border-color: #e7cf91; }
     .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
     .metric { border: 1px solid var(--line); border-radius: 6px; padding: 12px; }
     .metric strong { display: block; font-size: 1.45rem; line-height: 1; }
     .metric span { display: block; color: var(--muted); margin-top: 6px; font-size: .82rem; }
+    .flow { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px; }
+    .flow-step { border-left: 3px solid var(--line); padding: 2px 0 2px 10px; min-height: 92px; }
+    .flow-step strong { display: block; font-size: .86rem; }
+    .flow-step span { display: block; color: var(--muted); margin-top: 6px; font-size: .8rem; line-height: 1.35; }
+    .flow-step.ok { border-left-color: var(--ok); }
+    .flow-step.warn { border-left-color: var(--warn); }
+    .split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+    .lane { border: 1px solid var(--line); border-radius: 6px; padding: 10px; min-width: 0; }
+    .lane h3 { margin-top: 0; }
+    .lane .status { display: inline-flex; margin-top: 8px; font-weight: 650; font-size: .82rem; }
+    .status.ok { color: var(--ok); }
+    .status.warn { color: var(--warn); }
+    .lane dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 5px 10px; margin: 10px 0; font-size: .82rem; }
+    .lane dt { color: var(--muted); }
+    .lane dd { margin: 0; overflow-wrap: anywhere; }
     table { width: 100%; border-collapse: collapse; min-width: 720px; }
     .wide { min-width: 920px; }
+    .extra-wide { min-width: 1080px; }
     th, td { border-bottom: 1px solid var(--line); padding: 8px; text-align: left; vertical-align: top; font-size: .82rem; }
     th { color: var(--muted); background: #f7fafb; }
     .table-wrap { overflow-x: auto; }
@@ -1709,6 +1801,7 @@ function renderBasicUi(data) {
     @media (max-width: 760px) {
       main { padding: 10px; }
       .grid { grid-template-columns: 1fr; }
+      .flow, .split { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -1735,6 +1828,92 @@ function renderBasicUi(data) {
       <p>${escapeHtml(comparisonConclusion)}</p>
       <p>${escapeHtml(directAuditConclusion)}</p>
       <p>${escapeHtml(irConclusion)}</p>
+    </section>
+
+    <section>
+      <h2>How IR improves this pipeline</h2>
+      <p>Both routes receive the same <code>${escapeHtml(data.source_cue_layer.extractor_id)}</code> cue layer (cue hash <code>${escapeHtml(shortDigest(report.source_cue_layer.cue_hash))}</code>). The lift comes from changing the model's job from whole target-program composition to bounded IR field copying, then letting deterministic code compile and verify the rule rows.</p>
+      <div class="flow">
+        <div class="flow-step">
+          <strong>1. Shared cue input</strong>
+          <span>Source spans are reduced to direction, action, age, condition, pregnancy, and exception cues before either route runs.</span>
+        </div>
+        <div class="flow-step warn">
+          <strong>2. Direct SMT route</strong>
+          <span>The weak model must emit declarations, named assertions, valid SMT-LIB syntax, and the query in one target-language output.</span>
+        </div>
+        <div class="flow-step ok">
+          <strong>3. IR-mediated route</strong>
+          <span>The weak model emits one schema-constrained cue field at a time; deterministic bridge code forms CKC rules and verdicts.</span>
+        </div>
+      </div>
+      <div class="split">
+        <div class="lane">
+          <h3>Direct target composition</h3>
+          <span class="status warn">not admitted in representative conflict row</span>
+          <dl>
+            <dt>group</dt><dd><code>${escapeHtml(directExample?.group_id ?? "missing")}</code> / seed ${escapeHtml(directExample?.seed ?? "missing")}</dd>
+            <dt>syntax</dt><dd>${escapeHtml(yesNo(directExample?.row?.syntax_valid))}</dd>
+            <dt>admitted</dt><dd>${escapeHtml(yesNo(directExample?.row?.admitted))}</dd>
+            <dt>diagnostics</dt><dd><code>${escapeHtml(directDiagnostics)}</code></dd>
+          </dl>
+          <pre>${escapePre(directExample?.response ?? "missing direct response")}</pre>
+        </div>
+        <div class="lane">
+          <h3>IR short-hop composition</h3>
+          <span class="status ok">admitted in representative conflict row</span>
+          <dl>
+            <dt>group</dt><dd><code>${escapeHtml(irConflictExample?.group_id ?? "missing")}</code> / seed ${escapeHtml(irConflictExample?.seed ?? "missing")}</dd>
+            <dt>field calls</dt><dd>${escapeHtml(irConflictFieldCalls)} source-local schema calls</dd>
+            <dt>admitted</dt><dd>${escapeHtml(yesNo(irConflictExample?.row?.admitted))}</dd>
+            <dt>bridge verdict</dt><dd><code>${escapeHtml(irConflictBridge?.verdict ?? "missing")}</code></dd>
+          </dl>
+          <pre>${escapePre(JSON.stringify(irConflictCandidate ?? {}, null, 2))}</pre>
+        </div>
+      </div>
+      <h3>Lift location</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Metric</th><th>direct_smt</th><th>single_ir</th><th>delta</th></tr></thead>
+          <tbody>${liftRows}
+          </tbody>
+        </table>
+      </div>
+      <h3>Shared source cues</h3>
+      <div class="table-wrap">
+        <table class="extra-wide">
+          <thead><tr><th>Source</th><th>Direction cue</th><th>Age cue</th><th>Action cue</th><th>Sepsis</th><th>Pregnancy</th><th>Renal exception</th><th>Resolved IR fields</th></tr></thead>
+          <tbody>${cueRows}
+          </tbody>
+        </table>
+      </div>
+      <h3>IR bridge checks</h3>
+      <div class="table-wrap">
+        <table class="wide">
+          <thead><tr><th>Group</th><th>Seed</th><th>Same action</th><th>Opposed direction</th><th>Context overlap</th><th>Reasons</th><th>Verdict</th></tr></thead>
+          <tbody>${bridgeRows}
+          </tbody>
+        </table>
+      </div>
+      <details>
+        <summary>Representative IR route internals</summary>
+        <h3>Source-local call rollup</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Source</th><th>Field calls</th><th>Fields</th><th>Response hash</th></tr></thead>
+            <tbody>${irCallRows}
+            </tbody>
+          </table>
+        </div>
+        <h3>Deterministic bridge rule rows</h3>
+        <div class="table-wrap">
+          <table class="wide">
+            <thead><tr><th>Rule</th><th>Direction</th><th>Action</th><th>Context</th></tr></thead>
+            <tbody>${bridgeRuleRows}
+            </tbody>
+          </table>
+        </div>
+      </details>
     </section>
 
     <section>
