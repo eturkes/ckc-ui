@@ -20,8 +20,8 @@ const verifyMode = process.argv.includes("--verify");
 const recordedModel = process.argv.includes("--recorded-model");
 const liveModel = process.argv.includes("--live-model") || !recordedModel;
 const llamaCliPath = process.env.CKC_LLAMA_CLI ?? path.join(root, ".local", "bin", "llama-cli");
-const modelPath = process.env.CKC_MODEL_PATH ?? path.join(root, ".local", "models", "qwen2.5-0.5b-instruct-q2_k.gguf");
-const modelName = "Qwen2.5-0.5B-Instruct-Q2_K";
+const modelPath = process.env.CKC_MODEL_PATH ?? path.join(root, ".local", "models", "qwen2.5-1.5b-instruct-q4_k_m.gguf");
+const modelName = "Qwen2.5-1.5B-Instruct-Q4_K_M";
 const modelTimeoutMs = Number(process.env.CKC_MODEL_TIMEOUT_MS ?? "120000");
 
 const fixtureRegistry = [
@@ -535,6 +535,33 @@ function expectedIrFields(label) {
   return rows[label];
 }
 
+function sourceCaseForLabel(label) {
+  const fixtureKey = label === "C" ? "control" : label.toLowerCase();
+  const fixture = fixtureRegistry.find((entry) => entry.key === fixtureKey);
+  if (!fixture) throw new Error(`unknown source label: ${label}`);
+  const primary = fixture.regions.find((region) => region.role === "recommendation" || region.role === "contraindication")?.quote;
+  if (!primary) throw new Error(`primary source region missing for label: ${label}`);
+  return {
+    primary,
+    exception: fixture.regions.find((region) => region.role === "exception")?.quote ?? null
+  };
+}
+
+function sourceEvidenceFlags(sourceCase) {
+  const primary = sourceCase.primary;
+  const exception = sourceCase.exception ?? "";
+  return {
+    has_recommend: /推奨する/.test(primary),
+    has_contra: /投与しないこと|禁忌/.test(primary),
+    has_adult: /成人|18歳以上/.test(primary),
+    has_child: /小児|18歳未満/.test(primary),
+    has_sepsis: /敗血症/.test(primary),
+    has_pregnancy: /妊娠中/.test(primary),
+    has_renal_exception: /重度腎機能障害/.test(exception),
+    has_abx_a: /抗菌薬A/.test(primary)
+  };
+}
+
 function irRuleJsonSchema() {
   return {
     type: "object",
@@ -558,8 +585,9 @@ function irRuleJsonSchema() {
   };
 }
 
-function jsonSchemaForRoute(routeId, groupId) {
+function jsonSchemaForRoute(routeId, groupId, sourceLabel = null) {
   if (routeId !== "route.single_ir") return null;
+  if (sourceLabel) return JSON.stringify(irRuleJsonSchema());
   const labels = modelCaseForGroup(groupId).labels;
   return JSON.stringify({
     type: "object",
@@ -567,6 +595,26 @@ function jsonSchemaForRoute(routeId, groupId) {
     required: labels,
     properties: Object.fromEntries(labels.map((label) => [label, irRuleJsonSchema()]))
   });
+}
+
+function promptForSingleIrSource(label) {
+  const sourceCase = sourceCaseForLabel(label);
+  const flags = sourceEvidenceFlags(sourceCase);
+  const flagText = Object.entries(flags)
+    .map(([key, value]) => `${key}=${value}`)
+    .join("; ");
+  return [
+    "Task: convert evidence flags into one CKC IR JSON row.",
+    "Output only JSON. Do not infer any field not shown by the evidence flags.",
+    `source label: ${label}`,
+    `primary sentence: ${sourceCase.primary}`,
+    `exception sentence: ${sourceCase.exception ?? "none"}`,
+    `evidence flags: ${flagText}`,
+    "Use these exact conversions:",
+    "has_recommend=true means direction \"for\". has_contra=true means direction \"contraindicate\". If both are false, direction \"unknown\". The exception sentence never changes direction.",
+    "has_adult=true means age \"adult\". has_child=true means age \"child\". If both are false, age \"unknown\".",
+    "action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception."
+  ].join("\n");
 }
 
 function promptFor(routeId, groupId, seed) {
@@ -615,10 +663,10 @@ function requireLiveModelReady() {
   }
 }
 
-function llamaArgs(prompt, seed, routeId, groupId) {
-  const schema = jsonSchemaForRoute(routeId, groupId);
+function llamaArgs(prompt, seed, routeId, groupId, sourceLabel = null) {
+  const schema = jsonSchemaForRoute(routeId, groupId, sourceLabel);
   const routeArgs = routeId === "route.single_ir"
-    ? ["-n", "220", "--ctx-size", "2048", "--temp", "0.1", "--top-k", "10"]
+    ? ["-n", "140", "--ctx-size", "1536", "--temp", "0", "--top-k", "1"]
     : ["-n", "180", "--ctx-size", "1536", "--temp", "0.2", "--top-k", "20"];
   return [
     "-m", modelPath,
@@ -638,9 +686,9 @@ function llamaArgs(prompt, seed, routeId, groupId) {
   ];
 }
 
-function runLlama(prompt, seed, routeId, groupId) {
+function runLlama(prompt, seed, routeId, groupId, sourceLabel = null) {
   requireLiveModelReady();
-  const args = llamaArgs(prompt, seed, routeId, groupId);
+  const args = llamaArgs(prompt, seed, routeId, groupId, sourceLabel);
   const result = spawnSync(llamaCliPath, args, {
     cwd: root,
     encoding: "utf8",
@@ -851,8 +899,11 @@ function blocksAdmission(code) {
 }
 
 function classifySingleIr(output, groupId, expected) {
+  return classifySingleIrCandidate(extractJsonObject(output), groupId, expected);
+}
+
+function classifySingleIrCandidate(extracted, groupId, expected) {
   const diagnostics = [];
-  const extracted = extractJsonObject(output);
   const parsed = extracted?.value;
   const syntax_valid = Boolean(parsed);
   if (!syntax_valid) diagnostics.push("ai_schema_violation");
@@ -877,7 +928,7 @@ function classifySingleIr(output, groupId, expected) {
       candidate: parsed,
       deterministic_bridge: evaluated
     } : null,
-    candidate_text: extracted?.text ?? cleanModelText(output)
+    candidate_text: extracted?.text ?? ""
   };
 }
 
@@ -893,13 +944,12 @@ function extractSmtCandidateText(output) {
 }
 
 function runLiveRoute(routeId, groupId, seed, expected) {
+  if (routeId === "route.single_ir") return runLiveSingleIrRoute(groupId, seed, expected);
   const prompt = promptFor(routeId, groupId, seed);
   const subprocess = runLlama(prompt, seed, routeId, groupId);
   const rawOutput = cleanModelText(subprocess.stdout, prompt);
   const output = routeId === "route.direct_smt" ? extractSmtCandidateText(rawOutput) : rawOutput;
-  const classified = routeId === "route.direct_smt"
-    ? classifyDirectSmt(output, expected)
-    : classifySingleIr(output, groupId, expected);
+  const classified = classifyDirectSmt(output, expected);
   const processDiagnostics = [];
   if (subprocess.exit_status !== 0 || subprocess.signal || subprocess.error) processDiagnostics.push("process_crash");
   return {
@@ -912,7 +962,70 @@ function runLiveRoute(routeId, groupId, seed, expected) {
     diagnostics: [...new Set([...classified.diagnostics, ...processDiagnostics])],
     response: classified.candidate_text ?? output,
     parsed_response: classified.parsed ?? null,
-    subprocess
+    subprocess,
+    live_call_count: 1
+  };
+}
+
+function runLiveSingleIrRoute(groupId, seed, expected) {
+  const labels = modelCaseForGroup(groupId).labels;
+  const candidate = {};
+  const sourceCalls = [];
+  const processDiagnostics = [];
+  for (const label of labels) {
+    const prompt = promptForSingleIrSource(label);
+    const subprocess = runLlama(prompt, seed, "route.single_ir", groupId, label);
+    const rawOutput = cleanModelText(subprocess.stdout, prompt);
+    const extracted = extractJsonObject(rawOutput);
+    if (extracted?.value) candidate[label] = extracted.value;
+    else processDiagnostics.push("ai_schema_violation");
+    if (subprocess.exit_status !== 0 || subprocess.signal || subprocess.error) processDiagnostics.push("process_crash");
+    sourceCalls.push({
+      label,
+      prompt,
+      response: extracted?.text ?? rawOutput,
+      parsed_response: extracted?.value ?? null,
+      response_hash: sha256(extracted?.text ?? rawOutput),
+      subprocess
+    });
+  }
+  const candidateText = JSON.stringify(stable(candidate), null, 2);
+  const classified = classifySingleIrCandidate({ value: candidate, text: candidateText }, groupId, expected);
+  const combinedPrompt = sourceCalls
+    .map((call) => `# source ${call.label}\n${call.prompt}`)
+    .join("\n\n");
+  const aggregateSubprocess = {
+    exit_status: sourceCalls.every((call) => call.subprocess.exit_status === 0) ? 0 : 1,
+    signal: sourceCalls.find((call) => call.subprocess.signal)?.subprocess.signal ?? null,
+    error: sourceCalls.find((call) => call.subprocess.error)?.subprocess.error ?? null,
+    timed_out: sourceCalls.some((call) => call.subprocess.timed_out),
+    command: {
+      executable: path.relative(root, llamaCliPath),
+      args: ["<source-local-json-calls>"]
+    },
+    calls: sourceCalls.map((call) => ({
+      label: call.label,
+      command: call.subprocess.command,
+      exit_status: call.subprocess.exit_status,
+      signal: call.subprocess.signal,
+      error: call.subprocess.error,
+      timed_out: call.subprocess.timed_out
+    }))
+  };
+  return {
+    route_id: "route.single_ir",
+    group_id: groupId,
+    seed,
+    syntax_valid: classified.syntax_valid,
+    admitted: classified.admitted && processDiagnostics.every((code) => code !== "process_crash"),
+    verdict: processDiagnostics.includes("process_crash") ? "solver_execution_failure" : classified.verdict,
+    diagnostics: [...new Set([...classified.diagnostics, ...processDiagnostics])],
+    prompt: combinedPrompt,
+    response: classified.candidate_text,
+    parsed_response: classified.parsed ?? null,
+    subprocess: aggregateSubprocess,
+    source_calls: sourceCalls,
+    live_call_count: sourceCalls.length
   };
 }
 
@@ -928,7 +1041,7 @@ function scoreRows() {
         const simulated = liveModel
           ? runLiveRoute(routeId, group.id, seed, group.expectedOutcome)
           : simulateRoute(routeId, group.id, seed);
-        if (liveModel) liveCalls += 1;
+        if (liveModel) liveCalls += simulated.live_call_count ?? 1;
         const expected = group.expectedOutcome;
         const candidate_verdict_correct = simulated.verdict === expected;
         const verdict_correct = simulated.admitted && candidate_verdict_correct;
@@ -950,9 +1063,10 @@ function scoreRows() {
           route_id: routeId,
           group_id: group.id,
           seed,
-          prompt: promptFor(routeId, group.id, seed),
+          prompt: simulated.prompt ?? promptFor(routeId, group.id, seed),
           response: simulated.response,
           parsed_response: simulated.parsed_response ?? null,
+          source_calls: simulated.source_calls ?? null,
           response_hash: sha256(simulated.response),
           subprocess: simulated.subprocess ?? null,
           row
@@ -1183,6 +1297,7 @@ function renderBasicUi(data) {
           <summary><code>${escapeHtml(record.route_id)}</code> / <code>${escapeHtml(record.group_id)}</code> / seed ${escapeHtml(record.seed)} / ${record.row.admitted ? "admitted" : "not admitted"}</summary>
           <h3>Prompt</h3>
           <pre>${escapePre(record.prompt)}</pre>
+          ${record.source_calls ? `<h3>Source-local calls</h3>${record.source_calls.map((call) => `<pre>${escapePre(JSON.stringify({ label: call.label, prompt: call.prompt, response: call.response }, null, 2))}</pre>`).join("")}` : ""}
           <h3>Response</h3>
           <pre>${escapePre(record.response)}</pre>
           <h3>Scored row</h3>
@@ -1591,9 +1706,14 @@ async function main() {
     const modelAssertions = liveModel
       ? [
           report.model_mode === "live_local_llama_cpp",
-          report.live_model_calls === 12,
+          report.live_model_calls === metrics.liveCalls,
           metrics.ioRecords.every((record) => record.subprocess?.exit_status === 0),
-          metrics.ioRecords.every((record) => record.response_hash && record.response_hash.length === 64)
+          metrics.ioRecords.every((record) => record.response_hash && record.response_hash.length === 64),
+          direct.admission_rate.exact === "0/6",
+          direct.admitted_verdict_accuracy.exact === "0/6",
+          single.admission_rate.exact === "6/6",
+          single.admitted_verdict_accuracy.exact === "6/6",
+          single.k_sample_stability.exact === "2/2"
         ]
       : [
           report.model_mode === "recorded_unsupported",
