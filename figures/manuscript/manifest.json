@@ -1,10 +1,10 @@
 {
   "artifact_kind": "ManuscriptFigureManifest",
   "bundle_pdf_export": "deterministic_pdf_writer_v0",
-  "bundle_pdf_hash": "c445091b83d8fd85748dab6d460610d50e1dae017c2da73c617f31c5285027e6",
-  "bundle_pdf_page_count": 4,
+  "bundle_pdf_hash": "a91af6517b3e3417237f9eb32757a37fa703288130fb3ccd6e9375163ffcbdd8",
+  "bundle_pdf_page_count": 5,
   "bundle_pdf_path": "manuscript_figures.pdf",
-  "figure_count": 4,
+  "figure_count": 5,
   "figures": [
     {
       "caption": "Route mechanics. Implemented routes consume the same fixture groups and are scored by the same evaluator; the current run shows target-syntax lift only, not admitted verdict lift.",
@@ -41,11 +41,36 @@
       "svg_hash": "bab84bab63f614ea7192623d49c1c58db05daf4b728c7eff2f75f48c2cbaafef",
       "svg_path": "fig04_real_source_intake.svg",
       "title": "Real guideline intake scope"
+    },
+    {
+      "caption": "Deterministic pipeline comparison. Direct rule-to-SMT is retained as baseline; the layered CKC pipeline matches verdict and conflict-kind accuracy in the current M3 comparison while component reuse is reported separately from model-route lift.",
+      "figure_id": "fig05_pipeline_comparison",
+      "pdf_export": "deterministic_pdf_writer_v0",
+      "pdf_path": "fig05_pipeline_comparison.pdf",
+      "svg_hash": "b798d2789276e02110ee20228765dd53e8d11a287b66ca8020bdeb4e4cdbe49e",
+      "svg_path": "fig05_pipeline_comparison.svg",
+      "title": "Deterministic pipeline comparison"
     }
   ],
   "generated_by": "tools/build-figures.mjs",
   "output_dir": "figures/manuscript",
   "schema_version": "manuscript_figures.v0",
-  "source_report_hash": "607cd9da2537f520bf23ab42e090b750d0615aa32054d466190d77547d766d30",
-  "source_report_path": "runs/m3-routes/report.json"
+  "source_report_hash": "a6fe79e74377a5fee9f23f60324dc4cf6222ccc7686829f0a8f3102da8fdac30",
+  "source_report_path": "runs/m3-routes/report.json",
+  "source_reports": [
+    {
+      "artifact_kind": "Report",
+      "hash": "a6fe79e74377a5fee9f23f60324dc4cf6222ccc7686829f0a8f3102da8fdac30",
+      "path": "runs/m3-routes/report.json",
+      "role": "route_report",
+      "run_id": "m3-routes"
+    },
+    {
+      "artifact_kind": "DeterministicPipelineComparisonReport",
+      "hash": "9878ce77b450f0e7a13080be003470a9555c93b6354713e74d5dffcabe6179d3",
+      "path": "runs/m3-compare/report.json",
+      "role": "pipeline_report",
+      "run_id": "m3-compare"
+    }
+  ]
 }

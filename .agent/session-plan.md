@@ -189,7 +189,7 @@ Gate:
 - `npm run verify:figures`
 
 ### C8 Final Ranking And Manuscript Evidence Pass
-status: pending
+status: done
 
 Intent: turn the expanded comparison into manuscript-ready evidence without
 overclaiming.

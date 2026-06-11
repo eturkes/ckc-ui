@@ -4,10 +4,10 @@
 << /Type /Catalog /Pages 2 0 R >>
 endobj
 2 0 obj
-<< /Type /Pages /Kids [3 0 R 5 0 R 7 0 R 9 0 R] /Count 4 >>
+<< /Type /Pages /Kids [3 0 R 5 0 R 7 0 R 9 0 R 11 0 R] /Count 5 >>
 endobj
 3 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1600 900] /Resources << /Font << /F1 11 0 R /F2 12 0 R /F3 13 0 R >> >> /Contents 4 0 R >>
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1600 900] /Resources << /Font << /F1 13 0 R /F2 14 0 R /F3 15 0 R >> >> /Contents 4 0 R >>
 endobj
 4 0 obj
 << /Length 5293 >>
@@ -222,7 +222,7 @@ BT /F1 15 Tf 54 12 Td (result; scaffolded_cue_translation_test. This figure make
 endstream
 endobj
 5 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1600 900] /Resources << /Font << /F1 11 0 R /F2 12 0 R /F3 13 0 R >> >> /Contents 6 0 R >>
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1600 900] /Resources << /Font << /F1 13 0 R /F2 14 0 R /F3 15 0 R >> >> /Contents 6 0 R >>
 endobj
 6 0 obj
 << /Length 6097 >>
@@ -517,7 +517,7 @@ BT /F1 15 Tf 54 32 Td (Evaluator: source_derived_route_pair_evaluator.v2. Metric
 endstream
 endobj
 7 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1600 900] /Resources << /Font << /F1 11 0 R /F2 12 0 R /F3 13 0 R >> >> /Contents 8 0 R >>
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1600 900] /Resources << /Font << /F1 13 0 R /F2 14 0 R /F3 15 0 R >> >> /Contents 8 0 R >>
 endobj
 8 0 obj
 << /Length 6702 >>
@@ -838,7 +838,7 @@ BT /F1 15 Tf 54 32 Td (Counts come from route_evaluation.route_category_counts. 
 endstream
 endobj
 9 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1600 900] /Resources << /Font << /F1 11 0 R /F2 12 0 R /F3 13 0 R >> >> /Contents 10 0 R >>
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1600 900] /Resources << /Font << /F1 13 0 R /F2 14 0 R /F3 15 0 R >> >> /Contents 10 0 R >>
 endobj
 10 0 obj
 << /Length 4513 >>
@@ -1031,32 +1031,189 @@ BT /F1 15 Tf 54 32 Td (Scoring scope: not_in_locked_m1_m2_measurement. These row
 endstream
 endobj
 11 0 obj
-<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1600 900] /Resources << /Font << /F1 13 0 R /F2 14 0 R /F3 15 0 R >> >> /Contents 12 0 R >>
 endobj
 12 0 obj
-<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+<< /Length 3580 >>
+stream
+0.067 0.094 0.153 rg
+BT /F2 32 Tf 54 842 Td (Deterministic pipeline comparison) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 19 Tf 54 808 Td (Layered CKC artifacts are compared with direct rule-to-SMT over identical M3 groups.) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1304.08 842 Td (run m3-compare; n = 8 groups) Tj ET
+0.898 0.914 0.937 RG
+1 w
+120 220 m 1160 220 l S
+0.349 0.384 0.451 rg
+BT /F1 15 Tf 85.8 214 Td (0%) Tj ET
+0.898 0.914 0.937 RG
+1 w
+120 347.5 m 1160 347.5 l S
+0.349 0.384 0.451 rg
+BT /F1 15 Tf 77.7 341.5 Td (25%) Tj ET
+0.898 0.914 0.937 RG
+1 w
+120 475 m 1160 475 l S
+0.349 0.384 0.451 rg
+BT /F1 15 Tf 77.7 469 Td (50%) Tj ET
+0.898 0.914 0.937 RG
+1 w
+120 602.5 m 1160 602.5 l S
+0.349 0.384 0.451 rg
+BT /F1 15 Tf 77.7 596.5 Td (75%) Tj ET
+0.898 0.914 0.937 RG
+1 w
+120 730 m 1160 730 l S
+0.349 0.384 0.451 rg
+BT /F1 15 Tf 69.6 724 Td (100%) Tj ET
+0.784 0.816 0.855 RG
+2 w
+120 730 m 120 220 l S
+0.784 0.816 0.855 RG
+2 w
+120 220 m 1160 220 l S
+0.706 0.361 0.216 rg
+0.706 0.361 0.216 RG
+1 w
+187 220 58 510 re
+B
+0.706 0.361 0.216 rg
+BT /F2 14 Tf 204.66 740 Td (8/8) Tj ET
+0.184 0.42 0.31 rg
+0.184 0.42 0.31 RG
+1 w
+255 220 58 510 re
+B
+0.184 0.42 0.31 rg
+BT /F2 14 Tf 272.66 740 Td (8/8) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 16 Tf 141.76 186 Td (Compile) Tj ET
+0.706 0.361 0.216 rg
+0.706 0.361 0.216 RG
+1 w
+447 220 58 510 re
+B
+0.706 0.361 0.216 rg
+BT /F2 14 Tf 464.66 740 Td (8/8) Tj ET
+0.184 0.42 0.31 rg
+0.184 0.42 0.31 RG
+1 w
+515 220 58 510 re
+B
+0.184 0.42 0.31 rg
+BT /F2 14 Tf 532.66 740 Td (8/8) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 16 Tf 401.76 186 Td (Verdict) Tj ET
+0.706 0.361 0.216 rg
+0.706 0.361 0.216 RG
+1 w
+707 220 58 510 re
+B
+0.706 0.361 0.216 rg
+BT /F2 14 Tf 724.66 740 Td (8/8) Tj ET
+0.184 0.42 0.31 rg
+0.184 0.42 0.31 RG
+1 w
+775 220 58 510 re
+B
+0.184 0.42 0.31 rg
+BT /F2 14 Tf 792.66 740 Td (8/8) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 16 Tf 635.84 186 Td (Conflict kind) Tj ET
+0.706 0.361 0.216 rg
+0.706 0.361 0.216 RG
+1 w
+967 220 58 0 re
+B
+0.706 0.361 0.216 rg
+BT /F2 14 Tf 980.88 230 Td (0/16) Tj ET
+0.184 0.42 0.31 rg
+0.184 0.42 0.31 RG
+1 w
+1035 220 58 440.847 re
+B
+0.184 0.42 0.31 rg
+BT /F2 14 Tf 1045.1 670.847 Td (51/59) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 16 Tf 930.4 186 Td (Reuse) Tj ET
+0.984 0.988 0.992 rg
+0.706 0.361 0.216 RG
+1 w
+1240 697 113.1 27 re
+B
+0.706 0.361 0.216 rg
+BT /F2 15 Tf 1252 706 Td (direct_rule) Tj ET
+0.984 0.988 0.992 rg
+0.184 0.42 0.31 RG
+1 w
+1240 653 113.1 27 re
+B
+0.184 0.42 0.31 rg
+BT /F2 15 Tf 1252 662 Td (layered_ckc) Tj ET
+0.984 0.988 0.992 rg
+0.898 0.914 0.937 RG
+2 w
+1220 220 325 380 re
+B
+0.067 0.094 0.153 rg
+BT /F2 21 Tf 1244 560 Td (Interpretation) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1244 522 Td (Direct baseline verdict) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1244 500 Td (accuracy is 8/8. Layered) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1244 478 Td (verdict accuracy is 8/8;) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1244 456 Td (layered-minus-direct verdict) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1244 434 Td (delta is 0/1.) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1244 400 Td (Component reuse delta is) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1244 378 Td (51/59. This is deterministic) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1244 356 Td (pipeline evidence and is) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1244 334 Td (separate from model-route) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1244 312 Td (lift.) Tj ET
+0.898 0.914 0.937 RG
+1 w
+54 56 m 1546 56 l S
+0.349 0.384 0.451 rg
+BT /F1 15 Tf 54 32 Td (Ranking: reuse_lift_only. Candidate diff compares 8 groups. No clinical, deployment, or regulatory claim is made.) Tj ET
+endstream
 endobj
 13 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+14 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+15 0 obj
 << /Type /Font /Subtype /Type1 /BaseFont /Courier >>
 endobj
 xref
-0 14
+0 16
 0000000000 65535 f
 0000000015 00000 n
 0000000064 00000 n
-0000000139 00000 n
-0000000289 00000 n
-0000005633 00000 n
-0000005783 00000 n
-0000011931 00000 n
-0000012081 00000 n
-0000018834 00000 n
-0000018985 00000 n
-0000023550 00000 n
-0000023621 00000 n
-0000023697 00000 n
+0000000146 00000 n
+0000000296 00000 n
+0000005640 00000 n
+0000005790 00000 n
+0000011938 00000 n
+0000012088 00000 n
+0000018841 00000 n
+0000018992 00000 n
+0000023557 00000 n
+0000023709 00000 n
+0000027341 00000 n
+0000027412 00000 n
+0000027488 00000 n
 trailer
-<< /Size 14 /Root 1 0 R >>
+<< /Size 16 /Root 1 0 R >>
 startxref
-23766
+27557
 %%EOF

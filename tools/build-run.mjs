@@ -70,10 +70,22 @@ const comparisonMetricIds = [
   "candidate_verdict_accuracy",
   "k_sample_stability"
 ];
+const routeRankingMetricIds = [
+  "admitted_verdict_accuracy",
+  "admission_rate",
+  "target_syntax_validity",
+  "k_sample_stability"
+];
 const pipelineMetricIds = [
   "compile_success_rate",
   "verdict_accuracy",
   "conflict_kind_accuracy",
+  "component_reuse_rate"
+];
+const pipelineRankingMetricIds = [
+  "verdict_accuracy",
+  "conflict_kind_accuracy",
+  "compile_success_rate",
   "component_reuse_rate"
 ];
 
@@ -143,6 +155,82 @@ function subtractRatio(a, b) {
 
 function compareRatios(a, b) {
   return (a.numerator * b.denominator) - (b.numerator * a.denominator);
+}
+
+function ratioValue(ratioValueObject) {
+  if (!ratioValueObject || Number(ratioValueObject.denominator) === 0) return 0;
+  return Number(ratioValueObject.numerator) / Number(ratioValueObject.denominator);
+}
+
+function csvEscape(value) {
+  const text = value === null || value === undefined ? "" : String(value);
+  return /[",\n\r]/.test(text) ? `"${text.replaceAll("\"", "\"\"")}"` : text;
+}
+
+function csvTable(header, rows) {
+  return [
+    header.map(csvEscape).join(","),
+    ...rows.map((row) => header.map((column) => csvEscape(row[column])).join(","))
+  ].join("\n");
+}
+
+function compareMetricTuple(left, right, metricIds) {
+  for (const metricId of metricIds) {
+    const diff = compareRatios(right.metrics[metricId].value, left.metrics[metricId].value);
+    if (diff !== 0) return diff;
+  }
+  return left.item_id.localeCompare(right.item_id);
+}
+
+function assignSequentialRanks(entries, metricIds) {
+  return entries
+    .slice()
+    .sort((left, right) => compareMetricTuple(left, right, metricIds))
+    .map((entry, index) => ({ ...entry, rank: index + 1 }));
+}
+
+function routeComparisonClassification(routeMetrics, routeMatrix) {
+  const baseline = routeMetrics.find((entry) => entry.route_id === routeMatrix.baseline_route_id);
+  const compared = routeMetrics.filter((entry) => entry.route_id !== routeMatrix.baseline_route_id);
+  const admittedLiftRoutes = compared
+    .filter((entry) => compareRatios(entry.admitted_verdict_accuracy, baseline.admitted_verdict_accuracy) > 0)
+    .map((entry) => entry.route_id)
+    .sort();
+  const targetSyntaxLiftRoutes = compared
+    .filter((entry) => compareRatios(entry.target_syntax_validity, baseline.target_syntax_validity) > 0)
+    .map((entry) => entry.route_id)
+    .sort();
+  return {
+    classification: admittedLiftRoutes.length > 0
+      ? "admitted_lift"
+      : targetSyntaxLiftRoutes.length > 0
+        ? "target_syntax_lift_only"
+        : "null_result_no_route_lift",
+    admitted_lift_route_ids: admittedLiftRoutes,
+    target_syntax_lift_route_ids: targetSyntaxLiftRoutes
+  };
+}
+
+function pipelineComparisonClassification(pipelineMetrics, pipelineMatrix) {
+  const baseline = pipelineMetrics.find((entry) => entry.pipeline_id === pipelineMatrix.baseline_pipeline_id);
+  const compared = pipelineMetrics.filter((entry) => entry.pipeline_id !== pipelineMatrix.baseline_pipeline_id);
+  const verdictLiftPipelines = compared
+    .filter((entry) => compareRatios(entry.verdict_accuracy, baseline.verdict_accuracy) > 0)
+    .map((entry) => entry.pipeline_id)
+    .sort();
+  const reuseLiftPipelines = compared
+    .filter((entry) => compareRatios(entry.component_reuse_rate, baseline.component_reuse_rate) > 0)
+    .map((entry) => entry.pipeline_id)
+    .sort();
+  return {
+    classification: verdictLiftPipelines.length > 0
+      ? "verdict_accuracy_lift"
+      : reuseLiftPipelines.length > 0
+        ? "reuse_lift_only"
+        : "null_result_no_pipeline_lift",
+    verdict_lift_pipeline_ids: verdictLiftPipelines,
+    reuse_lift_pipeline_ids: reuseLiftPipelines
+  };
 }
 
 async function writeJson(relativePath, value) {
@@ -1696,6 +1784,142 @@ function buildPipelineMatrix(pipelineMetrics) {
       baseline_value: row.metrics[metric].baseline_value,
       delta_from_baseline: row.metrics[metric].delta_from_baseline
     })))
+  };
+}
+
+function buildPipelineRankingArtifacts({ rawRows, pipelineMetrics, pipelineMatrix }) {
+  const classification = pipelineComparisonClassification(pipelineMetrics, pipelineMatrix);
+  const rawRowRefsByPipeline = new Map(pipelineIds.map((pipelineId) => [
+    pipelineId,
+    rawRows
+      .map((row, index) => ({ row, index }))
+      .filter(({ row }) => row.pipeline_id === pipelineId)
+      .map(({ row, index }) => ({
+        raw_row_index: index,
+        group_id: row.group_id,
+        measurement_role: row.measurement_role,
+        compiled: row.compiled,
+        verdict: row.verdict,
+        expected: row.expected,
+        conflict_kind: row.conflict_kind,
+        expected_conflict_kind: row.expected_conflict_kind
+      }))
+  ]));
+  const metricsByPipeline = new Map(pipelineMetrics.map((entry) => [entry.pipeline_id, entry]));
+  const entries = pipelineMatrix.rows.map((matrixRow) => {
+    const metric = metricsByPipeline.get(matrixRow.pipeline_id);
+    return {
+      item_kind: "pipeline",
+      item_id: matrixRow.pipeline_id,
+      comparison_role: matrixRow.comparison_role,
+      baseline_id: pipelineMatrix.baseline_pipeline_id,
+      samples: metric.samples,
+      model_call_count: metric.model_call_count,
+      metrics: matrixRow.metrics,
+      raw_row_refs: rawRowRefsByPipeline.get(matrixRow.pipeline_id) ?? []
+    };
+  });
+  const rankedRows = assignSequentialRanks(entries, pipelineRankingMetricIds);
+  const scoreBreakdown = {
+    artifact_kind: "ComparisonScoreBreakdown",
+    schema_version: "comparison_score_breakdown.v0",
+    experiment_id: selectedExperimentId,
+    run_id: runId,
+    item_kind: "pipeline",
+    comparison_scope: pipelineMatrix.comparison_scope,
+    baseline_id: pipelineMatrix.baseline_pipeline_id,
+    layered_pipeline_id: pipelineMatrix.layered_pipeline_id,
+    result_classification: classification.classification,
+    verdict_lift_pipeline_ids: classification.verdict_lift_pipeline_ids,
+    reuse_lift_pipeline_ids: classification.reuse_lift_pipeline_ids,
+    ranking_policy: {
+      policy_id: "pipeline_lexicographic_exact_v0",
+      rank_order: "descending_lexicographic_exact_ratios",
+      sort_metrics: pipelineRankingMetricIds,
+      note: "Correctness metrics sort before component reuse so reuse lift is not presented as verdict lift."
+    },
+    source_artifacts: {
+      raw_rows_path: "metrics/pipeline_raw_rows.json",
+      raw_rows_hash: sha256(rawRows),
+      metric_rows_path: "metrics/pipeline_metrics.json",
+      metric_rows_hash: sha256(pipelineMetrics),
+      matrix_path: "metrics/pipeline_matrix.json",
+      matrix_hash: sha256(pipelineMatrix)
+    },
+    rows: rankedRows.map((entry) => ({
+      rank: entry.rank,
+      item_kind: entry.item_kind,
+      item_id: entry.item_id,
+      comparison_role: entry.comparison_role,
+      baseline_id: entry.baseline_id,
+      samples: entry.samples,
+      model_call_count: entry.model_call_count,
+      sort_key_exact: pipelineRankingMetricIds.map((metricId) => entry.metrics[metricId].value.exact),
+      metrics: Object.fromEntries(pipelineMetricIds.map((metricId) => [
+        metricId,
+        {
+          value: entry.metrics[metricId].value,
+          baseline_value: entry.metrics[metricId].baseline_value,
+          delta_from_baseline: entry.metrics[metricId].delta_from_baseline,
+          ranking_role: pipelineRankingMetricIds.includes(metricId) ? "sort_key" : "reported_metric"
+        }
+      ])),
+      raw_row_refs: entry.raw_row_refs
+    }))
+  };
+  const rankingRows = scoreBreakdown.rows.map((entry) => ({
+    rank: entry.rank,
+    scope: "pipeline_comparison",
+    item_kind: entry.item_kind,
+    item_id: entry.item_id,
+    comparison_role: entry.comparison_role,
+    baseline_id: entry.baseline_id,
+    result_classification: classification.classification,
+    verdict_accuracy: entry.metrics.verdict_accuracy.value.exact,
+    verdict_delta: entry.metrics.verdict_accuracy.delta_from_baseline.exact,
+    conflict_kind_accuracy: entry.metrics.conflict_kind_accuracy.value.exact,
+    conflict_kind_delta: entry.metrics.conflict_kind_accuracy.delta_from_baseline.exact,
+    compile_success_rate: entry.metrics.compile_success_rate.value.exact,
+    compile_delta: entry.metrics.compile_success_rate.delta_from_baseline.exact,
+    component_reuse_rate: entry.metrics.component_reuse_rate.value.exact,
+    component_reuse_delta: entry.metrics.component_reuse_rate.delta_from_baseline.exact,
+    raw_row_count: entry.raw_row_refs.length,
+    raw_rows_path: "metrics/pipeline_raw_rows.json",
+    score_breakdown_path: "score_breakdown.json"
+  }));
+  const rankingCsv = csvTable([
+    "rank",
+    "scope",
+    "item_kind",
+    "item_id",
+    "comparison_role",
+    "baseline_id",
+    "result_classification",
+    "verdict_accuracy",
+    "verdict_delta",
+    "conflict_kind_accuracy",
+    "conflict_kind_delta",
+    "compile_success_rate",
+    "compile_delta",
+    "component_reuse_rate",
+    "component_reuse_delta",
+    "raw_row_count",
+    "raw_rows_path",
+    "score_breakdown_path"
+  ], rankingRows);
+  return {
+    rankingCsv,
+    scoreBreakdown,
+    summary: {
+      ranking_path: "ranking.csv",
+      score_breakdown_path: "score_breakdown.json",
+      result_classification: classification.classification,
+      baseline_id: pipelineMatrix.baseline_pipeline_id,
+      layered_pipeline_id: pipelineMatrix.layered_pipeline_id,
+      rank_order: pipelineRankingMetricIds,
+      verdict_lift_pipeline_ids: classification.verdict_lift_pipeline_ids,
+      reuse_lift_pipeline_ids: classification.reuse_lift_pipeline_ids
+    }
   };
 }
 
@@ -4807,6 +5031,146 @@ function buildRouteMatrix(routeMetrics) {
   };
 }
 
+function buildRouteRankingArtifacts({ rawRows, routeMetrics, routeMatrix }) {
+  const classification = routeComparisonClassification(routeMetrics, routeMatrix);
+  const rawRowRefsByRoute = new Map(routeIds.map((routeId) => [
+    routeId,
+    rawRows
+      .map((row, index) => ({ row, index }))
+      .filter(({ row }) => row.route_id === routeId)
+      .map(({ row, index }) => ({
+        raw_row_index: index,
+        group_id: row.group_id,
+        seed: row.seed,
+        measurement_status: row.measurement_status,
+        admitted: row.admitted,
+        verdict: row.verdict,
+        expected: row.expected
+      }))
+  ]));
+  const metricsByRoute = new Map(routeMetrics.map((entry) => [entry.route_id, entry]));
+  const entries = routeMatrix.rows.map((matrixRow) => {
+    const metric = metricsByRoute.get(matrixRow.route_id);
+    return {
+      item_kind: "route",
+      item_id: matrixRow.route_id,
+      comparison_role: matrixRow.comparison_role,
+      baseline_id: routeMatrix.baseline_route_id,
+      samples: metric.samples,
+      model_call_count: metric.model_call_count,
+      measurement_statuses: metric.measurement_statuses,
+      metrics: matrixRow.metrics,
+      raw_row_refs: rawRowRefsByRoute.get(matrixRow.route_id) ?? []
+    };
+  });
+  const rankedRows = assignSequentialRanks(entries, routeRankingMetricIds);
+  const scoreBreakdown = {
+    artifact_kind: "ComparisonScoreBreakdown",
+    schema_version: "comparison_score_breakdown.v0",
+    experiment_id: selectedExperimentId,
+    run_id: runId,
+    item_kind: "route",
+    comparison_scope: routeMatrix.comparison_scope,
+    baseline_id: routeMatrix.baseline_route_id,
+    result_classification: classification.classification,
+    admitted_lift_route_ids: classification.admitted_lift_route_ids,
+    target_syntax_lift_route_ids: classification.target_syntax_lift_route_ids,
+    ranking_policy: {
+      policy_id: "route_lexicographic_exact_v0",
+      rank_order: "descending_lexicographic_exact_ratios",
+      sort_metrics: routeRankingMetricIds,
+      audit_only_metrics: ["candidate_verdict_accuracy"],
+      note: "Candidate verdict accuracy is retained for rejected-output audit context and is not used to claim admitted lift."
+    },
+    source_artifacts: {
+      raw_rows_path: "metrics/raw_rows.json",
+      raw_rows_hash: sha256(rawRows),
+      metric_rows_path: "metrics/route_metrics.json",
+      metric_rows_hash: sha256(routeMetrics),
+      matrix_path: "metrics/route_matrix.json",
+      matrix_hash: sha256(routeMatrix)
+    },
+    rows: rankedRows.map((entry) => ({
+      rank: entry.rank,
+      item_kind: entry.item_kind,
+      item_id: entry.item_id,
+      comparison_role: entry.comparison_role,
+      baseline_id: entry.baseline_id,
+      samples: entry.samples,
+      model_call_count: entry.model_call_count,
+      measurement_statuses: entry.measurement_statuses,
+      sort_key_exact: routeRankingMetricIds.map((metricId) => entry.metrics[metricId].value.exact),
+      metrics: Object.fromEntries(comparisonMetricIds.map((metricId) => [
+        metricId,
+        {
+          value: entry.metrics[metricId].value,
+          baseline_value: entry.metrics[metricId].baseline_value,
+          delta_from_baseline: entry.metrics[metricId].delta_from_baseline,
+          ranking_role: routeRankingMetricIds.includes(metricId) ? "sort_key" : "audit_only"
+        }
+      ])),
+      raw_row_refs: entry.raw_row_refs
+    }))
+  };
+  const rankingRows = scoreBreakdown.rows.map((entry) => ({
+    rank: entry.rank,
+    scope: "route_comparison",
+    item_kind: entry.item_kind,
+    item_id: entry.item_id,
+    comparison_role: entry.comparison_role,
+    baseline_id: entry.baseline_id,
+    result_classification: classification.classification,
+    admitted_verdict_accuracy: entry.metrics.admitted_verdict_accuracy.value.exact,
+    admitted_delta: entry.metrics.admitted_verdict_accuracy.delta_from_baseline.exact,
+    admission_rate: entry.metrics.admission_rate.value.exact,
+    admission_delta: entry.metrics.admission_rate.delta_from_baseline.exact,
+    target_syntax_validity: entry.metrics.target_syntax_validity.value.exact,
+    target_syntax_delta: entry.metrics.target_syntax_validity.delta_from_baseline.exact,
+    k_sample_stability: entry.metrics.k_sample_stability.value.exact,
+    stability_delta: entry.metrics.k_sample_stability.delta_from_baseline.exact,
+    candidate_verdict_accuracy: entry.metrics.candidate_verdict_accuracy.value.exact,
+    candidate_delta: entry.metrics.candidate_verdict_accuracy.delta_from_baseline.exact,
+    raw_row_count: entry.raw_row_refs.length,
+    raw_rows_path: "metrics/raw_rows.json",
+    score_breakdown_path: "score_breakdown.json"
+  }));
+  const rankingCsv = csvTable([
+    "rank",
+    "scope",
+    "item_kind",
+    "item_id",
+    "comparison_role",
+    "baseline_id",
+    "result_classification",
+    "admitted_verdict_accuracy",
+    "admitted_delta",
+    "admission_rate",
+    "admission_delta",
+    "target_syntax_validity",
+    "target_syntax_delta",
+    "k_sample_stability",
+    "stability_delta",
+    "candidate_verdict_accuracy",
+    "candidate_delta",
+    "raw_row_count",
+    "raw_rows_path",
+    "score_breakdown_path"
+  ], rankingRows);
+  return {
+    rankingCsv,
+    scoreBreakdown,
+    summary: {
+      ranking_path: "ranking.csv",
+      score_breakdown_path: "score_breakdown.json",
+      result_classification: classification.classification,
+      baseline_id: routeMatrix.baseline_route_id,
+      rank_order: routeRankingMetricIds,
+      admitted_lift_route_ids: classification.admitted_lift_route_ids,
+      target_syntax_lift_route_ids: classification.target_syntax_lift_route_ids
+    }
+  };
+}
+
 function scoreRows() {
   const routes = routeIds;
   const seeds = sampleSeeds;
@@ -5630,6 +5994,27 @@ function routeMatrixMarkdown(routeMatrix, mode) {
   return [header, align, rows].join("\n");
 }
 
+function routeEvidenceClassificationSentence(report, locale = "en") {
+  const classification = report.ranking?.result_classification
+    ?? routeComparisonClassification(report.metrics.route_metrics, report.metrics.route_matrix).classification;
+  if (locale === "ja") {
+    if (classification === "admitted_lift") {
+      return "result classification: admitted lift。少なくとも一つの compared route が direct SMT baseline の admitted verdict accuracy を上回る。";
+    }
+    if (classification === "target_syntax_lift_only") {
+      return "result classification: target-syntax lift only。少なくとも一つの compared route が target_syntax_validity で direct SMT baseline を上回るが、admitted verdict accuracy では上回らない。candidate accuracy は rejected output の監査情報であり admitted lift ではない。";
+    }
+    return "result classification: null result。compared route は admitted verdict accuracy でも target_syntax_validity でも direct SMT baseline を上回らない。";
+  }
+  if (classification === "admitted_lift") {
+    return "Result classification: admitted lift. At least one compared route exceeds the direct SMT baseline on admitted verdict accuracy.";
+  }
+  if (classification === "target_syntax_lift_only") {
+    return "Result classification: target-syntax lift only. At least one compared route exceeds the direct SMT baseline on target_syntax_validity, but no compared route exceeds admitted verdict accuracy; candidate accuracy remains rejected-output audit evidence.";
+  }
+  return "Result classification: null result. No compared route exceeds the direct SMT baseline on admitted verdict accuracy or target_syntax_validity.";
+}
+
 function routeMatrixConclusion(report, locale = "en") {
   const matrix = report.metrics.route_matrix;
   const baseline = routeMetricById(report, matrix.baseline_route_id);
@@ -5649,7 +6034,8 @@ function routeMatrixConclusion(report, locale = "en") {
       admittedLifts.length === 0
         ? `この run では baseline を上回る admitted verdict accuracy の route はない。baseline は ${baseline.admitted_verdict_accuracy.exact}。`
         : `admitted verdict accuracy で baseline を上回る route: ${admittedLifts.map((entry) => `\`${entry.route_id}\` ${entry.admitted_verdict_accuracy.exact}`).join(", ")}。`,
-      `target syntax の最大値は \`${targetLeader.route_id}\` ${targetLeader.target_syntax_validity.exact}。candidate verdict accuracy の最大値は \`${candidateLeader.route_id}\` ${candidateLeader.candidate_verdict_accuracy.exact}。candidate accuracy は rejected output の監査情報としてのみ扱う。`
+      `target syntax の最大値は \`${targetLeader.route_id}\` ${targetLeader.target_syntax_validity.exact}。candidate verdict accuracy の最大値は \`${candidateLeader.route_id}\` ${candidateLeader.candidate_verdict_accuracy.exact}。candidate accuracy は rejected output の監査情報としてのみ扱う。`,
+      routeEvidenceClassificationSentence(report, "ja")
     ].join(" ");
   }
   return [
@@ -5657,7 +6043,8 @@ function routeMatrixConclusion(report, locale = "en") {
     admittedLifts.length === 0
       ? `No compared route exceeds the baseline on admitted verdict accuracy in this run; baseline admitted accuracy is ${baseline.admitted_verdict_accuracy.exact}.`
       : `Compared routes exceeding baseline admitted verdict accuracy: ${admittedLifts.map((entry) => `\`${entry.route_id}\` ${entry.admitted_verdict_accuracy.exact}`).join(", ")}.`,
-    `The highest target-syntax route is \`${targetLeader.route_id}\` at ${targetLeader.target_syntax_validity.exact}; the highest candidate-verdict route is \`${candidateLeader.route_id}\` at ${candidateLeader.candidate_verdict_accuracy.exact}, reported only as rejected-output audit evidence.`
+    `The highest target-syntax route is \`${targetLeader.route_id}\` at ${targetLeader.target_syntax_validity.exact}; the highest candidate-verdict route is \`${candidateLeader.route_id}\` at ${candidateLeader.candidate_verdict_accuracy.exact}, reported only as rejected-output audit evidence.`,
+    routeEvidenceClassificationSentence(report)
   ].join(" ");
 }
 
@@ -5733,6 +6120,8 @@ ${routeMatrixMarkdown(report.metrics.route_matrix, "value")}
 ${routeMatrixMarkdown(report.metrics.route_matrix, "delta")}
 
 ${comparisonConclusion}
+
+Ranking artifact: \`${report.ranking.ranking_path}\`; score breakdown: \`${report.ranking.score_breakdown_path}\`; rank order: ${report.ranking.rank_order.map((entry) => `\`${entry}\``).join(" -> ")}.
 
 ${directAuditConclusion}
 
@@ -5829,6 +6218,8 @@ ${routeMatrixMarkdown(report.metrics.route_matrix, "delta")}
 
 ${comparisonConclusion}
 
+ranking artifact: \`${report.ranking.ranking_path}\`; score breakdown: \`${report.ranking.score_breakdown_path}\`; rank order: ${report.ranking.rank_order.map((entry) => `\`${entry}\``).join(" -> ")}.
+
 ${directAuditConclusion}
 
 ${promptCatalogJapaneseMarkdown(report.prompt_catalog)}
@@ -5900,6 +6291,8 @@ ${pipelineMatrixMarkdown(report.metrics.pipeline_matrix, "delta")}
 
 ${pipelineComparisonConclusion(report)}
 
+Ranking artifact: \`${report.ranking.ranking_path}\`; score breakdown: \`${report.ranking.score_breakdown_path}\`; result classification: \`${report.ranking.result_classification}\`; rank order: ${report.ranking.rank_order.map((entry) => `\`${entry}\``).join(" -> ")}.
+
 Model-route delta scope: ${report.pipeline_comparison.model_route_delta_scope}
 
 ## Candidate Diff
@@ -5945,6 +6338,8 @@ ${pipelineMatrixMarkdown(report.metrics.pipeline_matrix, "value")}
 ${pipelineMatrixMarkdown(report.metrics.pipeline_matrix, "delta")}
 
 ${pipelineComparisonConclusion(report, "ja")}
+
+ranking artifact: \`${report.ranking.ranking_path}\`; score breakdown: \`${report.ranking.score_breakdown_path}\`; result classification: \`${report.ranking.result_classification}\`; rank order: ${report.ranking.rank_order.map((entry) => `\`${entry}\``).join(" -> ")}.
 
 model-route delta scope: ${report.pipeline_comparison.model_route_delta_scope}
 
@@ -6029,6 +6424,11 @@ async function writePipelineComparisonRun({ artifactsByDoc, directArtifactsByDoc
   const pipelineRawRows = pipelineResults.map((result) => pipelineRawRow(result));
   const pipelineMetrics = buildPipelineMetrics(pipelineRawRows, componentReuseGraph);
   const pipelineMatrix = buildPipelineMatrix(pipelineMetrics);
+  const pipelineRanking = buildPipelineRankingArtifacts({
+    rawRows: pipelineRawRows,
+    pipelineMetrics,
+    pipelineMatrix
+  });
   const candidateDiff = buildCandidateDiff({
     pipelineResults,
     rawRows: pipelineRawRows,
@@ -6049,6 +6449,8 @@ async function writePipelineComparisonRun({ artifactsByDoc, directArtifactsByDoc
   await writeJson("metrics/pipeline_metrics.json", pipelineMetrics);
   await writeJson("metrics/pipeline_matrix.json", pipelineMatrix);
   await writeJson("metrics/group_audit.json", groupAudit);
+  await writeText("ranking.csv", pipelineRanking.rankingCsv);
+  await writeJson("score_breakdown.json", pipelineRanking.scoreBreakdown);
 
   const report = {
     artifact_kind: "DeterministicPipelineComparisonReport",
@@ -6095,6 +6497,7 @@ async function writePipelineComparisonRun({ artifactsByDoc, directArtifactsByDoc
       pipeline_metrics: pipelineMetrics,
       pipeline_matrix: pipelineMatrix
     },
+    ranking: pipelineRanking.summary,
     candidate_diff: candidateDiff,
     component_reuse_graph: componentReuseGraph,
     compactness_front: compactnessFront,
@@ -6159,6 +6562,8 @@ async function writePipelineComparisonRun({ artifactsByDoc, directArtifactsByDoc
     component_reuse_graph_hash: sha256(componentReuseGraph),
     compactness_front_hash: sha256(compactnessFront),
     pipeline_matrix_hash: sha256(pipelineMatrix),
+    ranking_csv_hash: sha256Text(pipelineRanking.rankingCsv),
+    score_breakdown_hash: sha256(pipelineRanking.scoreBreakdown),
     group_audit_hash: sha256(groupAudit),
     real_guideline_intake_hash: sha256(realGuidelineIntake),
     report_hash: sha256(report)
@@ -6196,6 +6601,8 @@ async function writePipelineComparisonRun({ artifactsByDoc, directArtifactsByDoc
       "metrics/pipeline_metrics.json",
       "metrics/pipeline_matrix.json",
       "metrics/group_audit.json",
+      "ranking.csv",
+      "score_breakdown.json",
       "trace_bundle.json",
       "lineage_index.json",
       "real_guidelines/source_intake.json",
@@ -6220,6 +6627,11 @@ async function writePipelineComparisonRun({ artifactsByDoc, directArtifactsByDoc
       pipelineMatrix.rows.length === pipelineIds.length,
       pipelineMatrix.cells.length === pipelineIds.length * pipelineMetricIds.length,
       layeredMatrixRow && pipelineMetricIds.every((metricId) => layeredMatrixRow.metrics[metricId].delta_from_baseline.exact),
+      report.ranking.result_classification === pipelineRanking.summary.result_classification,
+      pipelineRanking.scoreBreakdown.rows.length === pipelineIds.length,
+      pipelineRanking.scoreBreakdown.rows.every((row) => pipelineIds.includes(row.item_id) && row.raw_row_refs.length === groups.length),
+      pipelineRanking.rankingCsv.includes("result_classification"),
+      pipelineRanking.rankingCsv.includes(pipelineRanking.summary.result_classification),
       candidateDiff.group_rows.length === groups.length,
       candidateDiff.group_rows.every((row) => row.verdict_level.verdicts_equal && row.verdict_level.conflict_kinds_equal),
       candidateDiff.model_route_delta_scope.includes("route_matrix"),
@@ -6440,6 +6852,11 @@ async function main() {
   const promptCatalog = buildPromptCatalog(metrics.ioRecords);
   const realismAudit = buildRealismAudit({ realGuidelineIntake, sourceCueLayer, promptCatalog });
   const realismAuditHash = sha256(realismAudit);
+  const routeRanking = buildRouteRankingArtifacts({
+    rawRows: metrics.rawRows,
+    routeMetrics: metrics.routeMetrics,
+    routeMatrix: metrics.routeMatrix
+  });
   const modelMeta = await modelMetadata(metrics.liveCalls);
   for (const record of metrics.ioRecords) {
     await writeJson(`model_io/${record.route_id}/${record.group_id}/seed-${record.seed}.json`, record);
@@ -6460,6 +6877,8 @@ async function main() {
   await writeJson("metrics/route_evaluation.json", routeEvaluation);
   await writeJson("metrics/group_audit.json", groupAudit);
   await writeJson("metrics/realism_audit.json", realismAudit);
+  await writeText("ranking.csv", routeRanking.rankingCsv);
+  await writeJson("score_breakdown.json", routeRanking.scoreBreakdown);
 
   const diagnosticsSummary = {};
   for (const row of metrics.rawRows) {
@@ -6507,6 +6926,7 @@ async function main() {
     direct_smt_audit: directSmtAudit,
     route_target_summary: routeTargetSummary,
     route_evaluation: routeEvaluation,
+    ranking: routeRanking.summary,
     m3_group_audit: groupAudit,
     prompt_catalog: {
       artifact_kind: promptCatalog.artifact_kind,
@@ -6639,6 +7059,8 @@ async function main() {
     route_target_summary_hash: sha256(routeTargetSummary),
     route_matrix_hash: sha256(metrics.routeMatrix),
     route_evaluation_hash: sha256(routeEvaluation),
+    ranking_csv_hash: sha256Text(routeRanking.rankingCsv),
+    score_breakdown_hash: sha256(routeRanking.scoreBreakdown),
     group_audit_hash: sha256(groupAudit),
     realism_audit_hash: realismAuditHash,
     prompt_catalog_hash: sha256(promptCatalog),
@@ -6725,6 +7147,8 @@ async function main() {
       "metrics/route_evaluation.json",
       "metrics/group_audit.json",
       "metrics/realism_audit.json",
+      "ranking.csv",
+      "score_breakdown.json",
       "prompts/catalog.json",
       ...promptCatalog.entries.map((entry) => entry.prompt_path),
       ...(liveModel ? compiledSmtFiles.map((entry) => entry.file) : []),
@@ -6749,6 +7173,11 @@ async function main() {
       metrics.routeMatrix.rows.length === routeIds.length,
       metrics.routeMatrix.cells.length === routeIds.length * comparisonMetricIds.length,
       metrics.routeMatrix.rows.every((row) => routeIds.includes(row.route_id) && comparisonMetricIds.every((metric) => row.metrics[metric]?.value?.exact)),
+      report.ranking.result_classification === routeRanking.summary.result_classification,
+      routeRanking.scoreBreakdown.rows.length === routeIds.length,
+      routeRanking.scoreBreakdown.rows.every((row) => routeIds.includes(row.item_id) && row.raw_row_refs.length === direct.samples),
+      routeRanking.rankingCsv.includes("result_classification"),
+      routeRanking.rankingCsv.includes(routeRanking.summary.result_classification),
       metrics.routeMetrics.every((entry) => routeIds.includes(entry.route_id)),
       metrics.routeMetrics.every((entry) => Array.isArray(entry.measurement_statuses)),
       metrics.routeMetrics.every((entry) => entry.model_call_row_count + entry.scaffolded_closed_row_count === entry.samples),

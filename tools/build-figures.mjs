@@ -7,11 +7,17 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const m2ReportPath = path.join(root, "runs", "m2-one-shot", "report.json");
 const m3RoutesReportPath = path.join(root, "runs", "m3-routes", "report.json");
+const m3CompareReportPath = path.join(root, "runs", "m3-compare", "report.json");
 const defaultReportPath = process.env.CKC_FIGURE_REPORT
   ? path.resolve(root, process.env.CKC_FIGURE_REPORT)
   : existsSync(m3RoutesReportPath)
     ? m3RoutesReportPath
     : m2ReportPath;
+const defaultPipelineReportPath = process.env.CKC_FIGURE_PIPELINE_REPORT
+  ? path.resolve(root, process.env.CKC_FIGURE_PIPELINE_REPORT)
+  : existsSync(m3CompareReportPath)
+    ? m3CompareReportPath
+    : null;
 const defaultOutDir = path.join(root, "figures", "manuscript");
 const args = process.argv.slice(2);
 const verifyMode = args.includes("--verify");
@@ -22,6 +28,7 @@ function argValue(flag, fallback) {
 }
 
 const reportPath = argValue("--report", defaultReportPath);
+const pipelineReportPath = argValue("--pipeline-report", defaultPipelineReportPath);
 const outDir = argValue("--out", defaultOutDir);
 
 const colors = {
@@ -272,6 +279,32 @@ function shortRouteLabel(routeId) {
   return String(routeId).replace(/^route\./, "");
 }
 
+function pipelineMetric(report, pipelineId) {
+  return report.metrics.pipeline_metrics.find((entry) => entry.pipeline_id === pipelineId);
+}
+
+function pipelineIdsForReport(report) {
+  return report.metrics.pipeline_matrix?.pipeline_ids ?? report.metrics.pipeline_metrics.map((entry) => entry.pipeline_id);
+}
+
+function baselinePipelineId(report) {
+  return report.metrics.pipeline_matrix?.baseline_pipeline_id ?? "pipe.direct_rule_to_smt";
+}
+
+function pipelineColor(pipelineId, index = 0) {
+  if (pipelineId === "pipe.direct_rule_to_smt") return colors.direct;
+  if (pipelineId === "pipe.one_shot_js_ckcir_to_smt") return colors.det;
+  const palette = [colors.blue, colors.purple, colors.warn, colors.gray];
+  return palette[index % palette.length];
+}
+
+function shortPipelineLabel(pipelineId) {
+  return String(pipelineId)
+    .replace(/^pipe\./, "")
+    .replace("one_shot_js_ckcir_to_smt", "layered_ckc")
+    .replace("direct_rule_to_smt", "direct_rule");
+}
+
 function metricRows(report) {
   return [
     ["Target syntax", "target_syntax_validity"],
@@ -290,6 +323,15 @@ function bestRouteForMetric(report, metricId) {
       || left.route_id.localeCompare(right.route_id)
     ))
     .at(0);
+}
+
+function pipelineMetricRows() {
+  return [
+    ["Compile", "compile_success_rate"],
+    ["Verdict", "verdict_accuracy"],
+    ["Conflict kind", "conflict_kind_accuracy"],
+    ["Reuse", "component_reuse_rate"]
+  ];
 }
 
 function compiledRouteSummaries(report) {
@@ -744,6 +786,111 @@ function buildRealSourceFigure(report) {
   );
 }
 
+function buildPipelineComparisonFigure(report) {
+  const shapes = [];
+  const pipelineIds = pipelineIdsForReport(report);
+  const sampleCount = Math.max(...report.metrics.pipeline_metrics.map((entry) => entry.samples ?? 0));
+  addTitle(
+    shapes,
+    "Deterministic pipeline comparison",
+    "Layered CKC artifacts are compared with direct rule-to-SMT over identical M3 groups.",
+    `run ${report.run_id}; n = ${sampleCount} groups`
+  );
+
+  const rows = pipelineMetricRows();
+  const chart = { x: 120, y: 170, w: 1040, h: 510 };
+  for (let tick = 0; tick <= 4; tick += 1) {
+    const value = tick / 4;
+    const y = chart.y + chart.h - value * chart.h;
+    addLine(shapes, chart.x, y, chart.x + chart.w, y, { stroke: colors.grid, strokeWidth: 1 });
+    addText(shapes, `${Math.round(value * 100)}%`, chart.x - 18, y + 6, {
+      size: 15,
+      fill: colors.muted,
+      anchor: "end"
+    });
+  }
+  addLine(shapes, chart.x, chart.y, chart.x, chart.y + chart.h, { stroke: colors.line, strokeWidth: 2 });
+  addLine(shapes, chart.x, chart.y + chart.h, chart.x + chart.w, chart.y + chart.h, { stroke: colors.line, strokeWidth: 2 });
+
+  const groupW = chart.w / rows.length;
+  const barW = Math.max(28, Math.min(58, (groupW - 36) / Math.max(pipelineIds.length, 1) - 10));
+  rows.forEach(([label, metricId], index) => {
+    const center = chart.x + groupW * index + groupW / 2;
+    const totalW = pipelineIds.length * barW + (pipelineIds.length - 1) * 10;
+    pipelineIds.forEach((pipelineId, pipelineIndex) => {
+      const metric = pipelineMetric(report, pipelineId);
+      const ratio = metric[metricId];
+      const h = ratioValue(ratio) * chart.h;
+      const x = center - totalW / 2 + pipelineIndex * (barW + 10);
+      const color = pipelineColor(pipelineId, pipelineIndex);
+      addRect(shapes, x, chart.y + chart.h - h, barW, h, {
+        fill: color,
+        stroke: color,
+        strokeWidth: 1,
+        rx: 3
+      });
+      addText(shapes, ratioExact(ratio), x + barW / 2, chart.y + chart.h - h - 10, {
+        size: 14,
+        fill: color,
+        anchor: "middle",
+        weight: "bold"
+      });
+    });
+    addWrappedText(shapes, label, center - 78, chart.y + chart.h + 34, 156, {
+      size: 16,
+      fill: colors.ink,
+      anchor: "middle",
+      lineHeight: 20
+    });
+  });
+
+  pipelineIds.forEach((pipelineId, index) => {
+    const color = pipelineColor(pipelineId, index);
+    addBadge(shapes, shortPipelineLabel(pipelineId), 1240, 176 + index * 44, {
+      fill: "#fbfcfd",
+      stroke: color,
+      textFill: color,
+      size: 15
+    });
+  });
+
+  const baseline = pipelineMetric(report, baselinePipelineId(report));
+  const layeredId = report.metrics.pipeline_matrix?.layered_pipeline_id ?? "pipe.one_shot_js_ckcir_to_smt";
+  const layered = pipelineMetric(report, layeredId);
+  const layeredMatrixRow = report.metrics.pipeline_matrix.rows.find((row) => row.pipeline_id === layeredId);
+  addRect(shapes, 1220, 300, 325, 380, { fill: "#fbfcfd", stroke: colors.grid, strokeWidth: 2, rx: 8 });
+  addText(shapes, "Interpretation", 1244, 340, { size: 21, weight: "bold" });
+  addWrappedText(
+    shapes,
+    `Direct baseline verdict accuracy is ${ratioExact(baseline.verdict_accuracy)}. Layered verdict accuracy is ${ratioExact(layered.verdict_accuracy)}; layered-minus-direct verdict delta is ${ratioExact(layeredMatrixRow.metrics.verdict_accuracy.delta_from_baseline)}.`,
+    1244,
+    378,
+    260,
+    { size: 16, fill: colors.muted, lineHeight: 22 }
+  );
+  addWrappedText(
+    shapes,
+    `Component reuse delta is ${ratioExact(layeredMatrixRow.metrics.component_reuse_rate.delta_from_baseline)}. This is deterministic pipeline evidence and is separate from model-route lift.`,
+    1244,
+    500,
+    260,
+    { size: 16, fill: colors.muted, lineHeight: 22 }
+  );
+
+  addFootnote(
+    shapes,
+    `Ranking: ${report.ranking?.result_classification ?? "reported in score_breakdown.json"}. Candidate diff compares ${report.candidate_diff.group_rows.length} groups. No clinical, deployment, or regulatory claim is made.`
+  );
+  return scene(
+    "fig05_pipeline_comparison",
+    "Deterministic pipeline comparison",
+    "Deterministic pipeline comparison. Direct rule-to-SMT is retained as baseline; the layered CKC pipeline matches verdict and conflict-kind accuracy in the current M3 comparison while component reuse is reported separately from model-route lift.",
+    1600,
+    900,
+    shapes
+  );
+}
+
 function renderSvg(figure) {
   const body = figure.shapes.map((shape) => {
     if (shape.kind === "rect") {
@@ -899,8 +1046,9 @@ function latexEscape(value) {
     .replaceAll("^", "\\textasciicircum{}");
 }
 
-function figureTex(figures) {
-  return `% Generated by tools/build-figures.mjs from ${path.relative(root, reportPath)}.
+function figureTex(figures, sourceReports) {
+  return `% Generated by tools/build-figures.mjs.
+${sourceReports.map((source) => `% Source ${source.role}: ${source.path}`).join("\n")}
 % Include with \\input{figures/manuscript/figures.tex} or copy individual figure blocks.
 
 ${figures.map((figure) => `\\begin{figure}[t]
@@ -912,13 +1060,13 @@ ${figures.map((figure) => `\\begin{figure}[t]
 `;
 }
 
-function captionsMarkdown(figures, report, reportHash) {
+function captionsMarkdown(figures, report, sourceReports) {
   return `# Manuscript Figures
 
-Generated by \`tools/build-figures.mjs\` from \`${path.relative(root, reportPath)}\`.
+Generated by \`tools/build-figures.mjs\`.
 
 - Single-file bundle: \`manuscript_figures.pdf\`
-- Source report hash: \`${reportHash}\`
+- Source reports: ${sourceReports.map((source) => `\`${source.role}\` \`${source.path}\` hash \`${source.hash}\``).join("; ")}
 - Run: \`${report.run_id}\`
 - Scope: \`${report.wording_scope}\`
 - Evaluation strength: \`${report.m2_evaluation.evaluation_strength}\`
@@ -934,8 +1082,9 @@ ${figure.caption}`).join("\n\n")}
 `;
 }
 
-function manifestJson(figures, reportHash) {
+function manifestJson(figures, sourceReports) {
   const bundlePdf = renderBundlePdf(figures);
+  const primarySource = sourceReports[0];
   return {
     artifact_kind: "ManuscriptFigureManifest",
     schema_version: "manuscript_figures.v0",
@@ -944,8 +1093,9 @@ function manifestJson(figures, reportHash) {
     bundle_pdf_page_count: figures.length,
     bundle_pdf_path: "manuscript_figures.pdf",
     generated_by: "tools/build-figures.mjs",
-    source_report_path: path.relative(root, reportPath),
-    source_report_hash: reportHash,
+    source_report_path: primarySource.path,
+    source_report_hash: primarySource.hash,
+    source_reports: sourceReports,
     output_dir: path.relative(root, outDir),
     figure_count: figures.length,
     figures: figures.map((figure) => ({
@@ -971,11 +1121,38 @@ async function main() {
   const reportText = await readFile(reportPath, "utf8");
   const report = JSON.parse(reportText);
   const reportHash = sha256Bytes(Buffer.from(reportText, "utf8"));
+  let pipelineReport = null;
+  let pipelineReportHash = null;
+  if (pipelineReportPath) {
+    if (!existsSync(pipelineReportPath)) {
+      throw new Error(`pipeline report not found: ${path.relative(root, pipelineReportPath)}`);
+    }
+    const pipelineReportText = await readFile(pipelineReportPath, "utf8");
+    pipelineReport = JSON.parse(pipelineReportText);
+    pipelineReportHash = sha256Bytes(Buffer.from(pipelineReportText, "utf8"));
+  }
+  const sourceReports = [
+    {
+      role: "route_report",
+      path: path.relative(root, reportPath),
+      hash: reportHash,
+      run_id: report.run_id,
+      artifact_kind: report.artifact_kind
+    },
+    ...(pipelineReport ? [{
+      role: "pipeline_report",
+      path: path.relative(root, pipelineReportPath),
+      hash: pipelineReportHash,
+      run_id: pipelineReport.run_id,
+      artifact_kind: pipelineReport.artifact_kind
+    }] : [])
+  ];
   const figures = [
     buildRouteMechanicsFigure(report),
     buildRouteMetricsFigure(report),
     buildFailureTaxonomyFigure(report),
-    buildRealSourceFigure(report)
+    buildRealSourceFigure(report),
+    ...(pipelineReport ? [buildPipelineComparisonFigure(pipelineReport)] : [])
   ];
 
   await mkdir(outDir, { recursive: true });
@@ -986,9 +1163,9 @@ async function main() {
     await writeFile(path.join(outDir, `${figure.id}.pdf`), pdf);
   }
   await writeFile(path.join(outDir, "manuscript_figures.pdf"), renderBundlePdf(figures));
-  await writeFile(path.join(outDir, "figures.tex"), figureTex(figures));
-  await writeFile(path.join(outDir, "README.md"), captionsMarkdown(figures, report, reportHash));
-  await writeStableJson(path.join(outDir, "manifest.json"), manifestJson(figures, reportHash));
+  await writeFile(path.join(outDir, "figures.tex"), figureTex(figures, sourceReports));
+  await writeFile(path.join(outDir, "README.md"), captionsMarkdown(figures, report, sourceReports));
+  await writeStableJson(path.join(outDir, "manifest.json"), manifestJson(figures, sourceReports));
 
   if (verifyMode) {
     for (const figure of figures) {
@@ -1002,6 +1179,9 @@ async function main() {
       if (!pdf.subarray(0, 5).equals(Buffer.from("%PDF-"))) {
         throw new Error(`invalid pdf export: ${path.relative(root, pdfPath)}`);
       }
+    }
+    if (pipelineReport && !figures.some((figure) => figure.id === "fig05_pipeline_comparison")) {
+      throw new Error("pipeline report loaded but pipeline figure missing");
     }
     const bundlePath = path.join(outDir, "manuscript_figures.pdf");
     const bundlePdf = await readFile(bundlePath);
@@ -1017,6 +1197,7 @@ async function main() {
     output_dir: relOut,
     figure_count: figures.length,
     source_report_hash: reportHash,
+    source_reports: sourceReports,
     verify: verifyMode ? "ok" : "not_requested"
   }, null, 2));
 }
