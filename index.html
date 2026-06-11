@@ -48,6 +48,13 @@
     .flow-step span { display: block; color: var(--muted); margin-top: 6px; font-size: .8rem; line-height: 1.35; }
     .flow-step.ok { border-left-color: var(--ok); }
     .flow-step.warn { border-left-color: var(--warn); }
+    .trace-viz { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin: 10px 0 14px; }
+    .trace-step { position: relative; border: 1px solid var(--line); border-radius: 6px; background: #fbfdfe; padding: 10px; min-width: 0; }
+    .trace-step:not(:last-child)::after { content: "->"; position: absolute; top: 18px; right: -17px; color: var(--muted); font-weight: 700; z-index: 1; }
+    .trace-head { display: grid; gap: 3px; min-height: 42px; }
+    .trace-head strong { font-size: .82rem; }
+    .trace-head span { color: var(--muted); font-size: .74rem; overflow-wrap: anywhere; }
+    .trace-step pre { max-height: 240px; margin-top: 8px; font-size: .72rem; line-height: 1.35; }
     .split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
     .lane { border: 1px solid var(--line); border-radius: 6px; padding: 10px; min-width: 0; }
     .lane h3 { margin-top: 0; }
@@ -73,7 +80,8 @@
     @media (max-width: 760px) {
       main { padding: 10px; }
       .grid { grid-template-columns: 1fr; }
-      .flow, .split { grid-template-columns: 1fr; }
+      .flow, .split, .trace-viz { grid-template-columns: 1fr; }
+      .trace-step:not(:last-child)::after { content: ""; display: none; }
       .compare { min-width: 0; }
       .compare thead { display: none; }
       .compare, .compare tbody, .compare tr, .compare th, .compare td { display: block; width: 100%; }
@@ -130,6 +138,117 @@
         <div class="flow-step ok">
           <strong>3. IR route</strong>
           <span><code>route.single_ir</code> asks for tiny JSON fields; this harness emits a per-row SMT-LIB target from the admitted route IR.</span>
+        </div>
+      </div>
+      <h3>Text to SMT trace</h3>
+      <p>Representative admitted row: <code>route.single_ir</code> / <code>group.m1_conflict</code> / seed 11. Each step is a recorded artifact or deterministic transform used for the scored route row.</p>
+      <div class="trace-viz">
+
+        <div class="trace-step">
+          <div class="trace-head">
+            <strong>1 Source spans</strong>
+            <span>fixture regions</span>
+          </div>
+          <pre>A primary: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
+A exception: ただし、重度腎機能障害のある患者を除く。
+
+B primary: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。</pre>
+        </div>
+        <div class="trace-step">
+          <div class="trace-head">
+            <strong>2 Lexical cues</strong>
+            <span>lexical_cue_v1</span>
+          </div>
+          <pre>A
+direction_cue=推奨する
+age_cue=成人_or_18歳以上
+action_abx_a_cue=present
+sepsis_cue=present
+pregnancy_cue=absent
+renal_exception_cue=has_exception
+resolved={&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;direction&quot;:&quot;for&quot;,&quot;pregnancy&quot;:&quot;absent&quot;,&quot;renal_exception&quot;:&quot;yes&quot;,&quot;sepsis&quot;:&quot;present&quot;}
+
+B
+direction_cue=投与しないこと
+age_cue=成人_or_18歳以上
+action_abx_a_cue=present
+sepsis_cue=present
+pregnancy_cue=present
+renal_exception_cue=no_exception
+resolved={&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;direction&quot;:&quot;contraindicate&quot;,&quot;pregnancy&quot;:&quot;present&quot;,&quot;renal_exception&quot;:&quot;no&quot;,&quot;sepsis&quot;:&quot;present&quot;}</pre>
+        </div>
+        <div class="trace-step">
+          <div class="trace-head">
+            <strong>3 Model JSON</strong>
+            <span>12 constrained field calls</span>
+          </div>
+          <pre>{
+  &quot;A&quot;: {
+    &quot;action_abx_a&quot;: &quot;present&quot;,
+    &quot;age&quot;: &quot;adult&quot;,
+    &quot;direction&quot;: &quot;for&quot;,
+    &quot;pregnancy&quot;: &quot;absent&quot;,
+    &quot;renal_exception&quot;: &quot;yes&quot;,
+    &quot;sepsis&quot;: &quot;present&quot;
+  },
+  &quot;B&quot;: {
+    &quot;action_abx_a&quot;: &quot;present&quot;,
+    &quot;age&quot;: &quot;adult&quot;,
+    &quot;direction&quot;: &quot;contraindicate&quot;,
+    &quot;pregnancy&quot;: &quot;present&quot;,
+    &quot;renal_exception&quot;: &quot;no&quot;,
+    &quot;sepsis&quot;: &quot;present&quot;
+  }
+}</pre>
+        </div>
+        <div class="trace-step">
+          <div class="trace-head">
+            <strong>4 route_rule_ir.v0</strong>
+            <span>route_rule_ir_v0_to_smt_v0</span>
+          </div>
+          <pre>route.rule.a
+direction=for
+action=act.administer:drug.abx_a
+context={&quot;age_years&quot;:{&quot;ge&quot;:18},&quot;prohibited&quot;:[&quot;cond.renal_severe&quot;],&quot;required&quot;:[&quot;cond.sepsis&quot;]}
+
+route.rule.b
+direction=contraindicate
+action=act.administer:drug.abx_a
+context={&quot;age_years&quot;:{&quot;ge&quot;:18},&quot;prohibited&quot;:[],&quot;required&quot;:[&quot;cond.sepsis&quot;,&quot;cond.pregnancy&quot;]}</pre>
+        </div>
+        <div class="trace-step">
+          <div class="trace-head">
+            <strong>5 SMT-LIB</strong>
+            <span>2 query files</span>
+          </div>
+          <pre>route_targets/route.single_ir/group.m1_conflict/seed-11/smt/q.overlap.smt2
+logic=QF_LRA
+sha256=b30d53f3120bc0af...1052f3
+
+(set-logic QF_LRA)
+(set-option :print-success false)
+(set-option :produce-models true)
+(declare-const |q.age_years| Real)
+(declare-const |cond.sepsis| Bool)
+(declare-const |cond.renal_severe| Bool)
+(declare-const |cond.pregnancy| Bool)
+(assert (! (and |cond.sepsis| (&gt;= |q.age_years| 18) (not |cond.renal_severe|)) :named |ctx.route.rule.a|))
+(assert (! (and |cond.sepsis| (&gt;= |q.age_years| 18) |cond.pregnancy|) :named |ctx.route.rule.b|))
+(check-sat)
+(get-model)
+
+route_targets/route.single_ir/group.m1_conflict/seed-11/smt/q.deontic.smt2
+logic=QF_UF
+sha256=4080509bae7b3482...8e1823
+
+(set-logic QF_UF)
+(set-option :print-success false)
+(set-option :produce-unsat-cores true)
+(declare-const |pos:act.administer:drug.abx_a| Bool)
+(assert (! |pos:act.administer:drug.abx_a| :named |assert.route.rule.a.pos|))
+(assert (! (not |pos:act.administer:drug.abx_a|) :named |assert.route.rule.b.neg|))
+(check-sat)
+(get-unsat-core)</pre>
         </div>
       </div>
       <h3>What changed</h3>

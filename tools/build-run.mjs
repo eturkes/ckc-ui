@@ -1752,6 +1752,49 @@ function shortDigest(value) {
   return text.length > 24 ? `${text.slice(0, 16)}...${text.slice(-6)}` : text;
 }
 
+function sourceTraceText(label) {
+  const sourceCase = sourceCaseForLabel(label);
+  return [
+    `${label} primary: ${sourceCase.primary}`,
+    ...(sourceCase.exception ? [`${label} exception: ${sourceCase.exception}`] : [])
+  ].join("\n");
+}
+
+function cueTraceText(label, cue) {
+  if (!cue) return `${label}: missing`;
+  return [
+    `${label}`,
+    `direction_cue=${cue.direction_cue}`,
+    `age_cue=${cue.age_cue}`,
+    `action_abx_a_cue=${cue.action_abx_a_cue}`,
+    `sepsis_cue=${cue.sepsis_cue}`,
+    `pregnancy_cue=${cue.pregnancy_cue}`,
+    `renal_exception_cue=${cue.renal_exception_cue}`,
+    `resolved=${compactJson(cue.resolved_fields)}`
+  ].join("\n");
+}
+
+function routeRuleTraceText(rule) {
+  return [
+    rule.rule_id,
+    `direction=${rule.direction}`,
+    `action=${rule.action_key}`,
+    `context=${compactJson(rule.context)}`
+  ].join("\n");
+}
+
+function smtTraceText(file) {
+  if (!file) return "missing SMT target";
+  const lines = String(file.text ?? "").trim().split("\n");
+  return [
+    `${file.file}`,
+    `logic=${file.logic}`,
+    `sha256=${shortDigest(file.sha256)}`,
+    "",
+    ...lines
+  ].join("\n");
+}
+
 function irFieldSummary(label, row) {
   if (!row) return `${label}: missing`;
   return `${label}: direction=${row.direction}; action=${row.action_abx_a}; age=${row.age}; sepsis=${row.sepsis}; pregnancy=${row.pregnancy}; renal_exception=${row.renal_exception}`;
@@ -1825,6 +1868,56 @@ function renderBasicUi(data) {
   const irConflictBridge = irConflictExample?.parsed_response?.deterministic_bridge ?? null;
   const irConflictCandidate = irConflictExample?.parsed_response?.candidate ?? null;
   const irConflictTarget = irConflictExample?.compiled_target ?? null;
+  const irConflictFieldCallCount = (irConflictExample?.source_calls ?? [])
+    .reduce((count, call) => count + (call.field_calls?.length ?? 0), 0);
+  const irTraceLabels = modelCaseForGroup("group.m1_conflict").labels;
+  const traceSourceText = irTraceLabels.map(sourceTraceText).join("\n\n");
+  const traceCueText = irTraceLabels
+    .map((label) => cueTraceText(label, data.source_cue_layer.cues[label]))
+    .join("\n\n");
+  const traceModelJson = irConflictCandidate
+    ? JSON.stringify(stable(Object.fromEntries(irTraceLabels.map((label) => [label, irConflictCandidate[label]]))), null, 2)
+    : "missing model JSON";
+  const traceRouteIr = (irConflictExample?.parsed_response?.route_ir?.rules ?? [])
+    .map((entry) => routeRuleTraceText(entry.rule))
+    .join("\n\n") || "missing route_rule_ir.v0";
+  const traceSmtText = (irConflictTarget?.smt_files ?? [])
+    .map(smtTraceText)
+    .join("\n\n") || "missing SMT-LIB target";
+  const transformationSteps = [
+    {
+      label: "1 Source spans",
+      transform: "fixture regions",
+      body: traceSourceText
+    },
+    {
+      label: "2 Lexical cues",
+      transform: data.source_cue_layer.extractor_id,
+      body: traceCueText
+    },
+    {
+      label: "3 Model JSON",
+      transform: `${irConflictFieldCallCount} constrained field calls`,
+      body: traceModelJson
+    },
+    {
+      label: "4 route_rule_ir.v0",
+      transform: irConflictTarget?.compiler_id ?? "route_rule_ir_v0_to_smt_v0",
+      body: traceRouteIr
+    },
+    {
+      label: "5 SMT-LIB",
+      transform: `${irConflictTarget?.smt_files?.length ?? 0} query files`,
+      body: traceSmtText
+    }
+  ].map((step) => `
+        <div class="trace-step">
+          <div class="trace-head">
+            <strong>${escapeHtml(step.label)}</strong>
+            <span>${escapeHtml(step.transform)}</span>
+          </div>
+          <pre>${escapePre(step.body)}</pre>
+        </div>`).join("");
   const irTargetSummary = irConflictTarget
     ? `${irConflictTarget.target_profile}; ${irConflictTarget.smt_files.length} query file(s); ${shortDigest(irConflictTarget.target_hash)}`
     : "missing";
@@ -1836,8 +1929,7 @@ function renderBasicUi(data) {
             <td><code>${escapeHtml(shortDigest(file.sha256))}</code></td>
           </tr>`).join("");
   const irFieldSummaries = ["A", "B"].map((label) => irFieldSummary(label, irConflictCandidate?.[label]));
-  const irConflictFieldCalls = (irConflictExample?.source_calls ?? [])
-    .reduce((count, call) => count + (call.field_calls?.length ?? 0), 0);
+  const irConflictFieldCalls = irConflictFieldCallCount;
   const irCallRows = (irConflictExample?.source_calls ?? []).map((call) => `
           <tr>
             <td><code>${escapeHtml(call.label)}</code></td>
@@ -2019,6 +2111,13 @@ function renderBasicUi(data) {
     .flow-step span { display: block; color: var(--muted); margin-top: 6px; font-size: .8rem; line-height: 1.35; }
     .flow-step.ok { border-left-color: var(--ok); }
     .flow-step.warn { border-left-color: var(--warn); }
+    .trace-viz { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin: 10px 0 14px; }
+    .trace-step { position: relative; border: 1px solid var(--line); border-radius: 6px; background: #fbfdfe; padding: 10px; min-width: 0; }
+    .trace-step:not(:last-child)::after { content: "->"; position: absolute; top: 18px; right: -17px; color: var(--muted); font-weight: 700; z-index: 1; }
+    .trace-head { display: grid; gap: 3px; min-height: 42px; }
+    .trace-head strong { font-size: .82rem; }
+    .trace-head span { color: var(--muted); font-size: .74rem; overflow-wrap: anywhere; }
+    .trace-step pre { max-height: 240px; margin-top: 8px; font-size: .72rem; line-height: 1.35; }
     .split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
     .lane { border: 1px solid var(--line); border-radius: 6px; padding: 10px; min-width: 0; }
     .lane h3 { margin-top: 0; }
@@ -2044,7 +2143,8 @@ function renderBasicUi(data) {
     @media (max-width: 760px) {
       main { padding: 10px; }
       .grid { grid-template-columns: 1fr; }
-      .flow, .split { grid-template-columns: 1fr; }
+      .flow, .split, .trace-viz { grid-template-columns: 1fr; }
+      .trace-step:not(:last-child)::after { content: ""; display: none; }
       .compare { min-width: 0; }
       .compare thead { display: none; }
       .compare, .compare tbody, .compare tr, .compare th, .compare td { display: block; width: 100%; }
@@ -2102,6 +2202,11 @@ function renderBasicUi(data) {
           <strong>3. IR route</strong>
           <span><code>route.single_ir</code> asks for tiny JSON fields; this harness emits a per-row SMT-LIB target from the admitted route IR.</span>
         </div>
+      </div>
+      <h3>Text to SMT trace</h3>
+      <p>Representative admitted row: <code>route.single_ir</code> / <code>group.m1_conflict</code> / seed 11. Each step is a recorded artifact or deterministic transform used for the scored route row.</p>
+      <div class="trace-viz">
+${transformationSteps}
       </div>
       <h3>What changed</h3>
       <div class="table-wrap">
