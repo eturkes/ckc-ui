@@ -79,6 +79,22 @@
       "authority": "source_authority",
       "provenance": "synthetic_m3_expansion",
       "role": "m3_factual_negative_source"
+    },
+    {
+      "id": "fixture.m3_condition_unsat",
+      "path": "corpus/fixtures/fixture-m3-condition-unsat.html",
+      "origin": "ai_generated",
+      "authority": "source_authority",
+      "provenance": "synthetic_m3_expansion",
+      "role": "m3_condition_unsatisfiable_source"
+    },
+    {
+      "id": "fixture.m3_exception_renal",
+      "path": "corpus/fixtures/fixture-m3-exception-renal.html",
+      "origin": "ai_generated",
+      "authority": "source_authority",
+      "provenance": "synthetic_m3_expansion",
+      "role": "m3_exception_resolved_counterpart"
     }
   ],
   "real_guideline_registry": "corpus/real_guidelines/japanese_guidelines.json",

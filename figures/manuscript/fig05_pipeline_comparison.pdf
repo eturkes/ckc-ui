@@ -10,14 +10,14 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 1600 900] /Resources << /Font << /F1 5 0 R /F2 6 0 R /F3 7 0 R >> >> /Contents 4 0 R >>
 endobj
 4 0 obj
-<< /Length 4651 >>
+<< /Length 4679 >>
 stream
 0.067 0.094 0.153 rg
 BT /F2 32 Tf 54 842 Td (Deterministic pipeline comparison) Tj ET
 0.349 0.384 0.451 rg
 BT /F1 19 Tf 54 808 Td (Layered CKC artifacts are compared with direct rule-to-SMT over identical M3 groups.) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1304.08 842 Td (run m3-compare; n = 8 groups) Tj ET
+BT /F1 16 Tf 1295.44 842 Td (run m3-compare; n = 10 groups) Tj ET
 0.898 0.914 0.937 RG
 1 w
 120 220 m 1160 220 l S
@@ -108,7 +108,7 @@ BT /F1 16 Tf 34 750 Td (rate) Tj ET
 114 730 l
 h f
 0.706 0.361 0.216 rg
-BT /F3 14 Tf 107.19 710 Td (8/8) Tj ET
+BT /F3 14 Tf 98.65 710 Td (10/10) Tj ET
 0.706 0.361 0.216 rg
 0 0 0 RG
 466.667 736 m
@@ -117,7 +117,7 @@ BT /F3 14 Tf 107.19 710 Td (8/8) Tj ET
 460.667 730 l
 h f
 0.706 0.361 0.216 rg
-BT /F3 14 Tf 453.857 710 Td (8/8) Tj ET
+BT /F3 14 Tf 445.317 710 Td (10/10) Tj ET
 0.706 0.361 0.216 rg
 0 0 0 RG
 813.333 736 m
@@ -126,7 +126,7 @@ BT /F3 14 Tf 453.857 710 Td (8/8) Tj ET
 807.333 730 l
 h f
 0.706 0.361 0.216 rg
-BT /F3 14 Tf 800.523 710 Td (8/8) Tj ET
+BT /F3 14 Tf 791.983 710 Td (10/10) Tj ET
 0.706 0.361 0.216 rg
 0 0 0 RG
 1160 226 m
@@ -135,7 +135,7 @@ BT /F3 14 Tf 800.523 710 Td (8/8) Tj ET
 1154 220 l
 h f
 0.706 0.361 0.216 rg
-BT /F3 14 Tf 1142.92 232 Td (0/16) Tj ET
+BT /F3 14 Tf 1142.92 232 Td (0/20) Tj ET
 0.184 0.42 0.31 RG
 3 w
 [9 6] 0 d
@@ -149,7 +149,7 @@ BT /F3 14 Tf 1142.92 232 Td (0/16) Tj ET
 0.184 0.42 0.31 RG
 3 w
 [9 6] 0 d
-813.333 730 m 1160 660.847 l S
+813.333 730 m 1160 650.986 l S
 [] 0 d
 0.184 0.42 0.31 rg
 0 0 0 RG
@@ -159,7 +159,7 @@ BT /F3 14 Tf 1142.92 232 Td (0/16) Tj ET
 114 730 l
 h f
 0.184 0.42 0.31 rg
-BT /F3 14 Tf 107.19 697 Td (8/8) Tj ET
+BT /F3 14 Tf 98.65 697 Td (10/10) Tj ET
 0.184 0.42 0.31 rg
 0 0 0 RG
 466.667 736 m
@@ -168,7 +168,7 @@ BT /F3 14 Tf 107.19 697 Td (8/8) Tj ET
 460.667 730 l
 h f
 0.184 0.42 0.31 rg
-BT /F3 14 Tf 453.857 697 Td (8/8) Tj ET
+BT /F3 14 Tf 445.317 697 Td (10/10) Tj ET
 0.184 0.42 0.31 rg
 0 0 0 RG
 813.333 736 m
@@ -177,16 +177,16 @@ BT /F3 14 Tf 453.857 697 Td (8/8) Tj ET
 807.333 730 l
 h f
 0.184 0.42 0.31 rg
-BT /F3 14 Tf 800.523 697 Td (8/8) Tj ET
+BT /F3 14 Tf 791.983 697 Td (10/10) Tj ET
 0.184 0.42 0.31 rg
 0 0 0 RG
-1160 666.847 m
-1166 660.847 l
-1160 654.847 l
-1154 660.847 l
+1160 656.986 m
+1166 650.986 l
+1160 644.986 l
+1154 650.986 l
 h f
 0.184 0.42 0.31 rg
-BT /F3 14 Tf 1138.65 638.847 Td (51/59) Tj ET
+BT /F3 14 Tf 1138.65 628.986 Td (60/71) Tj ET
 0.984 0.988 0.992 rg
 0.706 0.361 0.216 RG
 1 w
@@ -211,9 +211,9 @@ BT /F2 21 Tf 1244 560 Td (Interpretation) Tj ET
 0.349 0.384 0.451 rg
 BT /F1 16 Tf 1244 522 Td (Direct baseline verdict) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1244 500 Td (accuracy is 8/8. Layered) Tj ET
+BT /F1 16 Tf 1244 500 Td (accuracy is 10/10. Layered) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1244 478 Td (verdict accuracy is 8/8;) Tj ET
+BT /F1 16 Tf 1244 478 Td (verdict accuracy is 10/10;) Tj ET
 0.349 0.384 0.451 rg
 BT /F1 16 Tf 1244 456 Td (layered-minus-direct verdict) Tj ET
 0.349 0.384 0.451 rg
@@ -221,18 +221,18 @@ BT /F1 16 Tf 1244 434 Td (delta is 0/1.) Tj ET
 0.349 0.384 0.451 rg
 BT /F1 16 Tf 1244 400 Td (Component reuse delta is) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1244 378 Td (51/59. This is deterministic) Tj ET
+BT /F1 16 Tf 1244 378 Td (60/71. This is deterministic) Tj ET
 0.349 0.384 0.451 rg
 BT /F1 16 Tf 1244 356 Td (pipeline evidence and is) Tj ET
 0.349 0.384 0.451 rg
 BT /F1 16 Tf 1244 334 Td (separate from model-route) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1244 312 Td (lift.) Tj ET
+BT /F1 16 Tf 1244 312 Td (baseline deltas.) Tj ET
 0.898 0.914 0.937 RG
 1 w
 54 56 m 1546 56 l S
 0.349 0.384 0.451 rg
-BT /F1 15 Tf 54 32 Td (Ranking: reuse_lift_only. Candidate diff compares 8 groups. No clinical, deployment, or regulatory claim is made.) Tj ET
+BT /F1 15 Tf 54 32 Td (Ranking: reuse_delta_only. Candidate diff compares 10 groups. No clinical, deployment, or regulatory claim is made.) Tj ET
 endstream
 endobj
 5 0 obj
@@ -251,11 +251,11 @@ xref
 0000000064 00000 n
 0000000121 00000 n
 0000000268 00000 n
-0000004970 00000 n
-0000005040 00000 n
-0000005115 00000 n
+0000004998 00000 n
+0000005068 00000 n
+0000005143 00000 n
 trailer
 << /Size 8 /Root 1 0 R >>
 startxref
-5183
+5211
 %%EOF

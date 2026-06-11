@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
   <title id="title">Route mechanics and evidence boundaries</title>
-  <desc id="desc">Route mechanics. Implemented routes consume the same fixture groups and are scored by the same evaluator; the current run shows target-syntax lift only, not admitted verdict lift.</desc>
+  <desc id="desc">Route mechanics. Implemented routes consume the same fixture groups and are scored by the same evaluator; the current run shows a target-syntax baseline delta only, not an admitted-verdict baseline delta.</desc>
   <rect width="1600" height="900" fill="#ffffff"/>
   <text x="54" y="58" font-family="Arial, Helvetica, sans-serif" font-size="32" font-weight="700" fill="#111827" text-anchor="start">Route mechanics and evidence boundaries</text>
   <text x="54" y="92" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#596273" text-anchor="start">The route matrix compares baseline target emission with route outputs over identical fixture groups.</text>
@@ -11,7 +11,7 @@
   <rect x="273" y="164" width="67.2" height="28" rx="12" fill="#eef3fb" stroke="#b8c8e6" stroke-width="1"/>
   <text x="285" y="183" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#355c9a" text-anchor="start">input</text>
   <text x="88" y="216" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#596273" text-anchor="start">Groups: M2 holdout: 1; M3</text>
-  <text x="88" y="239" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#596273" text-anchor="start">expanded: 3; M3</text>
+  <text x="88" y="239" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#596273" text-anchor="start">expanded: 5; M3</text>
   <text x="88" y="262" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#596273" text-anchor="start">metamorphic: 2; M1: 2.</text>
   <text x="88" y="285" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#596273" text-anchor="start">Gold verdicts and source</text>
   <text x="88" y="308" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#596273" text-anchor="start">spans remain fixed.</text>

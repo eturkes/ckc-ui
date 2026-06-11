@@ -16,7 +16,7 @@
       "gold": "corpus/gold/m1_expected.json"
     },
     {
-      "id": "exp.m2_lift",
+      "id": "exp.m2_shorthop",
       "basis": "exp.m1_spine",
       "routes": ["route.direct_smt", "route.single_ir"],
       "evaluation_groups": [
@@ -41,7 +41,7 @@
     },
     {
       "id": "exp.m3_routes",
-      "basis": "exp.m2_lift",
+      "basis": "exp.m2_shorthop",
       "comparison_scope": "frozen_route_registry_implemented_routes_with_m3_fixture_expansion",
       "route_registry_status": "includes implemented route.stacked_ir, route.ir_hop_chain, and route.ckc_layered over original M1 groups, the M2 holdout, and M3 expanded synthetic/metamorphic groups",
       "routes": [
@@ -97,6 +97,18 @@
           "fixtures": ["fixture.m3_factual_positive", "fixture.m3_factual_negative"],
           "measurement_role": "m3_terminology_incoherence",
           "mutation_note": "Toy-schema terminology pressure: the shared mention 妊娠中 maps to incompatible concept identifiers across the pair."
+        },
+        {
+          "id": "group.m3_condition_unsatisfiable",
+          "fixtures": ["fixture.m3_condition_unsat", "fixture.m1_guideline_a"],
+          "measurement_role": "m3_condition_unsatisfiable",
+          "mutation_note": "Toy-schema Q0 pressure: fixture I carries an internally unsatisfiable age guard."
+        },
+        {
+          "id": "group.m3_exception_resolved",
+          "fixtures": ["fixture.m1_guideline_a", "fixture.m3_exception_renal"],
+          "measurement_role": "m3_exception_resolved",
+          "mutation_note": "Toy-schema exception pressure: raw A/J overlap is closed by A's renal-severe exception guard."
         }
       ],
       "trial_group_ids": [
@@ -163,8 +175,61 @@
           "fixtures": ["fixture.m3_factual_positive", "fixture.m3_factual_negative"],
           "measurement_role": "m3_terminology_incoherence",
           "mutation_note": "Toy-schema terminology pressure: the shared mention 妊娠中 maps to incompatible concept identifiers across the pair."
+        },
+        {
+          "id": "group.m3_condition_unsatisfiable",
+          "fixtures": ["fixture.m3_condition_unsat", "fixture.m1_guideline_a"],
+          "measurement_role": "m3_condition_unsatisfiable",
+          "mutation_note": "Toy-schema Q0 pressure: fixture I carries an internally unsatisfiable age guard."
+        },
+        {
+          "id": "group.m3_exception_resolved",
+          "fixtures": ["fixture.m1_guideline_a", "fixture.m3_exception_renal"],
+          "measurement_role": "m3_exception_resolved",
+          "mutation_note": "Toy-schema exception pressure: raw A/J overlap is closed by A's renal-severe exception guard."
         }
       ]
+    },
+    {
+      "id": "exp.m3_coverage",
+      "basis": "exp.m3_compare",
+      "comparison_scope": "model_free_coverage_over_fresh_fixture_groups",
+      "evaluation_groups": [
+        {
+          "id": "group.m1_conflict",
+          "fixtures": ["fixture.m1_guideline_a", "fixture.m1_guideline_b"],
+          "measurement_role": "coverage_build_m1_conflict"
+        },
+        {
+          "id": "group.m1_null",
+          "fixtures": ["fixture.m1_guideline_a", "fixture.m1_control"],
+          "measurement_role": "coverage_build_m1_null"
+        },
+        {
+          "id": "group.m2_holdout_conflict",
+          "fixtures": ["fixture.m1_guideline_a", "fixture.m2_guideline_d"],
+          "measurement_role": "coverage_apply_holdout_conflict",
+          "mutation_note": "Fresh holdout phrasing sharing A's adult sepsis ABX-A component space."
+        },
+        {
+          "id": "group.m3_metamorphic_conflict",
+          "fixtures": ["fixture.m3_guideline_a_metamorphic", "fixture.m3_guideline_b_metamorphic"],
+          "measurement_role": "coverage_apply_metamorphic_conflict",
+          "mutation_note": "Fresh deterministic wording variant sharing M1 component structure."
+        },
+        {
+          "id": "group.m3_exception_resolved",
+          "fixtures": ["fixture.m1_guideline_a", "fixture.m3_exception_renal"],
+          "measurement_role": "coverage_apply_exception_resolved",
+          "mutation_note": "Fresh renal-subgroup counterpart checks model-free exception-guard coverage."
+        }
+      ],
+      "model_free_coverage": {
+        "build_group_ids": ["group.m1_conflict", "group.m1_null"],
+        "apply_group_ids": ["group.m2_holdout_conflict", "group.m3_metamorphic_conflict", "group.m3_exception_resolved"],
+        "runtime_ai": false,
+        "baseline": "model_per_document"
+      }
     }
   ]
 }

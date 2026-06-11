@@ -22,12 +22,12 @@ function flagValue(flag, defaultValue = null) {
   return defaultValue;
 }
 
-const selectedExperimentId = flagValue("--experiment", process.env.CKC_EXPERIMENT_ID ?? "exp.m2_lift");
+const selectedExperimentId = flagValue("--experiment", process.env.CKC_EXPERIMENT_ID ?? "exp.m2_shorthop");
 const scaffoldRoutes = process.argv.includes("--scaffold-routes");
 const printConfig = process.argv.includes("--print-config");
 const runId = flagValue(
   "--run-id",
-  selectedExperimentId === "exp.m2_lift"
+  selectedExperimentId === "exp.m2_shorthop"
     ? "m2-one-shot"
     : selectedExperimentId.replace(/^exp\./, "").replaceAll(".", "-").replaceAll("_", "-")
 );
@@ -60,6 +60,8 @@ let experimentKind = "route_comparison";
 let trialSelection = null;
 let unimplementedRouteIds = [];
 let pipelineIds = [];
+let coverageBuildGroups = [];
+let coverageApplyGroups = [];
 const baselineRouteId = "route.direct_smt";
 const baselinePipelineId = "pipe.direct_rule_to_smt";
 const layeredPipelineId = "pipe.one_shot_js_ckcir_to_smt";
@@ -236,44 +238,44 @@ function assignSequentialRanks(entries, metricIds) {
 function routeComparisonClassification(routeMetrics, routeMatrix) {
   const baseline = routeMetrics.find((entry) => entry.route_id === routeMatrix.baseline_route_id);
   const compared = routeMetrics.filter((entry) => entry.route_id !== routeMatrix.baseline_route_id);
-  const admittedLiftRoutes = compared
+  const admittedDeltaRoutes = compared
     .filter((entry) => compareRatios(entry.admitted_verdict_accuracy, baseline.admitted_verdict_accuracy) > 0)
     .map((entry) => entry.route_id)
     .sort();
-  const targetSyntaxLiftRoutes = compared
+  const targetSyntaxDeltaRoutes = compared
     .filter((entry) => compareRatios(entry.target_syntax_validity, baseline.target_syntax_validity) > 0)
     .map((entry) => entry.route_id)
     .sort();
   return {
-    classification: admittedLiftRoutes.length > 0
-      ? "admitted_lift"
-      : targetSyntaxLiftRoutes.length > 0
-        ? "target_syntax_lift_only"
-        : "null_result_no_route_lift",
-    admitted_lift_route_ids: admittedLiftRoutes,
-    target_syntax_lift_route_ids: targetSyntaxLiftRoutes
+    classification: admittedDeltaRoutes.length > 0
+      ? "admitted_baseline_delta"
+      : targetSyntaxDeltaRoutes.length > 0
+        ? "target_syntax_delta_only"
+        : "null_result_no_route_baseline_delta",
+    admitted_delta_route_ids: admittedDeltaRoutes,
+    target_syntax_delta_route_ids: targetSyntaxDeltaRoutes
   };
 }
 
 function pipelineComparisonClassification(pipelineMetrics, pipelineMatrix) {
   const baseline = pipelineMetrics.find((entry) => entry.pipeline_id === pipelineMatrix.baseline_pipeline_id);
   const compared = pipelineMetrics.filter((entry) => entry.pipeline_id !== pipelineMatrix.baseline_pipeline_id);
-  const verdictLiftPipelines = compared
+  const verdictDeltaPipelines = compared
     .filter((entry) => compareRatios(entry.verdict_accuracy, baseline.verdict_accuracy) > 0)
     .map((entry) => entry.pipeline_id)
     .sort();
-  const reuseLiftPipelines = compared
+  const reuseDeltaPipelines = compared
     .filter((entry) => compareRatios(entry.component_reuse_rate, baseline.component_reuse_rate) > 0)
     .map((entry) => entry.pipeline_id)
     .sort();
   return {
-    classification: verdictLiftPipelines.length > 0
-      ? "verdict_accuracy_lift"
-      : reuseLiftPipelines.length > 0
-        ? "reuse_lift_only"
-        : "null_result_no_pipeline_lift",
-    verdict_lift_pipeline_ids: verdictLiftPipelines,
-    reuse_lift_pipeline_ids: reuseLiftPipelines
+    classification: verdictDeltaPipelines.length > 0
+      ? "verdict_accuracy_baseline_delta"
+      : reuseDeltaPipelines.length > 0
+        ? "reuse_delta_only"
+        : "null_result_no_pipeline_baseline_delta",
+    verdict_delta_pipeline_ids: verdictDeltaPipelines,
+    reuse_delta_pipeline_ids: reuseDeltaPipelines
   };
 }
 
@@ -354,10 +356,11 @@ async function loadM1FixtureInputs() {
   selectedExperiment = cloneData(configuredExperiment);
   const hasRoutes = Array.isArray(configuredExperiment.routes);
   const hasPipelines = Array.isArray(configuredExperiment.pipelines);
-  if (!hasRoutes && !hasPipelines) {
-    throw new Error(`experiment ${selectedExperimentId} must declare routes or pipelines`);
+  const hasModelFreeCoverage = Boolean(configuredExperiment.model_free_coverage);
+  if (!hasRoutes && !hasPipelines && !hasModelFreeCoverage) {
+    throw new Error(`experiment ${selectedExperimentId} must declare routes, pipelines, or model_free_coverage`);
   }
-  experimentKind = hasPipelines && !hasRoutes ? "pipeline_comparison" : "route_comparison";
+  experimentKind = hasModelFreeCoverage ? "model_free_coverage" : hasPipelines && !hasRoutes ? "pipeline_comparison" : "route_comparison";
 
   const goldByGroup = new Map((goldExpectations ?? []).map((entry) => [entry.group_id, entry]));
   function loadGroupSpec(group, label) {
@@ -406,7 +409,7 @@ async function loadM1FixtureInputs() {
     const selectedTrialGroups = selectRouteTrialGroups(allEvaluationGroups, configuredExperiment);
     groups = selectedTrialGroups.groups;
     trialSelection = selectedTrialGroups.selection;
-  } else {
+  } else if (experimentKind === "pipeline_comparison") {
     trialSelection = null;
     pipelineIds = cloneData(configuredExperiment.pipelines);
     if (!Array.isArray(pipelineIds) || pipelineIds.length === 0) throw new Error(`${selectedExperimentId} pipelines must contain at least one pipeline`);
@@ -419,6 +422,26 @@ async function loadM1FixtureInputs() {
       throw new Error(`experiment ${selectedExperimentId} contains unimplemented pipelines: ${unimplementedPipelineIds.join(", ")}`);
     }
     routeIds = [];
+    unimplementedRouteIds = [];
+    sampleSeeds = [];
+  } else {
+    trialSelection = null;
+    const coverageConfig = configuredExperiment.model_free_coverage;
+    const groupsById = new Map(allEvaluationGroups.map((group) => [group.id, group]));
+    function coverageGroupsFromIds(fieldName) {
+      const ids = coverageConfig?.[fieldName];
+      if (!Array.isArray(ids) || ids.length === 0) throw new Error(`${selectedExperimentId} model_free_coverage.${fieldName} must be a non-empty array`);
+      return ids.map((groupId) => {
+        const group = groupsById.get(groupId);
+        if (!group) throw new Error(`${selectedExperimentId} model_free_coverage.${fieldName} references unknown group: ${groupId}`);
+        return group;
+      });
+    }
+    coverageBuildGroups = coverageGroupsFromIds("build_group_ids");
+    coverageApplyGroups = coverageGroupsFromIds("apply_group_ids");
+    groups = coverageApplyGroups;
+    routeIds = [];
+    pipelineIds = [];
     unimplementedRouteIds = [];
     sampleSeeds = [];
   }
@@ -1078,6 +1101,38 @@ function contextsOverlap(left, right) {
   };
 }
 
+function contextSelfCheck(context) {
+  const age = intervalOverlap(context.age_years, context.age_years);
+  const required = new Set(context.required ?? []);
+  const prohibited = new Set(context.prohibited ?? []);
+  const requiredProhibitedCollisions = [...required].filter((code) => prohibited.has(code)).sort();
+  const satisfiable = age.overlaps && requiredProhibitedCollisions.length === 0;
+  return {
+    satisfiable,
+    witness: satisfiable
+      ? {
+          ...age.witness,
+          concepts: [...required].sort()
+        }
+      : null,
+    reasons: [
+      age.overlaps ? "age_interval_satisfiable" : "age_interval_self_disjoint",
+      requiredProhibitedCollisions.length === 0 ? "required_prohibited_compatible" : "required_prohibited_collision"
+    ],
+    required_prohibited_collisions: requiredProhibitedCollisions
+  };
+}
+
+function stripExceptionGuards(rule) {
+  return {
+    ...rule,
+    context: {
+      ...rule.context,
+      prohibited: []
+    }
+  };
+}
+
 function opposedDirections(left, right) {
   const leftFor = left.direction === "for" || left.direction === "require" || left.direction === "permit";
   const rightFor = right.direction === "for" || right.direction === "require" || right.direction === "permit";
@@ -1342,6 +1397,7 @@ function factualConflictCandidates(leftDoc, rightDoc) {
       ) {
         candidates.push({
           conflict_kind: "strict_factual_contradiction",
+          verifier_outcome: "semantic_contradiction",
           assertion_core: [factAssertionId(leftFact), factAssertionId(rightFact)].sort(),
           region_ids: [...new Set([...(leftFact.source_region_ids ?? []), ...(rightFact.source_region_ids ?? [])])],
           details: {
@@ -1369,6 +1425,7 @@ function terminologyConflictCandidates(leftDoc, rightDoc) {
       ) {
         candidates.push({
           conflict_kind: "terminology_incoherence",
+          verifier_outcome: "semantic_contradiction",
           assertion_core: [
             bindingAssertionId(leftDoc.fixture, leftBinding),
             bindingAssertionId(rightDoc.fixture, rightBinding)
@@ -1393,13 +1450,46 @@ function semanticConflictCandidates(group, leftDoc, rightDoc) {
   const left = firstRule(leftDoc);
   const right = firstRule(rightDoc);
   const overlap = contextsOverlap(left.context, right.context);
+  const leftSelfCheck = contextSelfCheck(left.context);
+  const rightSelfCheck = contextSelfCheck(right.context);
+  const rawOverlap = contextsOverlap(stripExceptionGuards(left).context, stripExceptionGuards(right).context);
   const sameAction = left.action_key === right.action_key;
   const opposed = opposedDirections(left, right);
   const sameDirection = left.direction === right.direction;
   const candidates = [];
+  for (const [side, rule, selfCheck] of [["left", left, leftSelfCheck], ["right", right, rightSelfCheck]]) {
+    if (!selfCheck.satisfiable) {
+      candidates.push({
+        conflict_kind: "condition_unsatisfiable",
+        verifier_outcome: "semantic_contradiction",
+        assertion_core: [`ctx.${rule.rule_id}`],
+        region_ids: [...new Set(rule.source_region_ids ?? [])],
+        details: {
+          side,
+          rule_id: rule.rule_id,
+          self_check: selfCheck
+        }
+      });
+    }
+  }
+  if (sameAction && opposed && !overlap.overlaps && rawOverlap.overlaps) {
+    candidates.push({
+      conflict_kind: "exception_resolved_conflict",
+      verifier_outcome: "semantic_no_conflict",
+      assertion_core: [`raw_ctx.${left.rule_id}`, `raw_ctx.${right.rule_id}`, `ctx.${left.rule_id}`, `ctx.${right.rule_id}`].sort(),
+      region_ids: [...new Set([...(left.source_region_ids ?? []), ...(right.source_region_ids ?? [])])],
+      details: {
+        same_action: sameAction,
+        opposed_directions: opposed,
+        raw_context_overlap: rawOverlap,
+        guarded_context_overlap: overlap
+      }
+    });
+  }
   if (sameAction && opposed && overlap.overlaps) {
     candidates.push({
       conflict_kind: "deontic_direction_conflict",
+      verifier_outcome: "semantic_contradiction",
       assertion_core: [...makeAssertions(left), ...makeAssertions(right)].map((entry) => entry.assertion_id).sort(),
       region_ids: [...new Set([...(left.source_region_ids ?? []), ...(right.source_region_ids ?? [])])],
       details: {
@@ -1412,6 +1502,7 @@ function semanticConflictCandidates(group, leftDoc, rightDoc) {
   if (sameAction && sameDirection && !overlap.overlaps) {
     candidates.push({
       conflict_kind: "numeric_threshold_empty_intersection",
+      verifier_outcome: "semantic_contradiction",
       assertion_core: [`ctx.${left.rule_id}`, `ctx.${right.rule_id}`].sort(),
       region_ids: [...new Set([...(left.source_region_ids ?? []), ...(right.source_region_ids ?? [])])],
       details: {
@@ -1430,9 +1521,14 @@ function semanticConflictCandidates(group, leftDoc, rightDoc) {
     left,
     right,
     overlap,
+    raw_overlap: rawOverlap,
+    self_checks: {
+      left: leftSelfCheck,
+      right: rightSelfCheck
+    },
     candidates,
     selected,
-    outcome: selected ? "semantic_contradiction" : "semantic_no_conflict"
+    outcome: selected?.verifier_outcome ?? (selected ? "semantic_contradiction" : "semantic_no_conflict")
   };
 }
 
@@ -1485,6 +1581,45 @@ function terminologyConflictQueryText(candidate) {
   ].join("\n");
 }
 
+function conditionSelfCheckQueryText(rule) {
+  const declarations = [
+    "(declare-const |q.age_years| Real)",
+    "(declare-const |cond.sepsis| Bool)",
+    "(declare-const |cond.renal_severe| Bool)",
+    "(declare-const |cond.pregnancy| Bool)"
+  ];
+  return [
+    "(set-logic QF_LRA)",
+    "(set-option :print-success false)",
+    "(set-option :produce-unsat-cores true)",
+    ...declarations,
+    `(assert (! ${contextSmt(rule)} :named |ctx.${rule.rule_id}|))`,
+    "(check-sat)",
+    "(get-unsat-core)"
+  ].join("\n");
+}
+
+function exceptionResolvedQueryText(left, right) {
+  const declarations = [
+    "(declare-const |q.age_years| Real)",
+    "(declare-const |cond.sepsis| Bool)",
+    "(declare-const |cond.renal_severe| Bool)",
+    "(declare-const |cond.pregnancy| Bool)"
+  ];
+  const rawLeft = stripExceptionGuards(left);
+  const rawRight = stripExceptionGuards(right);
+  return [
+    "(set-logic QF_LRA)",
+    "(set-option :print-success false)",
+    "(set-option :produce-models true)",
+    ...declarations,
+    `(assert (! ${contextSmt(rawLeft)} :named |raw_ctx.${left.rule_id}|))`,
+    `(assert (! ${contextSmt(rawRight)} :named |raw_ctx.${right.rule_id}|))`,
+    "(check-sat)",
+    "(get-model)"
+  ].join("\n");
+}
+
 function pipelineQueryEntries({ pipelineId, group, semantic }) {
   const baseDir = `pipelines/${pipelineId}/${group.id}/smt`;
   const queryTexts = makeSmtQueryTexts(semantic.left, semantic.right, semantic.overlap);
@@ -1528,6 +1663,23 @@ function pipelineQueryEntries({ pipelineId, group, semantic }) {
       logic: "QF_UF",
       text: `${terminologyConflictQueryText(selected)}\n`
     });
+  } else if (selected?.conflict_kind === "condition_unsatisfiable") {
+    const rule = selected.details.side === "left" ? semantic.left : semantic.right;
+    entries.push({
+      query_id: `q.${pipelineId}.${group.id}.q0_self_check`,
+      kind: "condition_unsatisfiable",
+      file: `${baseDir}/q.q0_self_check.smt2`,
+      logic: "QF_LRA",
+      text: `${conditionSelfCheckQueryText(rule)}\n`
+    });
+  } else if (selected?.conflict_kind === "exception_resolved_conflict") {
+    entries.push({
+      query_id: `q.${pipelineId}.${group.id}.raw_overlap`,
+      kind: "exception_resolved_conflict",
+      file: `${baseDir}/q.raw_overlap.smt2`,
+      logic: "QF_LRA",
+      text: `${exceptionResolvedQueryText(semantic.left, semantic.right)}\n`
+    });
   }
   return entries.map((entry) => ({
     ...entry,
@@ -1542,6 +1694,28 @@ function compilePipelineGroup(group, pipelineId, pipelineDocs) {
   const queryEntries = pipelineQueryEntries({ pipelineId, group, semantic });
   const syntaxValid = queryEntries.every((entry) => entry.text.includes("(check-sat)") && balancedParens(entry.text));
   const selected = semantic.selected;
+  const selectedResult = (() => {
+    if (!selected) return [];
+    if (selected.conflict_kind === "exception_resolved_conflict") {
+      return [{
+        query_id: queryEntries.at(-1).query_id,
+        status: "sat",
+        category: "exception_resolved_conflict",
+        conflict_kind: selected.conflict_kind,
+        support_core: selected.assertion_core,
+        model: selected.details.raw_context_overlap.witness
+      }];
+    }
+    return [{
+      query_id: queryEntries.at(-1).query_id,
+      status: "unsat",
+      category: selected.conflict_kind === "condition_unsatisfiable"
+        ? "condition_unsatisfiable"
+        : "semantic_contradiction",
+      conflict_kind: selected.conflict_kind,
+      unsat_core: selected.assertion_core
+    }];
+  })();
   const verifierResults = [
     {
       query_id: queryEntries[0].query_id,
@@ -1549,13 +1723,7 @@ function compilePipelineGroup(group, pipelineId, pipelineDocs) {
       category: semantic.overlap.overlaps ? "semantic_overlap" : "semantic_no_overlap",
       model: semantic.overlap.witness
     },
-    ...(selected ? [{
-      query_id: queryEntries.at(-1).query_id,
-      status: "unsat",
-      category: "semantic_contradiction",
-      conflict_kind: selected.conflict_kind,
-      unsat_core: selected.assertion_core
-    }] : [])
+    ...selectedResult
   ];
   const compiled = {
     artifact_kind: "PipelineCompiledGroup",
@@ -1572,7 +1740,9 @@ function compilePipelineGroup(group, pipelineId, pipelineDocs) {
       same_action: semantic.left.action_key === semantic.right.action_key,
       opposed_directions: opposedDirections(semantic.left, semantic.right),
       same_direction: semantic.left.direction === semantic.right.direction,
-      context_overlap: semantic.overlap
+      context_overlap: semantic.overlap,
+      raw_context_overlap_without_exception_guards: semantic.raw_overlap,
+      q0_self_checks: semantic.self_checks
     },
     assertion_map: selected?.assertion_core ?? []
   };
@@ -1879,13 +2049,13 @@ function buildPipelineRankingArtifacts({ rawRows, pipelineMetrics, pipelineMatri
     baseline_id: pipelineMatrix.baseline_pipeline_id,
     layered_pipeline_id: pipelineMatrix.layered_pipeline_id,
     result_classification: classification.classification,
-    verdict_lift_pipeline_ids: classification.verdict_lift_pipeline_ids,
-    reuse_lift_pipeline_ids: classification.reuse_lift_pipeline_ids,
+    verdict_delta_pipeline_ids: classification.verdict_delta_pipeline_ids,
+    reuse_delta_pipeline_ids: classification.reuse_delta_pipeline_ids,
     ranking_policy: {
       policy_id: "pipeline_lexicographic_exact_v0",
       rank_order: "descending_lexicographic_exact_ratios",
       sort_metrics: pipelineRankingMetricIds,
-      note: "Correctness metrics sort before component reuse so reuse lift is not presented as verdict lift."
+      note: "Correctness metrics sort before component reuse so reuse deltas are not presented as verdict-accuracy deltas."
     },
     source_artifacts: {
       raw_rows_path: "metrics/pipeline_raw_rows.json",
@@ -1966,8 +2136,8 @@ function buildPipelineRankingArtifacts({ rawRows, pipelineMetrics, pipelineMatri
       baseline_id: pipelineMatrix.baseline_pipeline_id,
       layered_pipeline_id: pipelineMatrix.layered_pipeline_id,
       rank_order: pipelineRankingMetricIds,
-      verdict_lift_pipeline_ids: classification.verdict_lift_pipeline_ids,
-      reuse_lift_pipeline_ids: classification.reuse_lift_pipeline_ids
+      verdict_delta_pipeline_ids: classification.verdict_delta_pipeline_ids,
+      reuse_delta_pipeline_ids: classification.reuse_delta_pipeline_ids
     }
   };
 }
@@ -5137,7 +5307,7 @@ function buildRouteMatrix(routeMetrics) {
     route_ids: [...routeIds],
     metrics: comparisonMetricIds,
     comparison_scope: "Exact route metric values and per-route deltas against the direct SMT baseline over identical selected trial groups and seeds.",
-    migration_note: "C1 replaced the fixed direct_smt-versus-single_ir lift table with this route-matrix artifact; report and manifest hashes can change from artifact shape even when raw row measurements are unchanged.",
+    migration_note: "C1 replaced the fixed direct_smt-versus-single_ir delta table with this route-matrix artifact; report and manifest hashes can change from artifact shape even when raw row measurements are unchanged.",
     rows,
     cells: rows.flatMap((row) => comparisonMetricIds.map((metric) => ({
       route_id: row.route_id,
@@ -5193,14 +5363,14 @@ function buildRouteRankingArtifacts({ rawRows, routeMetrics, routeMatrix }) {
     comparison_scope: routeMatrix.comparison_scope,
     baseline_id: routeMatrix.baseline_route_id,
     result_classification: classification.classification,
-    admitted_lift_route_ids: classification.admitted_lift_route_ids,
-    target_syntax_lift_route_ids: classification.target_syntax_lift_route_ids,
+    admitted_delta_route_ids: classification.admitted_delta_route_ids,
+    target_syntax_delta_route_ids: classification.target_syntax_delta_route_ids,
     ranking_policy: {
       policy_id: "route_lexicographic_exact_v0",
       rank_order: "descending_lexicographic_exact_ratios",
       sort_metrics: routeRankingMetricIds,
       audit_only_metrics: ["candidate_verdict_accuracy"],
-      note: "Candidate verdict accuracy is retained for rejected-output audit context and is not used to claim admitted lift."
+      note: "Candidate verdict accuracy is retained for rejected-output audit context and is not used to claim admitted baseline improvement."
     },
     source_artifacts: {
       raw_rows_path: "metrics/raw_rows.json",
@@ -5285,8 +5455,8 @@ function buildRouteRankingArtifacts({ rawRows, routeMetrics, routeMatrix }) {
       result_classification: classification.classification,
       baseline_id: routeMatrix.baseline_route_id,
       rank_order: routeRankingMetricIds,
-      admitted_lift_route_ids: classification.admitted_lift_route_ids,
-      target_syntax_lift_route_ids: classification.target_syntax_lift_route_ids
+      admitted_delta_route_ids: classification.admitted_delta_route_ids,
+      target_syntax_delta_route_ids: classification.target_syntax_delta_route_ids
     }
   };
 }
@@ -5586,7 +5756,7 @@ function buildRouteEvaluation(rawRows) {
     evaluation_strength_note: hasScaffoldedRoutes
       ? "This run includes measured implemented routes and closed rows for still-unimplemented registered routes. Closed scaffold rows are excluded from model-call provenance and carry deferred_gate_required diagnostics instead of fabricated outputs."
       : "R3 removes exact filled JSON payloads from route.single_ir prompts and adds a holdout mutation group. M3 route extensions add stacked, hop-chain, and per-source-label CKC-layered JSON routes under the same evaluator. Prompts still supply schema and cue definitions, so this remains a scaffolded route-translation test rather than raw Japanese guideline understanding.",
-    harness_change_note: "C1 generalizes the comparison harness from a fixed lift table to a baseline-aware route matrix and per-route target summaries; current route raw rows are still the measurement source.",
+    harness_change_note: "C1 generalizes the comparison harness from a fixed two-route delta table to a baseline-aware route matrix and per-route target summaries; current route raw rows are still the measurement source.",
     scaffold_mode: scaffoldRoutes,
     unimplemented_route_ids: [...unimplementedRouteIds],
     scaffolded_route_ids: scaffoldedRouteIds,
@@ -6130,19 +6300,19 @@ function routeEvidenceClassificationSentence(report, locale = "en") {
   const classification = report.ranking?.result_classification
     ?? routeComparisonClassification(report.metrics.route_metrics, report.metrics.route_matrix).classification;
   if (locale === "ja") {
-    if (classification === "admitted_lift") {
-      return "result classification: admitted lift。少なくとも一つの compared route が direct SMT baseline の admitted verdict accuracy を上回る。";
+    if (classification === "admitted_baseline_delta") {
+      return "result classification: admitted baseline delta。少なくとも一つの compared route が direct SMT baseline の admitted verdict accuracy を上回る。";
     }
-    if (classification === "target_syntax_lift_only") {
-      return "result classification: target-syntax lift only。少なくとも一つの compared route が target_syntax_validity で direct SMT baseline を上回るが、admitted verdict accuracy では上回らない。candidate accuracy は rejected output の監査情報であり admitted lift ではない。";
+    if (classification === "target_syntax_delta_only") {
+      return "result classification: target-syntax delta only。少なくとも一つの compared route が target_syntax_validity で direct SMT baseline を上回るが、admitted verdict accuracy では上回らない。candidate accuracy は rejected output の監査情報であり admitted baseline improvement ではない。";
     }
     return "result classification: null result。compared route は admitted verdict accuracy でも target_syntax_validity でも direct SMT baseline を上回らない。";
   }
-  if (classification === "admitted_lift") {
-    return "Result classification: admitted lift. At least one compared route exceeds the direct SMT baseline on admitted verdict accuracy.";
+  if (classification === "admitted_baseline_delta") {
+    return "Result classification: admitted baseline delta. At least one compared route exceeds the direct SMT baseline on admitted verdict accuracy.";
   }
-  if (classification === "target_syntax_lift_only") {
-    return "Result classification: target-syntax lift only. At least one compared route exceeds the direct SMT baseline on target_syntax_validity, but no compared route exceeds admitted verdict accuracy; candidate accuracy remains rejected-output audit evidence.";
+  if (classification === "target_syntax_delta_only") {
+    return "Result classification: target-syntax delta only. At least one compared route exceeds the direct SMT baseline on target_syntax_validity, but no compared route exceeds admitted verdict accuracy; candidate accuracy remains rejected-output audit evidence.";
   }
   return "Result classification: null result. No compared route exceeds the direct SMT baseline on admitted verdict accuracy or target_syntax_validity.";
 }
@@ -6196,7 +6366,7 @@ function markdownReport(report) {
   const directAudit = report.direct_smt_audit;
   const directAuditConclusion = `Direct SMT residual audit: exact template matches ${directAudit.exact_template_match_rate.exact}; rows without named assertions ${directAudit.missing_named_assertion_rate.exact}; rows asserting negated sepsis ${directAudit.negated_sepsis_assertion_rate.exact}. This audit is non-admission evidence for malformed direct target composition under the shared cue layer.`;
   const realGuidelineRows = report.real_guideline_intake.sources.map((source) => `| ${source.id} | ${source.license_label} | ${source.raw_cache_status} | ${source.candidate_span_count} | ${source.admitted_candidate_rule_count} | ${source.rejected_residual_count} | ${source.guideline_relation} |`).join("\n");
-  const routeSectionTitle = report.route_experiment.experiment_id === "exp.m2_lift" ? "M2 route matrix" : "Route matrix";
+  const routeSectionTitle = report.route_experiment.experiment_id === "exp.m2_shorthop" ? "M2 route matrix" : "Route matrix";
   const routeIntro = "Implemented routes finish at SMT-LIB under the same evaluator: direct SMT asks the model for target text, single_ir asks for bounded JSON rows, stacked_ir asks for a source_frame -> rule_row stack, ir_hop_chain asks for three adjacent JSON hops, and ckc_layered asks for per-source-label CKC segment -> statement -> rule stages before deterministic route_rule_ir.v0 compilation. Closed scaffold routes, when present, make no model calls and are not fabricated measurements.";
   return `# CKC one-shot M1-M2 research report
 
@@ -6295,7 +6465,7 @@ function japaneseReport(report) {
   const directAudit = report.direct_smt_audit;
   const directAuditConclusion = `Direct SMT residual audit: exact template match ${directAudit.exact_template_match_rate.exact}、named assertion なし ${directAudit.missing_named_assertion_rate.exact}、negated sepsis assertion ${directAudit.negated_sepsis_assertion_rate.exact}。これは admission 判定外の監査情報であり、shared cue layer 下で direct target composition が malformed になることを記録する。`;
   const realGuidelineRows = report.real_guideline_intake.sources.map((source) => `| ${source.id} | ${source.license_label} | ${source.raw_cache_status} | ${source.candidate_span_count} | ${source.admitted_candidate_rule_count} | ${source.rejected_residual_count} |`).join("\n");
-  const routeSectionTitle = report.route_experiment.experiment_id === "exp.m2_lift" ? "M2 route matrix" : "Route matrix";
+  const routeSectionTitle = report.route_experiment.experiment_id === "exp.m2_shorthop" ? "M2 route matrix" : "Route matrix";
   const routeIntro = "implemented route は同じ evaluator の下で SMT-LIB に到達する。direct SMT は model が target text を直接構成し、single_ir は bounded JSON row、stacked_ir は source_frame -> rule_row stack、ir_hop_chain は lexical cues -> clinical frame -> rule rows の 3 hop JSON、ckc_layered は source label ごとの CKC segment -> statement -> rule stages を出力し、deterministic route_rule_ir.v0 compiler が SMT-LIB に変換する。closed scaffold route がある場合、model call はなく fabricated measurement ではない。";
   return `# CKC one-shot M1-M2 研究レポート
 
@@ -6481,6 +6651,412 @@ model-route delta scope: ${report.pipeline_comparison.model_route_delta_scope}
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 ${rawRows}
 `;
+}
+
+function uniqueFixtureIdsForGroups(groupList) {
+  const seen = new Set();
+  const ids = [];
+  for (const group of groupList) {
+    for (const fixtureId of group.fixtures) {
+      if (!seen.has(fixtureId)) {
+        seen.add(fixtureId);
+        ids.push(fixtureId);
+      }
+    }
+  }
+  return ids;
+}
+
+function componentRowsForFixture(docArtifacts) {
+  return componentPayloadsForFixture(docArtifacts).map((component, index) => ({
+    fixture_id: docArtifacts.fixture.id,
+    source_label: docArtifacts.fixture.source_label,
+    component_kind: component.component_kind,
+    component_hash: sha256({ component_kind: component.component_kind, payload: component.payload }),
+    component_index: index + 1,
+    payload: component.payload
+  }));
+}
+
+function buildModelFreeCoverageArtifacts(artifactsByDoc) {
+  const buildFixtureIds = uniqueFixtureIdsForGroups(coverageBuildGroups);
+  const applyFixtureIds = uniqueFixtureIdsForGroups(coverageApplyGroups);
+  const buildComponentRows = buildFixtureIds.flatMap((fixtureId) => componentRowsForFixture(artifactsByDoc.get(fixtureId)));
+  const buildByHash = new Map();
+  for (const row of buildComponentRows) {
+    if (!buildByHash.has(row.component_hash)) {
+      buildByHash.set(row.component_hash, {
+        component_hash: row.component_hash,
+        component_kind: row.component_kind,
+        payload: row.payload,
+        build_use_sites: []
+      });
+    }
+    buildByHash.get(row.component_hash).build_use_sites.push({
+      fixture_id: row.fixture_id,
+      source_label: row.source_label,
+      component_index: row.component_index
+    });
+  }
+  const mappingStore = [...buildByHash.values()].sort((left, right) => left.component_hash.localeCompare(right.component_hash));
+  const applyResults = coverageApplyGroups.map((group) => compilePipelineGroup(group, layeredPipelineId, artifactsByDoc));
+  const rawRows = applyResults.map((result) => {
+    const fixtureCoverage = result.group.fixtures.map((fixtureId) => {
+      const components = componentRowsForFixture(artifactsByDoc.get(fixtureId));
+      const covered = components.filter((component) => buildByHash.has(component.component_hash));
+      return {
+        fixture_id: fixtureId,
+        source_label: artifactsByDoc.get(fixtureId).fixture.source_label,
+        component_count: components.length,
+        covered_component_count: covered.length,
+        coverage: ratio(covered.length, components.length),
+        uncovered_component_hashes: components
+          .filter((component) => !buildByHash.has(component.component_hash))
+          .map((component) => component.component_hash)
+          .sort()
+      };
+    });
+    const componentCount = fixtureCoverage.reduce((sum, row) => sum + row.component_count, 0);
+    const coveredComponentCount = fixtureCoverage.reduce((sum, row) => sum + row.covered_component_count, 0);
+    return {
+      group_id: result.group.id,
+      fixture_ids: result.group.fixtures,
+      measurement_role: result.group.measurementRole,
+      source_labels: groupSourceLabels(result.group),
+      expected: result.group.expectedOutcome,
+      expected_conflict_kind: result.group.expectedConflictKind,
+      runtime_ai: false,
+      apply_phase_model_call_count: 0,
+      component_count: componentCount,
+      covered_component_count: coveredComponentCount,
+      component_coverage: ratio(coveredComponentCount, componentCount),
+      verdict: result.verifier.outcome,
+      conflict_kind: result.verifier.conflict_kind,
+      verdict_correct: result.verifier.expected_match,
+      conflict_kind_correct: result.verifier.conflict_kind_match,
+      detected_conflict_kinds: result.semantic.candidates.map((candidate) => candidate.conflict_kind),
+      fixture_component_coverage: fixtureCoverage
+    };
+  });
+  const totalComponents = rawRows.reduce((sum, row) => sum + row.component_count, 0);
+  const totalCovered = rawRows.reduce((sum, row) => sum + row.covered_component_count, 0);
+  const metrics = {
+    artifact_kind: "ModelFreeCoverageMetrics",
+    schema_version: "model_free_coverage_metrics.v0",
+    experiment_id: selectedExperimentId,
+    build_group_count: coverageBuildGroups.length,
+    apply_group_count: coverageApplyGroups.length,
+    build_fixture_count: buildFixtureIds.length,
+    apply_fixture_count: applyFixtureIds.length,
+    mapping_set_size: mappingStore.length,
+    component_coverage_rate: ratio(totalCovered, totalComponents),
+    group_verdict_accuracy: ratio(rawRows.filter((row) => row.verdict_correct).length, rawRows.length),
+    conflict_kind_accuracy: ratio(rawRows.filter((row) => row.conflict_kind_correct).length, rawRows.length),
+    apply_phase_model_call_count: 0,
+    model_per_document_baseline_call_count: applyFixtureIds.length,
+    runtime_ai: false
+  };
+  const compactnessFront = {
+    artifact_kind: "ModelFreeCoverageCompactnessFront",
+    schema_version: "model_free_coverage_compactness_front.v0",
+    experiment_id: selectedExperimentId,
+    scope: "Fixture-scale model-free coverage over fresh synthetic documents sharing CKC components; no runtime model calls are made in the apply phase.",
+    optimization_direction: {
+      component_coverage_rate: "maximize",
+      mapping_set_size: "minimize",
+      apply_phase_model_call_count: "minimize",
+      group_verdict_accuracy: "maximize"
+    },
+    points: [
+      {
+        point_id: "model_free_apply_v0",
+        runtime_ai: false,
+        mapping_set_size: mappingStore.length,
+        component_coverage_rate: metrics.component_coverage_rate,
+        group_verdict_accuracy: metrics.group_verdict_accuracy,
+        conflict_kind_accuracy: metrics.conflict_kind_accuracy,
+        apply_phase_model_call_count: 0,
+        model_per_document_baseline_call_count: applyFixtureIds.length
+      }
+    ]
+  };
+  return {
+    build_fixture_ids: buildFixtureIds,
+    apply_fixture_ids: applyFixtureIds,
+    mapping_store: mappingStore,
+    raw_rows: rawRows,
+    metrics,
+    compactness_front: compactnessFront
+  };
+}
+
+function coverageCsv(rawRows) {
+  return csvTable([
+    "group_id",
+    "measurement_role",
+    "fixture_ids",
+    "expected",
+    "expected_conflict_kind",
+    "verdict",
+    "conflict_kind",
+    "verdict_correct",
+    "conflict_kind_correct",
+    "component_coverage",
+    "covered_component_count",
+    "component_count",
+    "apply_phase_model_call_count"
+  ], rawRows.map((row) => ({
+    ...row,
+    fixture_ids: row.fixture_ids.join(";"),
+    component_coverage: row.component_coverage.exact
+  })));
+}
+
+function coverageMarkdownReport(report) {
+  const buildRows = report.model_free_coverage.build_groups.map((group) => `| \`${group.group_id}\` | ${group.source_labels.join(", ")} | ${group.fixture_ids.map((entry) => `\`${entry}\``).join(", ")} |`).join("\n");
+  const applyRows = report.metrics.coverage_raw_rows.map((row) => `| \`${row.group_id}\` | ${row.source_labels.join(", ")} | ${row.expected} | ${row.expected_conflict_kind ?? "none"} | ${row.verdict} | ${row.conflict_kind ?? "none"} | ${row.verdict_correct} | ${row.conflict_kind_correct} | ${row.component_coverage.exact} |`).join("\n");
+  return `# CKC M3 model-free coverage report
+
+Run: \`${report.run_id}\`
+
+Scope: research harness; synthetic fixture measurement. The build phase admits a fixture-scale mapping/component store, then the apply phase runs with \`runtime_ai: false\`. This report makes no clinical, patient-care, deployment, or regulatory claim.
+
+## Build Set
+
+| Group | Source labels | Fixtures |
+| --- | --- | --- |
+${buildRows}
+
+Mapping-set size: ${report.metrics.coverage_metrics.mapping_set_size}. Build fixtures: ${report.metrics.coverage_metrics.build_fixture_count}.
+
+## Apply Set
+
+Apply-phase model calls: ${report.metrics.coverage_metrics.apply_phase_model_call_count}; model-per-document baseline calls: ${report.metrics.coverage_metrics.model_per_document_baseline_call_count}.
+
+| Group | Source labels | Expected | Expected kind | Verdict | Conflict kind | Verdict correct | Kind correct | Component coverage |
+| --- | --- | --- | --- | --- | --- | --- | --- | ---: |
+${applyRows}
+
+## Metrics
+
+- Component coverage: ${report.metrics.coverage_metrics.component_coverage_rate.exact}
+- Verdict accuracy: ${report.metrics.coverage_metrics.group_verdict_accuracy.exact}
+- Conflict-kind accuracy: ${report.metrics.coverage_metrics.conflict_kind_accuracy.exact}
+- Runtime AI: ${report.metrics.coverage_metrics.runtime_ai}
+`;
+}
+
+function coverageJapaneseReport(report) {
+  const applyRows = report.metrics.coverage_raw_rows.map((row) => `| \`${row.group_id}\` | ${row.expected} | ${row.expected_conflict_kind ?? "none"} | ${row.verdict} | ${row.conflict_kind ?? "none"} | ${row.verdict_correct} | ${row.component_coverage.exact} |`).join("\n");
+  return `# CKC M3 model-free coverage 研究レポート
+
+run: \`${report.run_id}\`
+
+範囲: research harness、synthetic fixture measurement。build phase の mapping/component store を apply phase で \`runtime_ai: false\` として適用する。臨床、患者ケア、導入、規制上の主張はしない。
+
+apply-phase model calls: ${report.metrics.coverage_metrics.apply_phase_model_call_count}。component coverage: ${report.metrics.coverage_metrics.component_coverage_rate.exact}。verdict accuracy: ${report.metrics.coverage_metrics.group_verdict_accuracy.exact}。
+
+| group | expected | expected kind | verdict | conflict kind | verdict correct | component coverage |
+| --- | --- | --- | --- | --- | --- | ---: |
+${applyRows}
+`;
+}
+
+async function writeModelFreeCoverageRun({ artifactsByDoc, realGuidelineIntake, finding, nullResult }) {
+  const coverage = buildModelFreeCoverageArtifacts(artifactsByDoc);
+  const groupAudit = buildGroupAudit(allEvaluationGroups);
+  const modelMeta = await modelMetadata(0);
+  const csv = coverageCsv(coverage.raw_rows);
+
+  await writeJson("model_free_coverage.json", {
+    artifact_kind: "ModelFreeCoverageArtifact",
+    schema_version: "model_free_coverage.v0",
+    experiment_id: selectedExperimentId,
+    build_fixture_ids: coverage.build_fixture_ids,
+    apply_fixture_ids: coverage.apply_fixture_ids,
+    mapping_store: coverage.mapping_store
+  });
+  await writeJson("metrics/coverage_raw_rows.json", coverage.raw_rows);
+  await writeJson("metrics/coverage_metrics.json", coverage.metrics);
+  await writeJson("metrics/group_audit.json", groupAudit);
+  await writeJson("compactness_front.json", coverage.compactness_front);
+  await writeText("coverage.csv", csv);
+
+  const report = {
+    artifact_kind: "ModelFreeCoverageReport",
+    schema_version: "m3_model_free_coverage_report.v0",
+    run_id: runId,
+    generated_by: "tools/build-run.mjs",
+    experiments: ["exp.m1_spine", selectedExperimentId],
+    model_free_coverage: {
+      experiment_id: selectedExperimentId,
+      basis: selectedExperiment?.basis ?? null,
+      runtime_ai: false,
+      build_group_ids: coverageBuildGroups.map((group) => group.id),
+      apply_group_ids: coverageApplyGroups.map((group) => group.id),
+      build_groups: coverageBuildGroups.map((group) => ({
+        group_id: group.id,
+        fixture_ids: group.fixtures,
+        source_labels: groupSourceLabels(group),
+        measurement_role: group.measurementRole
+      })),
+      apply_groups: coverageApplyGroups.map((group) => ({
+        group_id: group.id,
+        fixture_ids: group.fixtures,
+        source_labels: groupSourceLabels(group),
+        measurement_role: group.measurementRole,
+        expected_outcome: group.expectedOutcome,
+        expected_conflict_kind: group.expectedConflictKind,
+        expected_null_result: group.expectedNullResult
+      }))
+    },
+    solver_identity: "one-shot-js-symbolic-verifier",
+    model_identity: modelMeta.model_identity,
+    model_runtime: modelMeta.model_runtime,
+    model_mode: modelMeta.model_mode,
+    live_model_calls: 0,
+    findings: [finding],
+    null_results: [nullResult],
+    metrics: {
+      coverage_raw_rows: coverage.raw_rows,
+      coverage_metrics: coverage.metrics
+    },
+    compactness_front: coverage.compactness_front,
+    m3_group_audit: groupAudit,
+    real_guideline_intake: {
+      artifact_id: realGuidelineIntake.artifact_id,
+      registry_path: realGuidelineIntake.registry_path,
+      registry_hash: realGuidelineIntake.registry_hash,
+      raw_manifest_path: realGuidelineIntake.raw_manifest_path,
+      raw_manifest_hash: realGuidelineIntake.raw_manifest_hash,
+      source_count: realGuidelineIntake.source_count,
+      candidate_span_count: realGuidelineIntake.candidate_span_count,
+      admitted_candidate_rule_count: realGuidelineIntake.admitted_candidate_rule_count,
+      rejected_candidate_span_count: realGuidelineIntake.rejected_candidate_span_count,
+      residual_count: realGuidelineIntake.residual_count,
+      blocking_residual_count: realGuidelineIntake.blocking_residual_count,
+      admission_scope: realGuidelineIntake.admission_scope,
+      scoring_scope: realGuidelineIntake.scoring_scope,
+      clinical_claim_scope: realGuidelineIntake.clinical_claim_scope
+    },
+    replay: {
+      status: "byte_stable_on_current_generation",
+      deterministic_inputs: [
+        "corpus/fixtures",
+        "corpus/gold/m1_expected.json",
+        "registry",
+        "corpus/real_guidelines/japanese_guidelines.json",
+        ...(realGuidelineIntake.raw_manifest_hash ? ["corpus/raw/real-guidelines/manifest.json"] : [])
+      ]
+    },
+    wording_scope: [
+      "research harness",
+      "source-grounded",
+      "verifier-checked",
+      "replayable",
+      "synthetic fixture measurement",
+      "model-free coverage",
+      "documented null result"
+    ]
+  };
+
+  await writeJson("report.json", report);
+  await writeText("report.md", coverageMarkdownReport(report));
+  await writeText("report.ja.md", coverageJapaneseReport(report));
+
+  const manifest = {
+    artifact_kind: "RunManifest",
+    run_id: runId,
+    created_at: "2026-06-11T00:00:00Z",
+    stack_deviation: "JavaScript one-shot harness instead of the spec Rust/model/solver stack",
+    selected_experiment_id: selectedExperimentId,
+    experiment_kind: experimentKind,
+    experiments: report.experiments,
+    model_mode: report.model_mode,
+    model_identity: report.model_identity,
+    model_runtime: report.model_runtime,
+    build_group_ids: coverageBuildGroups.map((group) => group.id),
+    apply_group_ids: coverageApplyGroups.map((group) => group.id),
+    build_fixture_ids: coverage.build_fixture_ids,
+    apply_fixture_ids: coverage.apply_fixture_ids,
+    coverage_metrics_hash: sha256(coverage.metrics),
+    coverage_raw_rows_hash: sha256(coverage.raw_rows),
+    compactness_front_hash: sha256(coverage.compactness_front),
+    group_audit_hash: sha256(groupAudit),
+    real_guideline_intake_hash: sha256(realGuidelineIntake),
+    report_hash: sha256(report)
+  };
+  await writeJson("manifest.json", manifest);
+
+  const events = [
+    { event: "run_started", run_id: runId },
+    { event: "m1_spine_completed", outcome: "ok" },
+    {
+      event: "model_free_coverage_completed",
+      experiment_id: selectedExperimentId,
+      outcome: "ok",
+      runtime_ai: false,
+      apply_phase_model_call_count: 0
+    },
+    { event: "run_completed", outcome: "ok" }
+  ];
+  await writeText("logs/events.jsonl", events.map((entry) => JSON.stringify(stable(entry))).join("\n"));
+  await writeText("logs/diagnostics.jsonl", "");
+
+  const replayManifest = await buildReplayManifest();
+  await writeJson("replay_manifest.json", replayManifest);
+
+  if (verifyMode) {
+    const requiredFiles = [
+      "report.json",
+      "report.md",
+      "report.ja.md",
+      "model_free_coverage.json",
+      "metrics/coverage_raw_rows.json",
+      "metrics/coverage_metrics.json",
+      "metrics/group_audit.json",
+      "compactness_front.json",
+      "coverage.csv",
+      "trace_bundle.json",
+      "lineage_index.json",
+      "real_guidelines/source_intake.json",
+      "manifest.json",
+      "replay_manifest.json"
+    ];
+    const assertions = [
+      experimentKind === "model_free_coverage",
+      selectedExperiment?.id === selectedExperimentId,
+      report.model_free_coverage.experiment_id === selectedExperimentId,
+      report.model_free_coverage.runtime_ai === false,
+      report.metrics.coverage_metrics.runtime_ai === false,
+      report.metrics.coverage_metrics.apply_phase_model_call_count === 0,
+      report.live_model_calls === 0,
+      report.model_mode === "deterministic_no_model",
+      coverage.raw_rows.length === coverageApplyGroups.length,
+      coverage.raw_rows.every((row) => row.verdict_correct && row.conflict_kind_correct),
+      coverage.metrics.group_verdict_accuracy.exact === `${coverage.raw_rows.length}/${coverage.raw_rows.length}`,
+      coverage.metrics.conflict_kind_accuracy.exact === `${coverage.raw_rows.length}/${coverage.raw_rows.length}`,
+      coverage.metrics.model_per_document_baseline_call_count === coverage.apply_fixture_ids.length,
+      coverage.compactness_front.points[0].apply_phase_model_call_count === 0,
+      groupAudit.all_groups_have_gold_fixture_semantics_and_source_paths,
+      ...requiredFiles.map((relative) => existsSync(path.join(runDir, relative)))
+    ];
+    if (assertions.some((entry) => !entry)) {
+      throw new Error("model-free coverage verification failed");
+    }
+  }
+
+  console.log(JSON.stringify({
+    run_dir: path.relative(root, runDir),
+    report: path.relative(root, path.join(runDir, "report.json")),
+    experiment_id: selectedExperimentId,
+    experiment_kind: experimentKind,
+    model_mode: report.model_mode,
+    apply_phase_model_call_count: report.metrics.coverage_metrics.apply_phase_model_call_count,
+    component_coverage: report.metrics.coverage_metrics.component_coverage_rate.exact,
+    verdict_accuracy: report.metrics.coverage_metrics.group_verdict_accuracy.exact,
+    verified: verifyMode
+  }, null, 2));
 }
 
 async function walkFiles(directory) {
@@ -6679,7 +7255,7 @@ async function writePipelineComparisonRun({ artifactsByDoc, directArtifactsByDoc
     artifact_kind: "RunManifest",
     run_id: runId,
     created_at: "2026-06-11T00:00:00Z",
-    stack_deviation: "JavaScript one-shot harness instead of the spec04 Rust/model/solver stack",
+    stack_deviation: "JavaScript one-shot harness instead of the spec Rust/model/solver stack",
     selected_experiment_id: selectedExperimentId,
     experiment_kind: experimentKind,
     experiments: report.experiments,
@@ -6795,9 +7371,11 @@ async function writePipelineComparisonRun({ artifactsByDoc, directArtifactsByDoc
 }
 
 async function modelMetadata(liveCalls) {
-  if (experimentKind === "pipeline_comparison") {
+  if (experimentKind === "pipeline_comparison" || experimentKind === "model_free_coverage") {
     return {
-      model_identity: "not_applicable.deterministic_pipeline_compare",
+      model_identity: experimentKind === "model_free_coverage"
+        ? "not_applicable.model_free_coverage"
+        : "not_applicable.deterministic_pipeline_compare",
       model_runtime: "deterministic-js-run-builder-only",
       live_model_calls: 0,
       model_mode: "deterministic_no_model"
@@ -6831,7 +7409,7 @@ function buildRunConfigSummary() {
     run_id: runId,
     run_dir: path.relative(root, runDir),
     experiment_kind: experimentKind,
-    model_mode: experimentKind === "pipeline_comparison" ? "deterministic_no_model" : liveModel ? "live_local_llama_cpp" : "recorded_unsupported"
+    model_mode: experimentKind === "pipeline_comparison" || experimentKind === "model_free_coverage" ? "deterministic_no_model" : liveModel ? "live_local_llama_cpp" : "recorded_unsupported"
   };
   if (experimentKind === "pipeline_comparison") {
     return {
@@ -6842,6 +7420,15 @@ function buildRunConfigSummary() {
         comparison_role: pipelineId === baselinePipelineId ? "baseline" : "compared_pipeline"
       })),
       evaluation_group_ids: groups.map((group) => group.id)
+    };
+  }
+  if (experimentKind === "model_free_coverage") {
+    return {
+      ...base,
+      build_group_ids: coverageBuildGroups.map((group) => group.id),
+      apply_group_ids: coverageApplyGroups.map((group) => group.id),
+      evaluation_group_ids: allEvaluationGroups.map((group) => group.id),
+      apply_phase_model_call_count: 0
     };
   }
   return {
@@ -6965,6 +7552,16 @@ async function main() {
   };
   await writeJson("trace_bundle.json", traceBundle);
   await writeJson("lineage_index.json", lineageIndex);
+
+  if (experimentKind === "model_free_coverage") {
+    await writeModelFreeCoverageRun({
+      artifactsByDoc,
+      realGuidelineIntake,
+      finding,
+      nullResult
+    });
+    return;
+  }
 
   if (experimentKind === "pipeline_comparison") {
     const directArtifactsByDoc = buildDirectPipelineArtifacts(artifactsByDoc);
@@ -7189,7 +7786,7 @@ async function main() {
     artifact_kind: "RunManifest",
     run_id: runId,
     created_at: "2026-06-11T00:00:00Z",
-    stack_deviation: "JavaScript one-shot harness instead of the spec04 Rust/model/solver stack",
+    stack_deviation: "JavaScript one-shot harness instead of the spec Rust/model/solver stack",
     model_mode: modelMeta.model_mode,
     model_identity: modelMeta.model_identity,
     model_runtime: modelMeta.model_runtime,

@@ -8,6 +8,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const m2ReportPath = path.join(root, "runs", "m2-one-shot", "report.json");
 const m3RoutesReportPath = path.join(root, "runs", "m3-routes", "report.json");
 const m3CompareReportPath = path.join(root, "runs", "m3-compare", "report.json");
+const m3CoverageReportPath = path.join(root, "runs", "m3-coverage", "report.json");
 const defaultReportPath = process.env.CKC_FIGURE_REPORT
   ? path.resolve(root, process.env.CKC_FIGURE_REPORT)
   : existsSync(m3RoutesReportPath)
@@ -17,6 +18,11 @@ const defaultPipelineReportPath = process.env.CKC_FIGURE_PIPELINE_REPORT
   ? path.resolve(root, process.env.CKC_FIGURE_PIPELINE_REPORT)
   : existsSync(m3CompareReportPath)
     ? m3CompareReportPath
+    : null;
+const defaultCoverageReportPath = process.env.CKC_FIGURE_COVERAGE_REPORT
+  ? path.resolve(root, process.env.CKC_FIGURE_COVERAGE_REPORT)
+  : existsSync(m3CoverageReportPath)
+    ? m3CoverageReportPath
     : null;
 const defaultOutDir = path.join(root, "figures", "manuscript");
 const args = process.argv.slice(2);
@@ -29,6 +35,7 @@ function argValue(flag, fallback) {
 
 const reportPath = argValue("--report", defaultReportPath);
 const pipelineReportPath = argValue("--pipeline-report", defaultPipelineReportPath);
+const coverageReportPath = argValue("--coverage-report", defaultCoverageReportPath);
 const outDir = argValue("--out", defaultOutDir);
 
 const colors = {
@@ -472,7 +479,7 @@ function buildRouteMechanicsFigure(report) {
     ?? { route_id: "route.single_ir", compiled_row_count: 0, smt_file_count: 0 };
   const compiledMetric = routeMetric(report, compiledSummary.route_id) ?? routeMetric(report, "route.single_ir") ?? direct;
   const singleIr = routeMetric(report, "route.single_ir");
-  const m2PairOnly = report.route_experiment?.experiment_id === "exp.m2_lift" && routeIdsForReport(report).length === 2 && singleIr;
+  const m2PairOnly = report.route_experiment?.experiment_id === "exp.m2_shorthop" && routeIdsForReport(report).length === 2 && singleIr;
   addTitle(
     shapes,
     "Route mechanics and evidence boundaries",
@@ -573,7 +580,7 @@ function buildRouteMechanicsFigure(report) {
   addWrappedText(
     shapes,
     m2PairOnly
-      ? `The run shows a target-syntax lift (${ratioExact(direct.target_syntax_validity)} -> ${ratioExact(singleIr.target_syntax_validity)}) but no admitted lift: baseline admitted accuracy is ${ratioExact(direct.admitted_verdict_accuracy)} and single_ir admitted accuracy is ${ratioExact(singleIr.admitted_verdict_accuracy)}. Candidate verdict accuracy for single_ir is ${ratioExact(singleIr.candidate_verdict_accuracy)} and remains rejected evidence.`
+      ? `The run shows a positive target-syntax baseline delta (${ratioExact(direct.target_syntax_validity)} -> ${ratioExact(singleIr.target_syntax_validity)}) but no admitted baseline delta: baseline admitted accuracy is ${ratioExact(direct.admitted_verdict_accuracy)} and single_ir admitted accuracy is ${ratioExact(singleIr.admitted_verdict_accuracy)}. Candidate verdict accuracy for single_ir is ${ratioExact(singleIr.candidate_verdict_accuracy)} and remains rejected evidence.`
       : `The route matrix keeps ${baselineId} as baseline. Highest target syntax is ${shortRouteLabel(bestRouteForMetric(report, "target_syntax_validity").route_id)} at ${ratioExact(bestRouteForMetric(report, "target_syntax_validity").target_syntax_validity)}; candidate accuracy remains rejected-output audit evidence.`,
     96,
     735,
@@ -585,8 +592,8 @@ function buildRouteMechanicsFigure(report) {
     `Scope: ${report.wording_scope}; ${report.m2_evaluation.evaluation_strength}. This figure makes no clinical, patient-care, deployment, or regulatory claim.`
   );
   const mechanicsCaption = singleIr && ratioValue(singleIr.target_syntax_validity) > ratioValue(direct.target_syntax_validity)
-    ? "Route mechanics. Implemented routes consume the same fixture groups and are scored by the same evaluator; the current run shows target-syntax lift only, not admitted verdict lift."
-    : "Route mechanics. Routes consume the same fixture groups and are scored by the same evaluator; admitted verdict lift is shown only when route-matrix rows exceed the direct SMT baseline.";
+    ? "Route mechanics. Implemented routes consume the same fixture groups and are scored by the same evaluator; the current run shows a target-syntax baseline delta only, not an admitted-verdict baseline delta."
+    : "Route mechanics. Routes consume the same fixture groups and are scored by the same evaluator; admitted-verdict baseline improvement is shown only when route-matrix rows exceed the direct SMT baseline.";
   return scene(
     "fig01_route_mechanics",
     "Route mechanics and evidence boundaries",
@@ -603,7 +610,7 @@ function buildRouteMetricsFigure(report) {
   const sampleCount = Math.max(...report.metrics.route_metrics.map((entry) => entry.samples ?? 0));
   addTitle(
     shapes,
-    report.route_experiment?.experiment_id === "exp.m2_lift" ? "M2 route matrix metrics" : "Route matrix metrics",
+    report.route_experiment?.experiment_id === "exp.m2_shorthop" ? "M2 route matrix metrics" : "Route matrix metrics",
     "Exact-ratio measurements over identical groups and seeds per route.",
     `n = ${sampleCount} rows per route`
   );
@@ -656,8 +663,8 @@ function buildRouteMetricsFigure(report) {
   );
   return scene(
     "fig02_route_metrics",
-    report.route_experiment?.experiment_id === "exp.m2_lift" ? "M2 route matrix metrics" : "Route matrix metrics",
-    "Route metrics from the current run, shown as exact-ratio profile lines over the route matrix with direct SMT retained as baseline. Candidate verdict accuracy is rejected-output audit evidence, not admitted lift.",
+    report.route_experiment?.experiment_id === "exp.m2_shorthop" ? "M2 route matrix metrics" : "Route matrix metrics",
+    "Route metrics from the current run, shown as exact-ratio profile lines over the route matrix with direct SMT retained as baseline. Candidate verdict accuracy is rejected-output audit evidence, not admitted baseline improvement.",
     1600,
     900,
     shapes
@@ -909,7 +916,7 @@ function buildPipelineComparisonFigure(report) {
   );
   addWrappedText(
     shapes,
-    `Component reuse delta is ${ratioExact(layeredMatrixRow.metrics.component_reuse_rate.delta_from_baseline)}. This is deterministic pipeline evidence and is separate from model-route lift.`,
+    `Component reuse delta is ${ratioExact(layeredMatrixRow.metrics.component_reuse_rate.delta_from_baseline)}. This is deterministic pipeline evidence and is separate from model-route baseline deltas.`,
     1244,
     500,
     260,
@@ -923,7 +930,127 @@ function buildPipelineComparisonFigure(report) {
   return scene(
     "fig05_pipeline_comparison",
     "Deterministic pipeline comparison",
-    "Deterministic pipeline comparison. Direct rule-to-SMT is retained as baseline; profile lines show that the layered CKC pipeline matches verdict and conflict-kind accuracy in the current M3 comparison while component reuse is reported separately from model-route lift.",
+    "Deterministic pipeline comparison. Direct rule-to-SMT is retained as baseline; profile lines show that the layered CKC pipeline matches verdict and conflict-kind accuracy in the current M3 comparison while component reuse is reported separately from model-route baseline deltas.",
+    1600,
+    900,
+    shapes
+  );
+}
+
+function buildModelFreeCoverageFigure(report) {
+  const shapes = [];
+  const metrics = report.metrics.coverage_metrics;
+  const rawRows = report.metrics.coverage_raw_rows;
+  addTitle(
+    shapes,
+    "Model-free coverage",
+    "Build-set mappings are applied to fresh fixture groups with runtime AI disabled.",
+    `run ${report.run_id}`
+  );
+
+  addNode(shapes, {
+    x: 70,
+    y: 145,
+    w: 315,
+    h: 185,
+    title: "Build set",
+    accent: colors.blue,
+    lines: [
+      `${metrics.build_group_count} group(s), ${metrics.build_fixture_count} fixture(s).`,
+      `Mapping-set size: ${metrics.mapping_set_size}.`
+    ],
+    badge: { label: "admit", w: 88, fill: "#eef3fb", stroke: "#b8c8e6", textFill: colors.blue }
+  });
+  addNode(shapes, {
+    x: 470,
+    y: 145,
+    w: 315,
+    h: 185,
+    title: "Component store",
+    accent: colors.det,
+    lines: [
+      "Reusable hashes from the build phase form the apply-phase mapping surface.",
+      `Coverage target: ${ratioExact(metrics.component_coverage_rate)}.`
+    ],
+    badge: { label: "hash", w: 82, fill: "#eaf4ee", stroke: "#b9d6c5", textFill: colors.det }
+  });
+  addArrow(shapes, 385, 238, 470, 238);
+  addNode(shapes, {
+    x: 870,
+    y: 145,
+    w: 315,
+    h: 185,
+    title: "Apply set",
+    accent: colors.ir,
+    lines: [
+      `${metrics.apply_group_count} fresh group(s), ${metrics.apply_fixture_count} fixture(s).`,
+      `Apply-phase model calls: ${metrics.apply_phase_model_call_count}.`
+    ],
+    badge: { label: "AI off", w: 88, fill: "#e8f5f8", stroke: "#a9cfda", textFill: colors.ir }
+  });
+  addArrow(shapes, 785, 238, 870, 238);
+  addNode(shapes, {
+    x: 1270,
+    y: 145,
+    w: 260,
+    h: 185,
+    title: "Gold check",
+    accent: colors.line,
+    lines: [
+      `Verdict accuracy: ${ratioExact(metrics.group_verdict_accuracy)}.`,
+      `Conflict-kind accuracy: ${ratioExact(metrics.conflict_kind_accuracy)}.`
+    ],
+    badge: { label: "verify", w: 86, fill: colors.faint, stroke: colors.line, textFill: colors.muted }
+  });
+  addArrow(shapes, 1185, 238, 1270, 238);
+
+  const chart = { x: 140, y: 445, w: 870, h: 250 };
+  addProfileLineChart(shapes, {
+    chart,
+    items: [
+      { label: "Component coverage" },
+      { label: "Verdict accuracy" },
+      { label: "Kind accuracy" }
+    ],
+    series: [
+      {
+        id: "model_free_apply",
+        color: colors.det,
+        points: [
+          { value: ratioValue(metrics.component_coverage_rate), label: ratioExact(metrics.component_coverage_rate) },
+          { value: ratioValue(metrics.group_verdict_accuracy), label: ratioExact(metrics.group_verdict_accuracy) },
+          { value: ratioValue(metrics.conflict_kind_accuracy), label: ratioExact(metrics.conflict_kind_accuracy) }
+        ]
+      }
+    ],
+    yLabel: "rate",
+    tickLabel: (value) => `${Math.round(value * 100)}%`,
+    valueLabel: (point) => point.label
+  });
+
+  addRect(shapes, 1090, 420, 435, 315, { fill: "#fbfcfd", stroke: colors.grid, strokeWidth: 2, rx: 8 });
+  addText(shapes, "Apply rows", 1115, 462, { size: 21, weight: "bold" });
+  rawRows.slice(0, 4).forEach((row, index) => {
+    addText(shapes, row.group_id.replace("group.", ""), 1115, 505 + index * 45, { size: 15, family: "mono", fill: colors.ink });
+    addText(shapes, `${row.component_coverage.exact} components`, 1400, 505 + index * 45, { size: 15, fill: colors.muted, anchor: "end" });
+  });
+  addWrappedText(
+    shapes,
+    `The model-per-document baseline would make ${metrics.model_per_document_baseline_call_count} apply calls; this run makes zero apply-phase model calls.`,
+    1115,
+    700,
+    370,
+    { size: 16, fill: colors.muted, lineHeight: 22 }
+  );
+
+  addFootnote(
+    shapes,
+    "Scope: model-free coverage over synthetic fixtures; no clinical, deployment, or regulatory claim is made."
+  );
+  return scene(
+    "fig06_model_free_coverage",
+    "Model-free coverage",
+    "Model-free coverage. Build-set mappings are applied to fresh synthetic fixture groups with runtime AI disabled; component coverage, verdict accuracy, and zero apply-phase model calls are reported as exact ratios/counts.",
     1600,
     900,
     shapes
@@ -1170,6 +1297,16 @@ async function main() {
     pipelineReport = JSON.parse(pipelineReportText);
     pipelineReportHash = sha256Bytes(Buffer.from(pipelineReportText, "utf8"));
   }
+  let coverageReport = null;
+  let coverageReportHash = null;
+  if (coverageReportPath) {
+    if (!existsSync(coverageReportPath)) {
+      throw new Error(`coverage report not found: ${path.relative(root, coverageReportPath)}`);
+    }
+    const coverageReportText = await readFile(coverageReportPath, "utf8");
+    coverageReport = JSON.parse(coverageReportText);
+    coverageReportHash = sha256Bytes(Buffer.from(coverageReportText, "utf8"));
+  }
   const sourceReports = [
     {
       role: "route_report",
@@ -1184,6 +1321,13 @@ async function main() {
       hash: pipelineReportHash,
       run_id: pipelineReport.run_id,
       artifact_kind: pipelineReport.artifact_kind
+    }] : []),
+    ...(coverageReport ? [{
+      role: "coverage_report",
+      path: path.relative(root, coverageReportPath),
+      hash: coverageReportHash,
+      run_id: coverageReport.run_id,
+      artifact_kind: coverageReport.artifact_kind
     }] : [])
   ];
   const figures = [
@@ -1191,7 +1335,8 @@ async function main() {
     buildRouteMetricsFigure(report),
     buildFailureTaxonomyFigure(report),
     buildRealSourceFigure(report),
-    ...(pipelineReport ? [buildPipelineComparisonFigure(pipelineReport)] : [])
+    ...(pipelineReport ? [buildPipelineComparisonFigure(pipelineReport)] : []),
+    ...(coverageReport ? [buildModelFreeCoverageFigure(coverageReport)] : [])
   ];
 
   await mkdir(outDir, { recursive: true });
@@ -1221,6 +1366,9 @@ async function main() {
     }
     if (pipelineReport && !figures.some((figure) => figure.id === "fig05_pipeline_comparison")) {
       throw new Error("pipeline report loaded but pipeline figure missing");
+    }
+    if (coverageReport && !figures.some((figure) => figure.id === "fig06_model_free_coverage")) {
+      throw new Error("coverage report loaded but coverage figure missing");
     }
     const bundlePath = path.join(outDir, "manuscript_figures.pdf");
     const bundlePdf = await readFile(bundlePath);

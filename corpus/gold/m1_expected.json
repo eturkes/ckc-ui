@@ -60,5 +60,22 @@
     "expected_core": ["binding.g.pregnancy.cond_pregnancy", "binding.h.pregnancy.cond_pregnancy_not_high_risk"],
     "expected_evidence_region_ids": ["region.g.fact.pregnancy_risk", "region.h.fact.pregnancy_risk"],
     "expected_evidence_note": "The shared mention 妊娠中 is bound to incompatible concept identifiers in the fixture semantics for G and H."
+  },
+  {
+    "group_id": "group.m3_condition_unsatisfiable",
+    "expected_outcome": "semantic_contradiction",
+    "expected_conflict_kind": "condition_unsatisfiable",
+    "expected_core": ["ctx.rule.i.condition_unsat"],
+    "expected_evidence_region_ids": ["region.i.condition.unsat"],
+    "expected_evidence_note": "I encodes one rule whose own age guard requires both age >= 18 and age < 18, so the M3 Q0 self-check is unsatisfiable."
+  },
+  {
+    "group_id": "group.m3_exception_resolved",
+    "expected_outcome": "semantic_no_conflict",
+    "expected_conflict_kind": "exception_resolved_conflict",
+    "expected_null_result": true,
+    "expected_core": ["ctx.rule.a.cq1.r1", "ctx.rule.j.renal_contra", "raw_ctx.rule.a.cq1.r1", "raw_ctx.rule.j.renal_contra"],
+    "expected_evidence_region_ids": ["region.a.cq1.rec", "region.a.cq1.exc", "region.j.renal.contra"],
+    "expected_evidence_note": "A and J overlap when A's renal exception is stripped, but guarded contexts are incompatible because A excludes cond.renal_severe while J requires it."
   }
 ]

@@ -498,6 +498,100 @@
           "source_region_ids": ["region.h.fact.pregnancy_risk"]
         }
       ]
+    },
+    {
+      "id": "fixture.m3_condition_unsat",
+      "key": "i",
+      "source_label": "I",
+      "title": "合成敗血症条件不充足文書 I",
+      "report_primary_region_ids": ["region.i.condition.unsat"],
+      "regions": [
+        {
+          "id": "region.i.condition.unsat",
+          "role": "recommendation",
+          "quote": "成人(18歳以上)かつ小児(18歳未満)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。"
+        }
+      ],
+      "terminology_bindings": [
+        { "mention": "成人", "system": "ckc.lex", "code": "pop.adult", "status": "exact" },
+        { "mention": "小児", "system": "ckc.lex", "code": "pop.child", "status": "exact" },
+        { "mention": "敗血症", "system": "ckc.lex", "code": "cond.sepsis", "status": "exact" },
+        { "mention": "抗菌薬A", "system": "ckc.lex", "code": "drug.abx_a", "status": "exact" }
+      ],
+      "clinical_statements": [
+        {
+          "statement_id": "statement.i.1",
+          "population": "pop.unsat_adult_child",
+          "condition": "cond.sepsis",
+          "action": "act.administer:drug.abx_a",
+          "modality": "for",
+          "strength": "strong",
+          "certainty": "moderate",
+          "source_region_ids": ["region.i.condition.unsat"]
+        }
+      ],
+      "rules": [
+        {
+          "rule_id": "rule.i.condition_unsat",
+          "direction": "for",
+          "action_key": "act.administer:drug.abx_a",
+          "strength": "strong",
+          "certainty": "moderate",
+          "context": {
+            "age_years": { "ge": 18, "lt": 18 },
+            "required": ["cond.sepsis"],
+            "prohibited": []
+          },
+          "source_region_ids": ["region.i.condition.unsat"]
+        }
+      ]
+    },
+    {
+      "id": "fixture.m3_exception_renal",
+      "key": "j",
+      "source_label": "J",
+      "title": "合成敗血症例外解決文書 J",
+      "report_primary_region_ids": ["region.j.renal.contra"],
+      "regions": [
+        {
+          "id": "region.j.renal.contra",
+          "role": "contraindication",
+          "quote": "成人(18歳以上)で重度腎機能障害のある敗血症患者では、抗菌薬Aの投与は禁忌とする。"
+        }
+      ],
+      "terminology_bindings": [
+        { "mention": "成人", "system": "ckc.lex", "code": "pop.adult", "status": "exact" },
+        { "mention": "敗血症", "system": "ckc.lex", "code": "cond.sepsis", "status": "exact" },
+        { "mention": "重度腎機能障害", "system": "ckc.lex", "code": "cond.renal_severe", "status": "exact" },
+        { "mention": "抗菌薬A", "system": "ckc.lex", "code": "drug.abx_a", "status": "exact" }
+      ],
+      "clinical_statements": [
+        {
+          "statement_id": "statement.j.1",
+          "population": "pop.adult",
+          "condition": "cond.sepsis",
+          "action": "act.administer:drug.abx_a",
+          "modality": "contraindicate",
+          "strength": "strong",
+          "certainty": "moderate",
+          "source_region_ids": ["region.j.renal.contra"]
+        }
+      ],
+      "rules": [
+        {
+          "rule_id": "rule.j.renal_contra",
+          "direction": "contraindicate",
+          "action_key": "act.administer:drug.abx_a",
+          "strength": "strong",
+          "certainty": "moderate",
+          "context": {
+            "age_years": { "ge": 18 },
+            "required": ["cond.sepsis", "cond.renal_severe"],
+            "prohibited": []
+          },
+          "source_region_ids": ["region.j.renal.contra"]
+        }
+      ]
     }
   ]
 }

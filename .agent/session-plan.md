@@ -20,7 +20,7 @@ Historical queue protocol:
 
 Global constraints:
 - Preserve current M2 claims unless a later item deliberately changes the
-  measured experiment. The existing R3 null result for admitted lift remains
+  measured experiment. The existing R3 null result for admitted baseline delta remains
   valid until regenerated evidence says otherwise.
 - Keep route prompts framed as hospital CDS knowledge-base maintenance/import
   tickets. Model prompts should not expose route IDs, benchmark labels, answer
@@ -41,12 +41,12 @@ Deliverables:
 - Refactor `tools/build-run.mjs` metrics/report/report-ja/verification logic so
   `routeIds` from `registry/experiments.json` can contain more than
   `route.direct_smt` and `route.single_ir`.
-- Replace the current fixed `direct_smt` versus `single_ir` lift table with a
+- Replace the current fixed `direct_smt` versus `single_ir` delta table with a
   route-matrix comparison artifact that still identifies `route.direct_smt` as
   the baseline.
 - Generalize route target summaries so compiled-target routes are summarized per
   route instead of as a single `route.single_ir` artifact.
-- Keep current `exp.m2_lift` behavior byte-stable where practical; if hashes
+- Keep current `exp.m2_shorthop` behavior byte-stable where practical; if hashes
   change, document why in the report or memory.
 
 Gate:
@@ -66,14 +66,14 @@ Deliverables:
 - Add `exp.m3_routes` as a frozen route-comparison experiment that includes the
   M2 pair plus the three new route IDs, reusing current M2 groups until fixture
   expansion lands.
-- Teach the run tool to select `exp.m2_lift` by default while allowing
+- Teach the run tool to select `exp.m2_shorthop` by default while allowing
   `exp.m3_routes` through a CLI flag or small explicit configuration path.
 - Unsupported registered routes must fail closed with clear diagnostics unless
   an explicit scaffold mode is used; do not silently score fabricated output.
 
 Gate:
 - `npm run verify:recorded`
-- A direct command proving the default experiment is still `exp.m2_lift`
+- A direct command proving the default experiment is still `exp.m2_shorthop`
 - A direct command proving `exp.m3_routes` loads and reports unimplemented
   routes as closed/scaffolded rather than fabricated measurements
 

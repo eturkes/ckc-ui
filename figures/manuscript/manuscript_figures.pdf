@@ -4,10 +4,10 @@
 << /Type /Catalog /Pages 2 0 R >>
 endobj
 2 0 obj
-<< /Type /Pages /Kids [3 0 R 5 0 R 7 0 R 9 0 R 11 0 R] /Count 5 >>
+<< /Type /Pages /Kids [3 0 R 5 0 R 7 0 R 9 0 R 11 0 R 13 0 R] /Count 6 >>
 endobj
 3 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1600 900] /Resources << /Font << /F1 13 0 R /F2 14 0 R /F3 15 0 R >> >> /Contents 4 0 R >>
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1600 900] /Resources << /Font << /F1 15 0 R /F2 16 0 R /F3 17 0 R >> >> /Contents 4 0 R >>
 endobj
 4 0 obj
 << /Length 5285 >>
@@ -35,7 +35,7 @@ BT /F2 16 Tf 285 717 Td (input) Tj ET
 0.349 0.384 0.451 rg
 BT /F1 17 Tf 88 684 Td (Groups: M2 holdout: 1; M3) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 17 Tf 88 661 Td (expanded: 3; M3) Tj ET
+BT /F1 17 Tf 88 661 Td (expanded: 5; M3) Tj ET
 0.349 0.384 0.451 rg
 BT /F1 17 Tf 88 638 Td (metamorphic: 2; M1: 2.) Tj ET
 0.349 0.384 0.451 rg
@@ -222,7 +222,7 @@ BT /F1 15 Tf 54 12 Td (result; scaffolded_cue_translation_test. This figure make
 endstream
 endobj
 5 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1600 900] /Resources << /Font << /F1 13 0 R /F2 14 0 R /F3 15 0 R >> >> /Contents 6 0 R >>
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1600 900] /Resources << /Font << /F1 15 0 R /F2 16 0 R /F3 17 0 R >> >> /Contents 6 0 R >>
 endobj
 6 0 obj
 << /Length 8137 >>
@@ -701,7 +701,7 @@ BT /F1 15 Tf 54 32 Td (Evaluator: source_derived_route_pair_evaluator.v2. Metric
 endstream
 endobj
 7 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1600 900] /Resources << /Font << /F1 13 0 R /F2 14 0 R /F3 15 0 R >> >> /Contents 8 0 R >>
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1600 900] /Resources << /Font << /F1 15 0 R /F2 16 0 R /F3 17 0 R >> >> /Contents 8 0 R >>
 endobj
 8 0 obj
 << /Length 7870 >>
@@ -1172,7 +1172,7 @@ BT /F1 15 Tf 54 32 Td (Counts come from route_evaluation.route_category_counts. 
 endstream
 endobj
 9 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1600 900] /Resources << /Font << /F1 13 0 R /F2 14 0 R /F3 15 0 R >> >> /Contents 10 0 R >>
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1600 900] /Resources << /Font << /F1 15 0 R /F2 16 0 R /F3 17 0 R >> >> /Contents 10 0 R >>
 endobj
 10 0 obj
 << /Length 4513 >>
@@ -1365,17 +1365,17 @@ BT /F1 15 Tf 54 32 Td (Scoring scope: not_in_locked_m1_m2_measurement. These row
 endstream
 endobj
 11 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1600 900] /Resources << /Font << /F1 13 0 R /F2 14 0 R /F3 15 0 R >> >> /Contents 12 0 R >>
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1600 900] /Resources << /Font << /F1 15 0 R /F2 16 0 R /F3 17 0 R >> >> /Contents 12 0 R >>
 endobj
 12 0 obj
-<< /Length 4651 >>
+<< /Length 4679 >>
 stream
 0.067 0.094 0.153 rg
 BT /F2 32 Tf 54 842 Td (Deterministic pipeline comparison) Tj ET
 0.349 0.384 0.451 rg
 BT /F1 19 Tf 54 808 Td (Layered CKC artifacts are compared with direct rule-to-SMT over identical M3 groups.) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1304.08 842 Td (run m3-compare; n = 8 groups) Tj ET
+BT /F1 16 Tf 1295.44 842 Td (run m3-compare; n = 10 groups) Tj ET
 0.898 0.914 0.937 RG
 1 w
 120 220 m 1160 220 l S
@@ -1466,7 +1466,7 @@ BT /F1 16 Tf 34 750 Td (rate) Tj ET
 114 730 l
 h f
 0.706 0.361 0.216 rg
-BT /F3 14 Tf 107.19 710 Td (8/8) Tj ET
+BT /F3 14 Tf 98.65 710 Td (10/10) Tj ET
 0.706 0.361 0.216 rg
 0 0 0 RG
 466.667 736 m
@@ -1475,7 +1475,7 @@ BT /F3 14 Tf 107.19 710 Td (8/8) Tj ET
 460.667 730 l
 h f
 0.706 0.361 0.216 rg
-BT /F3 14 Tf 453.857 710 Td (8/8) Tj ET
+BT /F3 14 Tf 445.317 710 Td (10/10) Tj ET
 0.706 0.361 0.216 rg
 0 0 0 RG
 813.333 736 m
@@ -1484,7 +1484,7 @@ BT /F3 14 Tf 453.857 710 Td (8/8) Tj ET
 807.333 730 l
 h f
 0.706 0.361 0.216 rg
-BT /F3 14 Tf 800.523 710 Td (8/8) Tj ET
+BT /F3 14 Tf 791.983 710 Td (10/10) Tj ET
 0.706 0.361 0.216 rg
 0 0 0 RG
 1160 226 m
@@ -1493,7 +1493,7 @@ BT /F3 14 Tf 800.523 710 Td (8/8) Tj ET
 1154 220 l
 h f
 0.706 0.361 0.216 rg
-BT /F3 14 Tf 1142.92 232 Td (0/16) Tj ET
+BT /F3 14 Tf 1142.92 232 Td (0/20) Tj ET
 0.184 0.42 0.31 RG
 3 w
 [9 6] 0 d
@@ -1507,7 +1507,7 @@ BT /F3 14 Tf 1142.92 232 Td (0/16) Tj ET
 0.184 0.42 0.31 RG
 3 w
 [9 6] 0 d
-813.333 730 m 1160 660.847 l S
+813.333 730 m 1160 650.986 l S
 [] 0 d
 0.184 0.42 0.31 rg
 0 0 0 RG
@@ -1517,7 +1517,7 @@ BT /F3 14 Tf 1142.92 232 Td (0/16) Tj ET
 114 730 l
 h f
 0.184 0.42 0.31 rg
-BT /F3 14 Tf 107.19 697 Td (8/8) Tj ET
+BT /F3 14 Tf 98.65 697 Td (10/10) Tj ET
 0.184 0.42 0.31 rg
 0 0 0 RG
 466.667 736 m
@@ -1526,7 +1526,7 @@ BT /F3 14 Tf 107.19 697 Td (8/8) Tj ET
 460.667 730 l
 h f
 0.184 0.42 0.31 rg
-BT /F3 14 Tf 453.857 697 Td (8/8) Tj ET
+BT /F3 14 Tf 445.317 697 Td (10/10) Tj ET
 0.184 0.42 0.31 rg
 0 0 0 RG
 813.333 736 m
@@ -1535,16 +1535,16 @@ BT /F3 14 Tf 453.857 697 Td (8/8) Tj ET
 807.333 730 l
 h f
 0.184 0.42 0.31 rg
-BT /F3 14 Tf 800.523 697 Td (8/8) Tj ET
+BT /F3 14 Tf 791.983 697 Td (10/10) Tj ET
 0.184 0.42 0.31 rg
 0 0 0 RG
-1160 666.847 m
-1166 660.847 l
-1160 654.847 l
-1154 660.847 l
+1160 656.986 m
+1166 650.986 l
+1160 644.986 l
+1154 650.986 l
 h f
 0.184 0.42 0.31 rg
-BT /F3 14 Tf 1138.65 638.847 Td (51/59) Tj ET
+BT /F3 14 Tf 1138.65 628.986 Td (60/71) Tj ET
 0.984 0.988 0.992 rg
 0.706 0.361 0.216 RG
 1 w
@@ -1569,9 +1569,9 @@ BT /F2 21 Tf 1244 560 Td (Interpretation) Tj ET
 0.349 0.384 0.451 rg
 BT /F1 16 Tf 1244 522 Td (Direct baseline verdict) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1244 500 Td (accuracy is 8/8. Layered) Tj ET
+BT /F1 16 Tf 1244 500 Td (accuracy is 10/10. Layered) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1244 478 Td (verdict accuracy is 8/8;) Tj ET
+BT /F1 16 Tf 1244 478 Td (verdict accuracy is 10/10;) Tj ET
 0.349 0.384 0.451 rg
 BT /F1 16 Tf 1244 456 Td (layered-minus-direct verdict) Tj ET
 0.349 0.384 0.451 rg
@@ -1579,49 +1579,298 @@ BT /F1 16 Tf 1244 434 Td (delta is 0/1.) Tj ET
 0.349 0.384 0.451 rg
 BT /F1 16 Tf 1244 400 Td (Component reuse delta is) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1244 378 Td (51/59. This is deterministic) Tj ET
+BT /F1 16 Tf 1244 378 Td (60/71. This is deterministic) Tj ET
 0.349 0.384 0.451 rg
 BT /F1 16 Tf 1244 356 Td (pipeline evidence and is) Tj ET
 0.349 0.384 0.451 rg
 BT /F1 16 Tf 1244 334 Td (separate from model-route) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1244 312 Td (lift.) Tj ET
+BT /F1 16 Tf 1244 312 Td (baseline deltas.) Tj ET
 0.898 0.914 0.937 RG
 1 w
 54 56 m 1546 56 l S
 0.349 0.384 0.451 rg
-BT /F1 15 Tf 54 32 Td (Ranking: reuse_lift_only. Candidate diff compares 8 groups. No clinical, deployment, or regulatory claim is made.) Tj ET
+BT /F1 15 Tf 54 32 Td (Ranking: reuse_delta_only. Candidate diff compares 10 groups. No clinical, deployment, or regulatory claim is made.) Tj ET
 endstream
 endobj
 13 0 obj
-<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1600 900] /Resources << /Font << /F1 15 0 R /F2 16 0 R /F3 17 0 R >> >> /Contents 14 0 R >>
 endobj
 14 0 obj
-<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+<< /Length 5338 >>
+stream
+0.067 0.094 0.153 rg
+BT /F2 32 Tf 54 842 Td (Model-free coverage) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 19 Tf 54 808 Td (Build-set mappings are applied to fresh fixture groups with runtime AI disabled.) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1416.4 842 Td (run m3-coverage) Tj ET
+1 1 1 rg
+0.208 0.361 0.604 RG
+3 w
+70 570 315 185 re
+B
+0.067 0.094 0.153 rg
+BT /F2 22 Tf 88 723 Td (Build set) Tj ET
+0.933 0.953 0.984 rg
+0.722 0.784 0.902 RG
+1 w
+297 713 67.2 28 re
+B
+0.208 0.361 0.604 rg
+BT /F2 16 Tf 309 722 Td (admit) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 88 689 Td (2 group\(s\), 3 fixture\(s\).) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 88 666 Td (Mapping-set size: 12.) Tj ET
+1 1 1 rg
+0.184 0.42 0.31 RG
+3 w
+470 570 315 185 re
+B
+0.067 0.094 0.153 rg
+BT /F2 22 Tf 488 723 Td (Component store) Tj ET
+0.918 0.957 0.933 rg
+0.725 0.839 0.773 RG
+1 w
+703 713 58.56 28 re
+B
+0.184 0.42 0.31 rg
+BT /F2 16 Tf 715 722 Td (hash) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 488 689 Td (Reusable hashes from the build) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 488 666 Td (phase form the apply-phase) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 488 643 Td (mapping surface.) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 488 620 Td (Coverage target: 35/36.) Tj ET
+0.349 0.384 0.451 RG
+2 w
+385 662 m 470 662 l S
+0.349 0.384 0.451 rg
+0 0 0 RG
+470 662 m
+459.608 656 l
+459.608 668 l
+h f
+1 1 1 rg
+0.122 0.435 0.545 RG
+3 w
+870 570 315 185 re
+B
+0.067 0.094 0.153 rg
+BT /F2 22 Tf 888 723 Td (Apply set) Tj ET
+0.91 0.961 0.973 rg
+0.663 0.812 0.855 RG
+1 w
+1097 713 75.84 28 re
+B
+0.122 0.435 0.545 rg
+BT /F2 16 Tf 1109 722 Td (AI off) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 888 689 Td (3 fresh group\(s\), 5) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 888 666 Td (fixture\(s\).) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 888 643 Td (Apply-phase model calls: 0.) Tj ET
+0.349 0.384 0.451 RG
+2 w
+785 662 m 870 662 l S
+0.349 0.384 0.451 rg
+0 0 0 RG
+870 662 m
+859.608 656 l
+859.608 668 l
+h f
+1 1 1 rg
+0.784 0.816 0.855 RG
+3 w
+1270 570 260 185 re
+B
+0.067 0.094 0.153 rg
+BT /F2 22 Tf 1288 723 Td (Gold check) Tj ET
+0.961 0.969 0.98 rg
+0.784 0.816 0.855 RG
+1 w
+1444 713 75.84 28 re
+B
+0.349 0.384 0.451 rg
+BT /F2 16 Tf 1456 722 Td (verify) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 1288 689 Td (Verdict accuracy: 3/3.) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 1288 666 Td (Conflict-kind accuracy:) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 1288 643 Td (3/3.) Tj ET
+0.349 0.384 0.451 RG
+2 w
+1185 662 m 1270 662 l S
+0.349 0.384 0.451 rg
+0 0 0 RG
+1270 662 m
+1259.608 656 l
+1259.608 668 l
+h f
+0.898 0.914 0.937 RG
+1 w
+140 205 m 1010 205 l S
+0.349 0.384 0.451 rg
+BT /F1 15 Tf 105.8 199 Td (0%) Tj ET
+0.898 0.914 0.937 RG
+1 w
+140 267.5 m 1010 267.5 l S
+0.349 0.384 0.451 rg
+BT /F1 15 Tf 97.7 261.5 Td (25%) Tj ET
+0.898 0.914 0.937 RG
+1 w
+140 330 m 1010 330 l S
+0.349 0.384 0.451 rg
+BT /F1 15 Tf 97.7 324 Td (50%) Tj ET
+0.898 0.914 0.937 RG
+1 w
+140 392.5 m 1010 392.5 l S
+0.349 0.384 0.451 rg
+BT /F1 15 Tf 97.7 386.5 Td (75%) Tj ET
+0.898 0.914 0.937 RG
+1 w
+140 455 m 1010 455 l S
+0.349 0.384 0.451 rg
+BT /F1 15 Tf 89.6 449 Td (100%) Tj ET
+0.898 0.914 0.937 RG
+1 w
+[2 10] 0 d
+140 455 m 140 205 l S
+[] 0 d
+0.784 0.816 0.855 RG
+2 w
+140 205 m 140 197 l S
+0.067 0.094 0.153 rg
+BT /F1 16 Tf 62.24 171 Td (Component coverage) Tj ET
+0.898 0.914 0.937 RG
+1 w
+[2 10] 0 d
+575 455 m 575 205 l S
+[] 0 d
+0.784 0.816 0.855 RG
+2 w
+575 205 m 575 197 l S
+0.067 0.094 0.153 rg
+BT /F1 16 Tf 505.88 171 Td (Verdict accuracy) Tj ET
+0.898 0.914 0.937 RG
+1 w
+[2 10] 0 d
+1010 455 m 1010 205 l S
+[] 0 d
+0.784 0.816 0.855 RG
+2 w
+1010 205 m 1010 197 l S
+0.067 0.094 0.153 rg
+BT /F1 16 Tf 953.84 171 Td (Kind accuracy) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 54 475 Td (rate) Tj ET
+0.784 0.816 0.855 RG
+2 w
+140 455 m 140 205 l S
+0.784 0.816 0.855 RG
+2 w
+140 205 m 1010 205 l S
+0.184 0.42 0.31 RG
+3 w
+140 448.056 m 575 455 l S
+0.184 0.42 0.31 RG
+3 w
+575 455 m 1010 455 l S
+0.184 0.42 0.31 rg
+0 0 0 RG
+140 454.056 m
+146 448.056 l
+140 442.056 l
+134 448.056 l
+h f
+0.184 0.42 0.31 rg
+BT /F3 14 Tf 118.65 428.056 Td (35/36) Tj ET
+0.184 0.42 0.31 rg
+0 0 0 RG
+575 461 m
+581 455 l
+575 449 l
+569 455 l
+h f
+0.184 0.42 0.31 rg
+BT /F3 14 Tf 562.19 435 Td (3/3) Tj ET
+0.184 0.42 0.31 rg
+0 0 0 RG
+1010 461 m
+1016 455 l
+1010 449 l
+1004 455 l
+h f
+0.184 0.42 0.31 rg
+BT /F3 14 Tf 997.19 435 Td (3/3) Tj ET
+0.984 0.988 0.992 rg
+0.898 0.914 0.937 RG
+2 w
+1090 165 435 315 re
+B
+0.067 0.094 0.153 rg
+BT /F2 21 Tf 1115 438 Td (Apply rows) Tj ET
+0.067 0.094 0.153 rg
+BT /F3 15 Tf 1115 395 Td (m2_holdout_conflict) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 15 Tf 1270.4 395 Td (12/12 components) Tj ET
+0.067 0.094 0.153 rg
+BT /F3 15 Tf 1115 350 Td (m3_metamorphic_conflict) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 15 Tf 1270.4 350 Td (12/12 components) Tj ET
+0.067 0.094 0.153 rg
+BT /F3 15 Tf 1115 305 Td (m3_exception_resolved) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 15 Tf 1270.4 305 Td (11/12 components) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1115 200 Td (The model-per-document baseline would make) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1115 178 Td (5 apply calls; this run makes zero) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1115 156 Td (apply-phase model calls.) Tj ET
+0.898 0.914 0.937 RG
+1 w
+54 56 m 1546 56 l S
+0.349 0.384 0.451 rg
+BT /F1 15 Tf 54 32 Td (Scope: model-free coverage over synthetic fixtures; no clinical, deployment, or regulatory claim is made.) Tj ET
+endstream
 endobj
 15 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+16 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+17 0 obj
 << /Type /Font /Subtype /Type1 /BaseFont /Courier >>
 endobj
 xref
-0 16
+0 18
 0000000000 65535 f
 0000000015 00000 n
 0000000064 00000 n
-0000000146 00000 n
-0000000296 00000 n
-0000005632 00000 n
-0000005782 00000 n
-0000013970 00000 n
-0000014120 00000 n
-0000022041 00000 n
-0000022192 00000 n
-0000026757 00000 n
-0000026909 00000 n
-0000031612 00000 n
-0000031683 00000 n
-0000031759 00000 n
+0000000153 00000 n
+0000000303 00000 n
+0000005639 00000 n
+0000005789 00000 n
+0000013977 00000 n
+0000014127 00000 n
+0000022048 00000 n
+0000022199 00000 n
+0000026764 00000 n
+0000026916 00000 n
+0000031647 00000 n
+0000031799 00000 n
+0000037189 00000 n
+0000037260 00000 n
+0000037336 00000 n
 trailer
-<< /Size 16 /Root 1 0 R >>
+<< /Size 18 /Root 1 0 R >>
 startxref
-31828
+37405
 %%EOF
