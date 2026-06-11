@@ -254,35 +254,35 @@
                 <td class="num">1</td>
                 <td><code>route.ir_hop_chain</code></td>
                 <td><span class="ratio"><span class="track"><span class="fill green" style="width:75%"></span></span><code>3/4</code></span></td>
-                <td>Several small constrained JSON hops, each a narrow semantic step, then deterministic compile to the route target.</td>
+                <td>Breaks the translation into several small structured JSON steps before compiling the final target.</td>
                 <td class="num">4</td>
               </tr>
               <tr>
                 <td class="num">2</td>
                 <td><code>route.single_ir</code></td>
                 <td><span class="ratio"><span class="track"><span class="fill amber" style="width:25%"></span></span><code>1/4</code></span></td>
-                <td>One constrained JSON hop into <code>route_rule_ir.v0</code>, followed by deterministic SMT target compilation.</td>
+                <td>Asks the model for one structured JSON draft, then compiles that draft into the final target.</td>
                 <td class="num">2</td>
               </tr>
               <tr>
                 <td class="num">2</td>
                 <td><code>route.stacked_ir</code></td>
                 <td><span class="ratio"><span class="track"><span class="fill amber" style="width:25%"></span></span><code>1/4</code></span></td>
-                <td>A compact stack of IR-shaped forms, currently source frame to rule row to route rule IR.</td>
+                <td>Asks the model for a short stack of structured drafts, from source summary to rule-like output.</td>
                 <td class="num">3</td>
               </tr>
               <tr>
                 <td class="num">2</td>
                 <td><code>route.ckc_layered</code></td>
                 <td><span class="ratio"><span class="track"><span class="fill amber" style="width:25%"></span></span><code>1/4</code></span></td>
-                <td>CKC-native stages per source label: segment-like spans, statement-like facts, then rule-like route IR.</td>
+                <td>Asks the model to fill CKC stages separately: source spans, normalized statements, then rules.</td>
                 <td class="num">5</td>
               </tr>
               <tr>
                 <td class="num">3</td>
                 <td><code>route.direct_smt</code></td>
                 <td><span class="ratio"><span class="track"><span class="fill red" style="width:0%"></span></span><code>0/4</code></span></td>
-                <td>The model writes SMT-LIB directly from the shared cue rows and target encoding contract.</td>
+                <td>Asks the model to write the final formal solver target directly in one step.</td>
                 <td class="num">1</td>
               </tr>
             </tbody>
