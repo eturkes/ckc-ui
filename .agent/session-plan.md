@@ -1,25 +1,22 @@
 # CKC Comparison Expansion Session Plan
 
-Status: active.
+Status: complete.
+
+Completed: 2026-06-11. All C1-C8 queue items are `done`; this file is
+retained as historical execution state, not active `$session-prompt` wiring.
 
 Purpose: expand the M2 route comparison beyond `route.direct_smt` and
 `route.single_ir` across multiple Codex sessions while keeping each session
 bounded, verifiable, and easy for a fresh agent to resume.
 
-Selection protocol:
-- `$session-prompt <TASK>` uses the explicit task text and does not consume this
-  queue unless the task says to do so.
-- `$session-prompt` with no task text must select the first queue item whose
-  `status` is not `done`, then execute that item as the session task.
-- At session start, change the selected item from `pending` to `in_progress`
-  unless it already has that status.
-- Mark an item `done` only after every listed gate passes. If work is partial,
-  leave it `in_progress` and add a dated progress note under that item. If work
-  cannot proceed without user input, set `status: blocked` and record the exact
-  blocker.
-- When every item is `done`, no-argument `$session-prompt` should report that
-  this comparison expansion plan is complete and ask for a new task before
-  changing files.
+Historical queue protocol:
+- While this plan was active, `$session-prompt <TASK>` used the explicit task
+  text and did not consume this queue unless the task said to do so.
+- While this plan was active, a no-task `$session-prompt` selected the first
+  queue item whose `status` was not `done`, then executed that item as the
+  session task.
+- Queue dispatch is now closed. New `$session-prompt` invocations require
+  explicit task text; use this file only as historical completion evidence.
 
 Global constraints:
 - Preserve current M2 claims unless a later item deliberately changes the
