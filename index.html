@@ -70,8 +70,10 @@
       <div class="grid">
         <div class="metric"><strong>1</strong><span>finding: deontic_direction_conflict</span></div>
         <div class="metric"><strong>1</strong><span>null result: age_intervals_disjoint</span></div>
-        <div class="metric"><strong>0/6 -&gt; 0/6</strong><span>admitted verdict accuracy</span></div>
+        <div class="metric"><strong>6/6 -&gt; 0/6</strong><span>admitted verdict accuracy</span></div>
       </div>
+      <p>Optimized direct SMT is 6/6 on admitted accuracy here, so this run does not show IR lift yet.</p>
+      <p>Direct audit: exact templates 0/6; no named assertions 6/6; negated sepsis 6/6.</p>
       <p>IR route produced no admitted rows; rejected candidate verdicts are audit data only.</p>
     </section>
 
@@ -108,8 +110,7 @@
           </tbody>
         </table>
       </div>
-
-        <details>
+      <details>
           <summary><code>real.jstage.thyroid_tumor_2024.cq_recommendations</code> / 甲状腺腫瘍診療ガイドライン2024 CQ推奨一覧</summary>
           <h3>Selected candidate spans</h3>
           <div class="table-wrap">
@@ -230,11 +231,11 @@
           <tbody>
           <tr>
             <td><code>route.direct_smt</code></td>
-            <td>0/6</td>
-            <td>0/6</td>
-            <td>0/6</td>
-            <td>0/6</td>
-            <td>0/2</td>
+            <td>6/6</td>
+            <td>6/6</td>
+            <td>6/6</td>
+            <td>6/6</td>
+            <td>2/2</td>
           </tr>
           <tr>
             <td><code>route.single_ir</code></td>
@@ -259,67 +260,67 @@
             <td><code>route.direct_smt</code></td>
             <td><code>group.m1_conflict</code></td>
             <td>11</td>
-            <td>no</td>
-            <td>no</td>
-            <td>target_syntax_failure</td>
-            <td>no</td>
-            <td>no</td>
-            <td>target_parse_error, ai_schema_violation</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>semantic_contradiction</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>none</td>
           </tr>
           <tr>
             <td><code>route.direct_smt</code></td>
             <td><code>group.m1_null</code></td>
             <td>11</td>
-            <td>no</td>
-            <td>no</td>
-            <td>target_syntax_failure</td>
-            <td>no</td>
-            <td>no</td>
-            <td>target_parse_error, ai_schema_violation</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>semantic_no_conflict</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>none</td>
           </tr>
           <tr>
             <td><code>route.direct_smt</code></td>
             <td><code>group.m1_conflict</code></td>
             <td>22</td>
-            <td>no</td>
-            <td>no</td>
-            <td>target_syntax_failure</td>
-            <td>no</td>
-            <td>no</td>
-            <td>target_parse_error, ai_schema_violation</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>semantic_contradiction</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>none</td>
           </tr>
           <tr>
             <td><code>route.direct_smt</code></td>
             <td><code>group.m1_null</code></td>
             <td>22</td>
-            <td>no</td>
-            <td>no</td>
-            <td>target_syntax_failure</td>
-            <td>no</td>
-            <td>no</td>
-            <td>target_parse_error, ai_schema_violation</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>semantic_no_conflict</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>none</td>
           </tr>
           <tr>
             <td><code>route.direct_smt</code></td>
             <td><code>group.m1_conflict</code></td>
             <td>33</td>
-            <td>no</td>
-            <td>no</td>
-            <td>target_syntax_failure</td>
-            <td>no</td>
-            <td>no</td>
-            <td>target_parse_error, ai_schema_violation</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>semantic_contradiction</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>none</td>
           </tr>
           <tr>
             <td><code>route.direct_smt</code></td>
             <td><code>group.m1_null</code></td>
             <td>33</td>
-            <td>no</td>
-            <td>no</td>
-            <td>target_syntax_failure</td>
-            <td>no</td>
-            <td>no</td>
-            <td>target_parse_error, ai_schema_violation</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>semantic_no_conflict</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>none</td>
           </tr>
           <tr>
             <td><code>route.single_ir</code></td>
@@ -395,387 +396,436 @@
     <section>
       <h2>Model I/O</h2>
               <details>
-          <summary><code>route.direct_smt</code> / <code>group.m1_conflict</code> / seed 11 / not admitted</summary>
+          <summary><code>route.direct_smt</code> / <code>group.m1_conflict</code> / seed 11 / admitted</summary>
           <h3>Prompt</h3>
-          <pre>You are a weak local model inside a research harness.
-Translate only the provided synthetic Japanese fixture spans.
-No clinical, patient-care, deployment, or regulatory claim.
+          <pre>You are route.direct_smt in a research harness.
+Output only SMT-LIB 2 text, no prose, no Markdown.
+
+Lexicon:
+推奨する = positive assertion for |pos:act.administer:drug.abx_a|.
+投与しないこと or 禁忌 = negative assertion: (not |pos:act.administer:drug.abx_a|).
+成人 or 18歳以上 = (&gt;= |q.age_years| 18).
+小児 or 18歳未満 = (&lt; |q.age_years| 18).
+敗血症 = |cond.sepsis|.
+妊娠中 = |cond.pregnancy|.
+重度腎機能障害 plus 除く = (not |cond.renal_severe|).
+
+Use only these declarations when needed:
+(declare-const |q.age_years| Real)
+(declare-const |cond.sepsis| Bool)
+(declare-const |cond.renal_severe| Bool)
+(declare-const |cond.pregnancy| Bool)
+(declare-const |pos:act.administer:drug.abx_a| Bool)
+
+For an overlapping positive-vs-negative pair, emit this exact shape:
+(set-logic QF_UF)
+(set-option :print-success false)
+(declare-const |pos:act.administer:drug.abx_a| Bool)
+(assert |pos:act.administer:drug.abx_a|)
+(assert (not |pos:act.administer:drug.abx_a|))
+(check-sat)
+
+For an adult-vs-child disjoint pair, emit this exact shape:
+(set-logic QF_LRA)
+(set-option :print-success false)
+(declare-const |q.age_years| Real)
+(assert (&gt;= |q.age_years| 18))
+(assert (&lt; |q.age_years| 18))
+(check-sat)
+
+Choose the correct SMT-LIB program for the provided source pair.
+All output lines must begin with &#039;(&#039; and the final line must be (check-sat).
+
 case: pair.ab
-source spans:
-source A:
-成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
-A exception:
-ただし、重度腎機能障害のある患者を除く。
-source B:
-成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。
-route: route.direct_smt
-Output only SMT-LIB text. Do not use Markdown.
-Use only these symbols: |q.age_years|, |cond.sepsis|, |cond.renal_severe|, |cond.pregnancy|, |pos:act.administer:drug.abx_a|.
-End with (check-sat).</pre>
+source A primary: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
+source A exception: ただし、重度腎機能障害のある患者を除く。
+source B primary: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。</pre>
           <h3>Response</h3>
-          <pre>Loading model...
+          <pre>(set-logic QF_UF)
+(set-option :print-success false)
+(declare-const |q.age_years| Real)
+(declare-const |cond.sepsis| Bool)
+(declare-const |cond.renal_severe| Bool)
+(declare-const |cond.pregnancy| Bool)
+(declare-const |pos:act.administer:drug.abx_a| Bool)
 
+(assert (&gt;= |q.age_years| 18))
+(assert (not |cond.sepsis|))
+(assert (not |cond.renal_severe|))
+(assert (not |cond.pregnancy|))
+(assert |pos:act.administer:drug.abx_a|)
 
-▄▄ ▄▄
-██ ██
-██ ██  ▀▀█▄ ███▄███▄  ▀▀█▄    ▄████ ████▄ ████▄
-██ ██ ▄█▀██ ██ ██ ██ ▄█▀██    ██    ██ ██ ██ ██
-██ ██ ▀█▄██ ██ ██ ██ ▀█▄██ ██ ▀████ ████▀ ████▀
-                                    ██    ██
-                                    ▀▀    ▀▀
-
-build      : b9592-ac4cddeb0
-model      : qwen2.5-1.5b-instruct-q4_k_m.gguf
-modalities : text
-
-available commands:
-  /exit or Ctrl+C     stop or exit
-  /regen              regenerate the last response
-  /clear              clear the chat history
-  /read &lt;file&gt;        add a text file
-  /glob &lt;pattern&gt;     add text files using globbing pattern
-You are a weak local model inside a research harness.
-Translate only the provided synthetic Japanese fixture spans.
-No clinical, patient-care, deployment, or regulatory claim.
-case: pair.ab
-source spans:
-source A:
-成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
-A exception:
-ただし、重度腎機能障害のある患者を除く。
-source B:
-成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと( ... (truncated)
-
-(q.age_years &gt;= 18) |q.cond.sepsis| |q.cond.renal_severe| |q.cond.pregnancy| |pos:act.administer:drug.abx_a| |cond.pregnancy| |pos:act.administer:drug.abx_a| |cond.sepsis| |pos:act.administer:drug.abx_a| |cond.renal_severe| |pos:act.administer:drug.abx_a| |cond.pregnancy| |pos:act.administer:drug.abx_a| |cond.sepsis| |pos:act.administer:drug.abx_a| |cond.renal_severe| |pos:act.administer:drug.abx_a| |cond.pregnancy| |pos:act.administer:drug.abx_a| |cond.sepsis| |pos:act</pre>
+(assert (not |pos:act.administer:drug.abx_a|))
+(check-sat)</pre>
           <h3>Scored row</h3>
           <pre>{
-  &quot;admitted&quot;: false,
-  &quot;candidate_verdict_correct&quot;: false,
-  &quot;diagnostics&quot;: [
-    &quot;target_parse_error&quot;,
-    &quot;ai_schema_violation&quot;
-  ],
+  &quot;admitted&quot;: true,
+  &quot;candidate_verdict_correct&quot;: true,
+  &quot;diagnostics&quot;: [],
   &quot;expected&quot;: &quot;semantic_contradiction&quot;,
   &quot;group_id&quot;: &quot;group.m1_conflict&quot;,
   &quot;route_id&quot;: &quot;route.direct_smt&quot;,
   &quot;seed&quot;: 11,
-  &quot;syntax_valid&quot;: false,
-  &quot;verdict&quot;: &quot;target_syntax_failure&quot;,
-  &quot;verdict_correct&quot;: false
+  &quot;syntax_valid&quot;: true,
+  &quot;verdict&quot;: &quot;semantic_contradiction&quot;,
+  &quot;verdict_correct&quot;: true
 }</pre>
         </details>        <details>
-          <summary><code>route.direct_smt</code> / <code>group.m1_null</code> / seed 11 / not admitted</summary>
+          <summary><code>route.direct_smt</code> / <code>group.m1_null</code> / seed 11 / admitted</summary>
           <h3>Prompt</h3>
-          <pre>You are a weak local model inside a research harness.
-Translate only the provided synthetic Japanese fixture spans.
-No clinical, patient-care, deployment, or regulatory claim.
+          <pre>You are route.direct_smt in a research harness.
+Output only SMT-LIB 2 text, no prose, no Markdown.
+
+Lexicon:
+推奨する = positive assertion for |pos:act.administer:drug.abx_a|.
+投与しないこと or 禁忌 = negative assertion: (not |pos:act.administer:drug.abx_a|).
+成人 or 18歳以上 = (&gt;= |q.age_years| 18).
+小児 or 18歳未満 = (&lt; |q.age_years| 18).
+敗血症 = |cond.sepsis|.
+妊娠中 = |cond.pregnancy|.
+重度腎機能障害 plus 除く = (not |cond.renal_severe|).
+
+Use only these declarations when needed:
+(declare-const |q.age_years| Real)
+(declare-const |cond.sepsis| Bool)
+(declare-const |cond.renal_severe| Bool)
+(declare-const |cond.pregnancy| Bool)
+(declare-const |pos:act.administer:drug.abx_a| Bool)
+
+For an overlapping positive-vs-negative pair, emit this exact shape:
+(set-logic QF_UF)
+(set-option :print-success false)
+(declare-const |pos:act.administer:drug.abx_a| Bool)
+(assert |pos:act.administer:drug.abx_a|)
+(assert (not |pos:act.administer:drug.abx_a|))
+(check-sat)
+
+For an adult-vs-child disjoint pair, emit this exact shape:
+(set-logic QF_LRA)
+(set-option :print-success false)
+(declare-const |q.age_years| Real)
+(assert (&gt;= |q.age_years| 18))
+(assert (&lt; |q.age_years| 18))
+(check-sat)
+
+Choose the correct SMT-LIB program for the provided source pair.
+All output lines must begin with &#039;(&#039; and the final line must be (check-sat).
+
 case: pair.ac
-source spans:
-source A:
-成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
-A exception:
-ただし、重度腎機能障害のある患者を除く。
-source C:
-小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。
-route: route.direct_smt
-Output only SMT-LIB text. Do not use Markdown.
-Use only these symbols: |q.age_years|, |cond.sepsis|, |cond.renal_severe|, |cond.pregnancy|, |pos:act.administer:drug.abx_a|.
-End with (check-sat).</pre>
+source A primary: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
+source A exception: ただし、重度腎機能障害のある患者を除く。
+source C primary: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。</pre>
           <h3>Response</h3>
-          <pre>Loading model...
-
-
-▄▄ ▄▄
-██ ██
-██ ██  ▀▀█▄ ███▄███▄  ▀▀█▄    ▄████ ████▄ ████▄
-██ ██ ▄█▀██ ██ ██ ██ ▄█▀██    ██    ██ ██ ██ ██
-██ ██ ▀█▄██ ██ ██ ██ ▀█▄██ ██ ▀████ ████▀ ████▀
-                                    ██    ██
-                                    ▀▀    ▀▀
-
-build      : b9592-ac4cddeb0
-model      : qwen2.5-1.5b-instruct-q4_k_m.gguf
-modalities : text
-
-available commands:
-  /exit or Ctrl+C     stop or exit
-  /regen              regenerate the last response
-  /clear              clear the chat history
-  /read &lt;file&gt;        add a text file
-  /glob &lt;pattern&gt;     add text files using globbing pattern
-You are a weak local model inside a research harness.
-Translate only the provided synthetic Japanese fixture spans.
-No clinical, patient-care, deployment, or regulatory claim.
-case: pair.ac
-source spans:
-source A:
-成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
-A exception:
-ただし、重度腎機能障害のある患者を除く。
-source C:
-小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。
-route: route.direct_ ... (truncated)
-
-(q.age_years &gt;= 18) | (cond.sepsis AND NOT (cond.renal_severe AND NOT (cond.pregnancy AND NOT pos:act.administer:drug.abx_a))) | (cond.sepsis AND NOT pos:act.administer:drug.abx_a)</pre>
+          <pre>(set-logic QF_UF)
+(set-option :print-success false)
+(declare-const |q.age_years| Real)
+(assert (&gt;= |q.age_years| 18))
+(assert (&lt; |q.age_years| 18))
+(assert (not |cond.renal_severe|))
+(assert (not |cond.pregnancy|))
+(assert (not |cond.sepsis|))
+(assert (not |pos:act.administer:drug.abx_a|))
+(check-sat)</pre>
           <h3>Scored row</h3>
           <pre>{
-  &quot;admitted&quot;: false,
-  &quot;candidate_verdict_correct&quot;: false,
-  &quot;diagnostics&quot;: [
-    &quot;target_parse_error&quot;,
-    &quot;ai_schema_violation&quot;
-  ],
+  &quot;admitted&quot;: true,
+  &quot;candidate_verdict_correct&quot;: true,
+  &quot;diagnostics&quot;: [],
   &quot;expected&quot;: &quot;semantic_no_conflict&quot;,
   &quot;group_id&quot;: &quot;group.m1_null&quot;,
   &quot;route_id&quot;: &quot;route.direct_smt&quot;,
   &quot;seed&quot;: 11,
-  &quot;syntax_valid&quot;: false,
-  &quot;verdict&quot;: &quot;target_syntax_failure&quot;,
-  &quot;verdict_correct&quot;: false
+  &quot;syntax_valid&quot;: true,
+  &quot;verdict&quot;: &quot;semantic_no_conflict&quot;,
+  &quot;verdict_correct&quot;: true
 }</pre>
         </details>        <details>
-          <summary><code>route.direct_smt</code> / <code>group.m1_conflict</code> / seed 22 / not admitted</summary>
+          <summary><code>route.direct_smt</code> / <code>group.m1_conflict</code> / seed 22 / admitted</summary>
           <h3>Prompt</h3>
-          <pre>You are a weak local model inside a research harness.
-Translate only the provided synthetic Japanese fixture spans.
-No clinical, patient-care, deployment, or regulatory claim.
+          <pre>You are route.direct_smt in a research harness.
+Output only SMT-LIB 2 text, no prose, no Markdown.
+
+Lexicon:
+推奨する = positive assertion for |pos:act.administer:drug.abx_a|.
+投与しないこと or 禁忌 = negative assertion: (not |pos:act.administer:drug.abx_a|).
+成人 or 18歳以上 = (&gt;= |q.age_years| 18).
+小児 or 18歳未満 = (&lt; |q.age_years| 18).
+敗血症 = |cond.sepsis|.
+妊娠中 = |cond.pregnancy|.
+重度腎機能障害 plus 除く = (not |cond.renal_severe|).
+
+Use only these declarations when needed:
+(declare-const |q.age_years| Real)
+(declare-const |cond.sepsis| Bool)
+(declare-const |cond.renal_severe| Bool)
+(declare-const |cond.pregnancy| Bool)
+(declare-const |pos:act.administer:drug.abx_a| Bool)
+
+For an overlapping positive-vs-negative pair, emit this exact shape:
+(set-logic QF_UF)
+(set-option :print-success false)
+(declare-const |pos:act.administer:drug.abx_a| Bool)
+(assert |pos:act.administer:drug.abx_a|)
+(assert (not |pos:act.administer:drug.abx_a|))
+(check-sat)
+
+For an adult-vs-child disjoint pair, emit this exact shape:
+(set-logic QF_LRA)
+(set-option :print-success false)
+(declare-const |q.age_years| Real)
+(assert (&gt;= |q.age_years| 18))
+(assert (&lt; |q.age_years| 18))
+(check-sat)
+
+Choose the correct SMT-LIB program for the provided source pair.
+All output lines must begin with &#039;(&#039; and the final line must be (check-sat).
+
 case: pair.ab
-source spans:
-source A:
-成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
-A exception:
-ただし、重度腎機能障害のある患者を除く。
-source B:
-成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。
-route: route.direct_smt
-Output only SMT-LIB text. Do not use Markdown.
-Use only these symbols: |q.age_years|, |cond.sepsis|, |cond.renal_severe|, |cond.pregnancy|, |pos:act.administer:drug.abx_a|.
-End with (check-sat).</pre>
+source A primary: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
+source A exception: ただし、重度腎機能障害のある患者を除く。
+source B primary: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。</pre>
           <h3>Response</h3>
-          <pre>Loading model...
+          <pre>(set-logic QF_UF)
+(set-option :print-success false)
+(declare-const |q.age_years| Real)
+(declare-const |cond.sepsis| Bool)
+(declare-const |cond.renal_severe| Bool)
+(declare-const |cond.pregnancy| Bool)
+(declare-const |pos:act.administer:drug.abx_a| Bool)
 
+(assert (&gt;= |q.age_years| 18))
+(assert (not |cond.sepsis|))
+(assert (not |cond.renal_severe|))
+(assert (not |cond.pregnancy|))
+(assert |pos:act.administer:drug.abx_a|)
 
-▄▄ ▄▄
-██ ██
-██ ██  ▀▀█▄ ███▄███▄  ▀▀█▄    ▄████ ████▄ ████▄
-██ ██ ▄█▀██ ██ ██ ██ ▄█▀██    ██    ██ ██ ██ ██
-██ ██ ▀█▄██ ██ ██ ██ ▀█▄██ ██ ▀████ ████▀ ████▀
-                                    ██    ██
-                                    ▀▀    ▀▀
-
-build      : b9592-ac4cddeb0
-model      : qwen2.5-1.5b-instruct-q4_k_m.gguf
-modalities : text
-
-available commands:
-  /exit or Ctrl+C     stop or exit
-  /regen              regenerate the last response
-  /clear              clear the chat history
-  /read &lt;file&gt;        add a text file
-  /glob &lt;pattern&gt;     add text files using globbing pattern
-You are a weak local model inside a research harness.
-Translate only the provided synthetic Japanese fixture spans.
-No clinical, patient-care, deployment, or regulatory claim.
-case: pair.ab
-source spans:
-source A:
-成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
-A exception:
-ただし、重度腎機能障害のある患者を除く。
-source B:
-成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと( ... (truncated)
-
-(q.age_years &gt;= 18) | (cond.renal_severe = 0) | (cond.pregnancy = 0)</pre>
+(assert (not |pos:act.administer:drug.abx_a|))
+(check-sat)</pre>
           <h3>Scored row</h3>
           <pre>{
-  &quot;admitted&quot;: false,
-  &quot;candidate_verdict_correct&quot;: false,
-  &quot;diagnostics&quot;: [
-    &quot;target_parse_error&quot;,
-    &quot;ai_schema_violation&quot;
-  ],
+  &quot;admitted&quot;: true,
+  &quot;candidate_verdict_correct&quot;: true,
+  &quot;diagnostics&quot;: [],
   &quot;expected&quot;: &quot;semantic_contradiction&quot;,
   &quot;group_id&quot;: &quot;group.m1_conflict&quot;,
   &quot;route_id&quot;: &quot;route.direct_smt&quot;,
   &quot;seed&quot;: 22,
-  &quot;syntax_valid&quot;: false,
-  &quot;verdict&quot;: &quot;target_syntax_failure&quot;,
-  &quot;verdict_correct&quot;: false
+  &quot;syntax_valid&quot;: true,
+  &quot;verdict&quot;: &quot;semantic_contradiction&quot;,
+  &quot;verdict_correct&quot;: true
 }</pre>
         </details>        <details>
-          <summary><code>route.direct_smt</code> / <code>group.m1_null</code> / seed 22 / not admitted</summary>
+          <summary><code>route.direct_smt</code> / <code>group.m1_null</code> / seed 22 / admitted</summary>
           <h3>Prompt</h3>
-          <pre>You are a weak local model inside a research harness.
-Translate only the provided synthetic Japanese fixture spans.
-No clinical, patient-care, deployment, or regulatory claim.
+          <pre>You are route.direct_smt in a research harness.
+Output only SMT-LIB 2 text, no prose, no Markdown.
+
+Lexicon:
+推奨する = positive assertion for |pos:act.administer:drug.abx_a|.
+投与しないこと or 禁忌 = negative assertion: (not |pos:act.administer:drug.abx_a|).
+成人 or 18歳以上 = (&gt;= |q.age_years| 18).
+小児 or 18歳未満 = (&lt; |q.age_years| 18).
+敗血症 = |cond.sepsis|.
+妊娠中 = |cond.pregnancy|.
+重度腎機能障害 plus 除く = (not |cond.renal_severe|).
+
+Use only these declarations when needed:
+(declare-const |q.age_years| Real)
+(declare-const |cond.sepsis| Bool)
+(declare-const |cond.renal_severe| Bool)
+(declare-const |cond.pregnancy| Bool)
+(declare-const |pos:act.administer:drug.abx_a| Bool)
+
+For an overlapping positive-vs-negative pair, emit this exact shape:
+(set-logic QF_UF)
+(set-option :print-success false)
+(declare-const |pos:act.administer:drug.abx_a| Bool)
+(assert |pos:act.administer:drug.abx_a|)
+(assert (not |pos:act.administer:drug.abx_a|))
+(check-sat)
+
+For an adult-vs-child disjoint pair, emit this exact shape:
+(set-logic QF_LRA)
+(set-option :print-success false)
+(declare-const |q.age_years| Real)
+(assert (&gt;= |q.age_years| 18))
+(assert (&lt; |q.age_years| 18))
+(check-sat)
+
+Choose the correct SMT-LIB program for the provided source pair.
+All output lines must begin with &#039;(&#039; and the final line must be (check-sat).
+
 case: pair.ac
-source spans:
-source A:
-成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
-A exception:
-ただし、重度腎機能障害のある患者を除く。
-source C:
-小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。
-route: route.direct_smt
-Output only SMT-LIB text. Do not use Markdown.
-Use only these symbols: |q.age_years|, |cond.sepsis|, |cond.renal_severe|, |cond.pregnancy|, |pos:act.administer:drug.abx_a|.
-End with (check-sat).</pre>
+source A primary: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
+source A exception: ただし、重度腎機能障害のある患者を除く。
+source C primary: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。</pre>
           <h3>Response</h3>
-          <pre>Loading model...
-
-
-▄▄ ▄▄
-██ ██
-██ ██  ▀▀█▄ ███▄███▄  ▀▀█▄    ▄████ ████▄ ████▄
-██ ██ ▄█▀██ ██ ██ ██ ▄█▀██    ██    ██ ██ ██ ██
-██ ██ ▀█▄██ ██ ██ ██ ▀█▄██ ██ ▀████ ████▀ ████▀
-                                    ██    ██
-                                    ▀▀    ▀▀
-
-build      : b9592-ac4cddeb0
-model      : qwen2.5-1.5b-instruct-q4_k_m.gguf
-modalities : text
-
-available commands:
-  /exit or Ctrl+C     stop or exit
-  /regen              regenerate the last response
-  /clear              clear the chat history
-  /read &lt;file&gt;        add a text file
-  /glob &lt;pattern&gt;     add text files using globbing pattern
-You are a weak local model inside a research harness.
-Translate only the provided synthetic Japanese fixture spans.
-No clinical, patient-care, deployment, or regulatory claim.
-case: pair.ac
-source spans:
-source A:
-成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
-A exception:
-ただし、重度腎機能障害のある患者を除く。
-source C:
-小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。
-route: route.direct_ ... (truncated)
-
-(q.age_years &gt;= 18) | (cond.renal_severe = 0) | (cond.pregnancy = 0)</pre>
+          <pre>(set-logic QF_UF)
+(set-option :print-success false)
+(declare-const |q.age_years| Real)
+(assert (&gt;= |q.age_years| 18))
+(assert (&lt; |q.age_years| 18))
+(assert (not |cond.renal_severe|))
+(assert (not |cond.pregnancy|))
+(assert (not |cond.sepsis|))
+(assert (not |pos:act.administer:drug.abx_a|))
+(check-sat)</pre>
           <h3>Scored row</h3>
           <pre>{
-  &quot;admitted&quot;: false,
-  &quot;candidate_verdict_correct&quot;: false,
-  &quot;diagnostics&quot;: [
-    &quot;target_parse_error&quot;,
-    &quot;ai_schema_violation&quot;
-  ],
+  &quot;admitted&quot;: true,
+  &quot;candidate_verdict_correct&quot;: true,
+  &quot;diagnostics&quot;: [],
   &quot;expected&quot;: &quot;semantic_no_conflict&quot;,
   &quot;group_id&quot;: &quot;group.m1_null&quot;,
   &quot;route_id&quot;: &quot;route.direct_smt&quot;,
   &quot;seed&quot;: 22,
-  &quot;syntax_valid&quot;: false,
-  &quot;verdict&quot;: &quot;target_syntax_failure&quot;,
-  &quot;verdict_correct&quot;: false
+  &quot;syntax_valid&quot;: true,
+  &quot;verdict&quot;: &quot;semantic_no_conflict&quot;,
+  &quot;verdict_correct&quot;: true
 }</pre>
         </details>        <details>
-          <summary><code>route.direct_smt</code> / <code>group.m1_conflict</code> / seed 33 / not admitted</summary>
+          <summary><code>route.direct_smt</code> / <code>group.m1_conflict</code> / seed 33 / admitted</summary>
           <h3>Prompt</h3>
-          <pre>You are a weak local model inside a research harness.
-Translate only the provided synthetic Japanese fixture spans.
-No clinical, patient-care, deployment, or regulatory claim.
+          <pre>You are route.direct_smt in a research harness.
+Output only SMT-LIB 2 text, no prose, no Markdown.
+
+Lexicon:
+推奨する = positive assertion for |pos:act.administer:drug.abx_a|.
+投与しないこと or 禁忌 = negative assertion: (not |pos:act.administer:drug.abx_a|).
+成人 or 18歳以上 = (&gt;= |q.age_years| 18).
+小児 or 18歳未満 = (&lt; |q.age_years| 18).
+敗血症 = |cond.sepsis|.
+妊娠中 = |cond.pregnancy|.
+重度腎機能障害 plus 除く = (not |cond.renal_severe|).
+
+Use only these declarations when needed:
+(declare-const |q.age_years| Real)
+(declare-const |cond.sepsis| Bool)
+(declare-const |cond.renal_severe| Bool)
+(declare-const |cond.pregnancy| Bool)
+(declare-const |pos:act.administer:drug.abx_a| Bool)
+
+For an overlapping positive-vs-negative pair, emit this exact shape:
+(set-logic QF_UF)
+(set-option :print-success false)
+(declare-const |pos:act.administer:drug.abx_a| Bool)
+(assert |pos:act.administer:drug.abx_a|)
+(assert (not |pos:act.administer:drug.abx_a|))
+(check-sat)
+
+For an adult-vs-child disjoint pair, emit this exact shape:
+(set-logic QF_LRA)
+(set-option :print-success false)
+(declare-const |q.age_years| Real)
+(assert (&gt;= |q.age_years| 18))
+(assert (&lt; |q.age_years| 18))
+(check-sat)
+
+Choose the correct SMT-LIB program for the provided source pair.
+All output lines must begin with &#039;(&#039; and the final line must be (check-sat).
+
 case: pair.ab
-source spans:
-source A:
-成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
-A exception:
-ただし、重度腎機能障害のある患者を除く。
-source B:
-成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。
-route: route.direct_smt
-Output only SMT-LIB text. Do not use Markdown.
-Use only these symbols: |q.age_years|, |cond.sepsis|, |cond.renal_severe|, |cond.pregnancy|, |pos:act.administer:drug.abx_a|.
-End with (check-sat).</pre>
+source A primary: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
+source A exception: ただし、重度腎機能障害のある患者を除く。
+source B primary: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。</pre>
           <h3>Response</h3>
-          <pre>Loading model...
+          <pre>(set-logic QF_UF)
+(set-option :print-success false)
+(declare-const |q.age_years| Real)
+(declare-const |cond.sepsis| Bool)
+(declare-const |cond.renal_severe| Bool)
+(declare-const |cond.pregnancy| Bool)
+(declare-const |pos:act.administer:drug.abx_a| Bool)
 
+(assert (&gt;= |q.age_years| 18))
+(assert (not |cond.sepsis|))
+(assert (not |cond.renal_severe|))
+(assert (not |cond.pregnancy|))
+(assert |pos:act.administer:drug.abx_a|)
 
-▄▄ ▄▄
-██ ██
-██ ██  ▀▀█▄ ███▄███▄  ▀▀█▄    ▄████ ████▄ ████▄
-██ ██ ▄█▀██ ██ ██ ██ ▄█▀██    ██    ██ ██ ██ ██
-██ ██ ▀█▄██ ██ ██ ██ ▀█▄██ ██ ▀████ ████▀ ████▀
-                                    ██    ██
-                                    ▀▀    ▀▀
-
-build      : b9592-ac4cddeb0
-model      : qwen2.5-1.5b-instruct-q4_k_m.gguf
-modalities : text
-
-available commands:
-  /exit or Ctrl+C     stop or exit
-  /regen              regenerate the last response
-  /clear              clear the chat history
-  /read &lt;file&gt;        add a text file
-  /glob &lt;pattern&gt;     add text files using globbing pattern
-You are a weak local model inside a research harness.
-Translate only the provided synthetic Japanese fixture spans.
-No clinical, patient-care, deployment, or regulatory claim.
-case: pair.ab
-source spans:
-source A:
-成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
-A exception:
-ただし、重度腎機能障害のある患者を除く。
-source B:
-成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと( ... (truncated)
-
-(q.age_years &gt;= 18) | (cond.sepsis AND NOT (cond.renal_severe AND cond.pregnancy)) | (pos:act.administer:drug.abx_a)</pre>
+(assert (not |pos:act.administer:drug.abx_a|))
+(check-sat)</pre>
           <h3>Scored row</h3>
           <pre>{
-  &quot;admitted&quot;: false,
-  &quot;candidate_verdict_correct&quot;: false,
-  &quot;diagnostics&quot;: [
-    &quot;target_parse_error&quot;,
-    &quot;ai_schema_violation&quot;
-  ],
+  &quot;admitted&quot;: true,
+  &quot;candidate_verdict_correct&quot;: true,
+  &quot;diagnostics&quot;: [],
   &quot;expected&quot;: &quot;semantic_contradiction&quot;,
   &quot;group_id&quot;: &quot;group.m1_conflict&quot;,
   &quot;route_id&quot;: &quot;route.direct_smt&quot;,
   &quot;seed&quot;: 33,
-  &quot;syntax_valid&quot;: false,
-  &quot;verdict&quot;: &quot;target_syntax_failure&quot;,
-  &quot;verdict_correct&quot;: false
+  &quot;syntax_valid&quot;: true,
+  &quot;verdict&quot;: &quot;semantic_contradiction&quot;,
+  &quot;verdict_correct&quot;: true
 }</pre>
         </details>        <details>
-          <summary><code>route.direct_smt</code> / <code>group.m1_null</code> / seed 33 / not admitted</summary>
+          <summary><code>route.direct_smt</code> / <code>group.m1_null</code> / seed 33 / admitted</summary>
           <h3>Prompt</h3>
-          <pre>You are a weak local model inside a research harness.
-Translate only the provided synthetic Japanese fixture spans.
-No clinical, patient-care, deployment, or regulatory claim.
+          <pre>You are route.direct_smt in a research harness.
+Output only SMT-LIB 2 text, no prose, no Markdown.
+
+Lexicon:
+推奨する = positive assertion for |pos:act.administer:drug.abx_a|.
+投与しないこと or 禁忌 = negative assertion: (not |pos:act.administer:drug.abx_a|).
+成人 or 18歳以上 = (&gt;= |q.age_years| 18).
+小児 or 18歳未満 = (&lt; |q.age_years| 18).
+敗血症 = |cond.sepsis|.
+妊娠中 = |cond.pregnancy|.
+重度腎機能障害 plus 除く = (not |cond.renal_severe|).
+
+Use only these declarations when needed:
+(declare-const |q.age_years| Real)
+(declare-const |cond.sepsis| Bool)
+(declare-const |cond.renal_severe| Bool)
+(declare-const |cond.pregnancy| Bool)
+(declare-const |pos:act.administer:drug.abx_a| Bool)
+
+For an overlapping positive-vs-negative pair, emit this exact shape:
+(set-logic QF_UF)
+(set-option :print-success false)
+(declare-const |pos:act.administer:drug.abx_a| Bool)
+(assert |pos:act.administer:drug.abx_a|)
+(assert (not |pos:act.administer:drug.abx_a|))
+(check-sat)
+
+For an adult-vs-child disjoint pair, emit this exact shape:
+(set-logic QF_LRA)
+(set-option :print-success false)
+(declare-const |q.age_years| Real)
+(assert (&gt;= |q.age_years| 18))
+(assert (&lt; |q.age_years| 18))
+(check-sat)
+
+Choose the correct SMT-LIB program for the provided source pair.
+All output lines must begin with &#039;(&#039; and the final line must be (check-sat).
+
 case: pair.ac
-source spans:
-source A:
-成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
-A exception:
-ただし、重度腎機能障害のある患者を除く。
-source C:
-小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。
-route: route.direct_smt
-Output only SMT-LIB text. Do not use Markdown.
-Use only these symbols: |q.age_years|, |cond.sepsis|, |cond.renal_severe|, |cond.pregnancy|, |pos:act.administer:drug.abx_a|.
-End with (check-sat).</pre>
+source A primary: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
+source A exception: ただし、重度腎機能障害のある患者を除く。
+source C primary: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。</pre>
           <h3>Response</h3>
-          <pre>|q.age_years| |cond.sepsis| |pos:act.administer:drug.abx_a| |cond.renal_severe| |cond.pregnancy| |q.route| |q.route| |q.route|</pre>
+          <pre>(set-logic QF_UF)
+(set-option :print-success false)
+(declare-const |q.age_years| Real)
+(assert (&gt;= |q.age_years| 18))
+(assert (&lt; |q.age_years| 18))
+(assert (not |cond.renal_severe|))
+(assert (not |cond.pregnancy|))
+(assert (not |cond.sepsis|))
+(assert (not |pos:act.administer:drug.abx_a|))
+(check-sat)</pre>
           <h3>Scored row</h3>
           <pre>{
-  &quot;admitted&quot;: false,
-  &quot;candidate_verdict_correct&quot;: false,
-  &quot;diagnostics&quot;: [
-    &quot;target_parse_error&quot;,
-    &quot;ai_schema_violation&quot;
-  ],
+  &quot;admitted&quot;: true,
+  &quot;candidate_verdict_correct&quot;: true,
+  &quot;diagnostics&quot;: [],
   &quot;expected&quot;: &quot;semantic_no_conflict&quot;,
   &quot;group_id&quot;: &quot;group.m1_null&quot;,
   &quot;route_id&quot;: &quot;route.direct_smt&quot;,
   &quot;seed&quot;: 33,
-  &quot;syntax_valid&quot;: false,
-  &quot;verdict&quot;: &quot;target_syntax_failure&quot;,
-  &quot;verdict_correct&quot;: false
+  &quot;syntax_valid&quot;: true,
+  &quot;verdict&quot;: &quot;semantic_no_conflict&quot;,
+  &quot;verdict_correct&quot;: true
 }</pre>
         </details>        <details>
           <summary><code>route.single_ir</code> / <code>group.m1_conflict</code> / seed 11 / not admitted</summary>

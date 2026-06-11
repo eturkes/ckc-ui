@@ -707,12 +707,56 @@ function promptFor(routeId, groupId, seed) {
     ...modelCase.lines
   ];
   if (routeId === "route.direct_smt") {
+    const directSourceLines = [
+      `case: ${modelCase.case_id}`,
+      ...modelCase.labels.flatMap((label) => {
+        const sourceCase = sourceCaseForLabel(label);
+        return [
+          `source ${label} primary: ${sourceCase.primary}`,
+          ...(sourceCase.exception ? [`source ${label} exception: ${sourceCase.exception}`] : [])
+        ];
+      })
+    ];
     return [
-      ...common,
-      "route: route.direct_smt",
-      "Output only SMT-LIB text. Do not use Markdown.",
-      "Use only these symbols: |q.age_years|, |cond.sepsis|, |cond.renal_severe|, |cond.pregnancy|, |pos:act.administer:drug.abx_a|.",
-      "End with (check-sat)."
+      "You are route.direct_smt in a research harness.",
+      "Output only SMT-LIB 2 text, no prose, no Markdown.",
+      "",
+      "Lexicon:",
+      "推奨する = positive assertion for |pos:act.administer:drug.abx_a|.",
+      "投与しないこと or 禁忌 = negative assertion: (not |pos:act.administer:drug.abx_a|).",
+      "成人 or 18歳以上 = (>= |q.age_years| 18).",
+      "小児 or 18歳未満 = (< |q.age_years| 18).",
+      "敗血症 = |cond.sepsis|.",
+      "妊娠中 = |cond.pregnancy|.",
+      "重度腎機能障害 plus 除く = (not |cond.renal_severe|).",
+      "",
+      "Use only these declarations when needed:",
+      "(declare-const |q.age_years| Real)",
+      "(declare-const |cond.sepsis| Bool)",
+      "(declare-const |cond.renal_severe| Bool)",
+      "(declare-const |cond.pregnancy| Bool)",
+      "(declare-const |pos:act.administer:drug.abx_a| Bool)",
+      "",
+      "For an overlapping positive-vs-negative pair, emit this exact shape:",
+      "(set-logic QF_UF)",
+      "(set-option :print-success false)",
+      "(declare-const |pos:act.administer:drug.abx_a| Bool)",
+      "(assert |pos:act.administer:drug.abx_a|)",
+      "(assert (not |pos:act.administer:drug.abx_a|))",
+      "(check-sat)",
+      "",
+      "For an adult-vs-child disjoint pair, emit this exact shape:",
+      "(set-logic QF_LRA)",
+      "(set-option :print-success false)",
+      "(declare-const |q.age_years| Real)",
+      "(assert (>= |q.age_years| 18))",
+      "(assert (< |q.age_years| 18))",
+      "(check-sat)",
+      "",
+      "Choose the correct SMT-LIB program for the provided source pair.",
+      "All output lines must begin with '(' and the final line must be (check-sat).",
+      "",
+      ...directSourceLines
     ].join("\n");
   }
   return [
@@ -746,7 +790,7 @@ function llamaArgs(prompt, seed, routeId, groupId, sourceLabel = null) {
   const schema = jsonSchemaForRoute(routeId, groupId, sourceLabel);
   const routeArgs = routeId === "route.single_ir"
     ? ["-n", "140", "--ctx-size", "1536", "--temp", "0", "--top-k", "1"]
-    : ["-n", "180", "--ctx-size", "1536", "--temp", "0.2", "--top-k", "20"];
+    : ["-n", "160", "--ctx-size", "2048", "--temp", "0", "--top-k", "1"];
   return [
     "-m", modelPath,
     "-p", prompt,
@@ -1192,6 +1236,42 @@ function scoreRows() {
   return { rawRows, routeMetrics: [...byRoute.values()], liftTable, ioRecords, liveCalls };
 }
 
+function buildDirectSmtAudit(ioRecords) {
+  const directRecords = ioRecords.filter((record) => record.route_id === "route.direct_smt");
+  const sampleCount = directRecords.length;
+  const exactTemplateMatches = directRecords.filter((record) => {
+    const response = record.response.trim();
+    const conflictTemplate = [
+      "(set-logic QF_UF)",
+      "(set-option :print-success false)",
+      "(declare-const |pos:act.administer:drug.abx_a| Bool)",
+      "(assert |pos:act.administer:drug.abx_a|)",
+      "(assert (not |pos:act.administer:drug.abx_a|))",
+      "(check-sat)"
+    ].join("\n");
+    const nullTemplate = [
+      "(set-logic QF_LRA)",
+      "(set-option :print-success false)",
+      "(declare-const |q.age_years| Real)",
+      "(assert (>= |q.age_years| 18))",
+      "(assert (< |q.age_years| 18))",
+      "(check-sat)"
+    ].join("\n");
+    return response === conflictTemplate || response === nullTemplate;
+  }).length;
+  const missingNamedAssertions = directRecords.filter((record) => !/:named/.test(record.response)).length;
+  const negatedSepsisAssertions = directRecords.filter((record) => /\(assert\s+\(not\s+\|cond\.sepsis\|\)\)/.test(record.response)).length;
+  return {
+    artifact_kind: "DirectSmtResidualAudit",
+    scope: "non_admission_audit",
+    sample_count: sampleCount,
+    exact_template_match_rate: ratio(exactTemplateMatches, sampleCount),
+    missing_named_assertion_rate: ratio(missingNamedAssertions, sampleCount),
+    negated_sepsis_assertion_rate: ratio(negatedSepsisAssertions, sampleCount),
+    interpretation: "Direct SMT admitted verdict accuracy is a verdict-pattern score in this one-shot harness; this audit records residual source-grounding and traceability gaps that must be closed by IR-mediated routes or a stricter target verifier."
+  };
+}
+
 function buildTrace(artifactsByDoc, groupResults, finding, nullResult, realGuidelineIntake) {
   const nodes = [];
   const edges = [];
@@ -1252,16 +1332,22 @@ function markdownReport(report) {
   const liftRows = report.metrics.lift_table.map((row) => `| ${row.metric} | ${row.baseline.exact} | ${row.lifted.exact} | ${row.delta.exact} |`).join("\n");
   const rawRows = report.metrics.raw_rows.map((row) => `| ${row.route_id} | ${row.group_id} | ${row.seed} | ${row.syntax_valid} | ${row.admitted} | ${row.verdict} | ${row.verdict_correct} | ${row.candidate_verdict_correct} |`).join("\n");
   const diagnostics = Object.entries(report.diagnostics_summary).map(([code, count]) => `- ${code}: ${count}`).join("\n") || "- none: 0";
+  const directMetric = report.metrics.route_metrics.find((entry) => entry.route_id === "route.direct_smt");
   const irMetric = report.metrics.route_metrics.find((entry) => entry.route_id === "route.single_ir");
   const irConclusion = irMetric.admission_rate.numerator > 0
     ? `The IR route produced ${irMetric.admission_rate.exact} admitted rows; admitted verdict accuracy is ${irMetric.admitted_verdict_accuracy.exact}.`
     : `The IR route produced no admitted rows in this live run; candidate verdicts are reported only as rejected model outputs.`;
+  const comparisonConclusion = directMetric.admitted_verdict_accuracy.numerator >= irMetric.admitted_verdict_accuracy.numerator
+    ? `Optimized direct SMT reached ${directMetric.target_syntax_validity.exact} target syntax validity, ${directMetric.admission_rate.exact} admission, and ${directMetric.admitted_verdict_accuracy.exact} admitted verdict accuracy on this locked fixture. This live run no longer demonstrates an IR lift over direct SMT; the remaining IR case must be shown by source-grounded admission, trace completeness, reuse, and harder measurements rather than by the old malformed-direct baseline.`
+    : `The optimized direct SMT baseline remains below the IR route on admitted verdict accuracy for this locked fixture.`;
+  const directAudit = report.direct_smt_audit;
+  const directAuditConclusion = `Direct SMT residual audit: exact template matches ${directAudit.exact_template_match_rate.exact}; rows without named assertions ${directAudit.missing_named_assertion_rate.exact}; rows asserting negated sepsis ${directAudit.negated_sepsis_assertion_rate.exact}. This audit is non-admission evidence that the optimized direct verdict score is not yet a source-grounded trace-quality result.`;
   const realGuidelineRows = report.real_guideline_intake.sources.map((source) => `| ${source.id} | ${source.license_label} | ${source.raw_cache_status} | ${source.candidate_span_count} | ${source.guideline_relation} |`).join("\n");
   return `# CKC one-shot M1-M2 research report
 
 Run: \`${report.run_id}\`
 
-Scope: research harness; synthetic fixture measurement; source-grounded; schema-valid where admitted; verifier-checked by the one-shot symbolic verifier. This report makes no clinical, patient-care, deployment, or regulatory claim.
+Scope: research harness; synthetic fixture measurement. The M1 spine is source-grounded and verifier-checked by the one-shot symbolic verifier; model-route rows are admitted only under the route checks reported below. This report makes no clinical, patient-care, deployment, or regulatory claim.
 Route verdict accuracy below is admitted verdict accuracy. Candidate verdict accuracy is shown only to audit rejected model outputs.
 
 ## M1 spine result
@@ -1290,6 +1376,10 @@ ${realGuidelineRows}
 | --- | ---: | ---: | ---: |
 ${liftRows}
 
+${comparisonConclusion}
+
+${directAuditConclusion}
+
 ${irConclusion}
 
 ## Raw route rows
@@ -1312,16 +1402,22 @@ ${diagnostics}
 
 function japaneseReport(report) {
   const liftRows = report.metrics.lift_table.map((row) => `| ${row.metric} | ${row.baseline.exact} | ${row.lifted.exact} | ${row.delta.exact} |`).join("\n");
+  const directMetric = report.metrics.route_metrics.find((entry) => entry.route_id === "route.direct_smt");
   const irMetric = report.metrics.route_metrics.find((entry) => entry.route_id === "route.single_ir");
   const irConclusion = irMetric.admission_rate.numerator > 0
     ? `IR route は ${irMetric.admission_rate.exact} 行を admitted とした。admitted verdict accuracy は ${irMetric.admitted_verdict_accuracy.exact}。`
     : "この live run では IR route の admitted 行は 0。candidate verdict は rejected model output の監査情報としてのみ扱う。";
+  const comparisonConclusion = directMetric.admitted_verdict_accuracy.numerator >= irMetric.admitted_verdict_accuracy.numerator
+    ? `最適化した direct SMT はこの locked fixture で target syntax ${directMetric.target_syntax_validity.exact}、admission ${directMetric.admission_rate.exact}、admitted verdict accuracy ${directMetric.admitted_verdict_accuracy.exact} に達した。この live run は direct SMT に対する IR lift を示さない。残る IR の必要性は、旧 direct baseline の構文失敗ではなく、source-grounded admission、trace completeness、reuse、より難しい測定で示す必要がある。`
+    : "最適化した direct SMT baseline は、この locked fixture の admitted verdict accuracy で IR route を下回った。";
+  const directAudit = report.direct_smt_audit;
+  const directAuditConclusion = `Direct SMT residual audit: exact template match ${directAudit.exact_template_match_rate.exact}、named assertion なし ${directAudit.missing_named_assertion_rate.exact}、negated sepsis assertion ${directAudit.negated_sepsis_assertion_rate.exact}。これは admission 判定外の監査情報であり、最適化した direct verdict score が source-grounded trace quality をまだ示していないことを記録する。`;
   const realGuidelineRows = report.real_guideline_intake.sources.map((source) => `| ${source.id} | ${source.license_label} | ${source.raw_cache_status} | ${source.candidate_span_count} |`).join("\n");
   return `# CKC one-shot M1-M2 研究レポート
 
 run: \`${report.run_id}\`
 
-範囲: research harness、synthetic fixture measurement、source-grounded。admitted の行は one-shot symbolic verifier で verifier-checked。このレポートは臨床、患者ケア、導入、規制上の主張をしない。route verdict accuracy は admitted verdict accuracy として扱う。
+範囲: research harness、synthetic fixture measurement。M1 spine は source-grounded で one-shot symbolic verifier により verifier-checked。model-route 行は下記の route checks でのみ admitted とする。このレポートは臨床、患者ケア、導入、規制上の主張をしない。route verdict accuracy は admitted verdict accuracy として扱う。
 
 ## M1 spine
 
@@ -1348,6 +1444,10 @@ ${realGuidelineRows}
 | --- | ---: | ---: | ---: |
 ${liftRows}
 
+${comparisonConclusion}
+
+${directAuditConclusion}
+
 ${irConclusion}
 `;
 }
@@ -1372,6 +1472,11 @@ function renderBasicUi(data) {
   const irConclusion = single.admission_rate.numerator > 0
     ? `IR route admitted ${single.admission_rate.exact}; admitted accuracy ${single.admitted_verdict_accuracy.exact}.`
     : "IR route produced no admitted rows; rejected candidate verdicts are audit data only.";
+  const comparisonConclusion = direct.admitted_verdict_accuracy.numerator >= single.admitted_verdict_accuracy.numerator
+    ? `Optimized direct SMT is ${direct.admitted_verdict_accuracy.exact} on admitted accuracy here, so this run does not show IR lift yet.`
+    : `Optimized direct SMT remains below IR admitted accuracy here.`;
+  const directAudit = data.direct_smt_audit;
+  const directAuditConclusion = `Direct audit: exact templates ${directAudit.exact_template_match_rate.exact}; no named assertions ${directAudit.missing_named_assertion_rate.exact}; negated sepsis ${directAudit.negated_sepsis_assertion_rate.exact}.`;
   const routeRows = data.route_metrics.map((entry) => `
           <tr>
             <td><code>${escapeHtml(entry.route_id)}</code></td>
@@ -1537,6 +1642,8 @@ function renderBasicUi(data) {
         <div class="metric"><strong>${escapeHtml(report.null_results.length)}</strong><span>null result: ${escapeHtml(nullResult.reason)}</span></div>
         <div class="metric"><strong>${escapeHtml(`${direct.admitted_verdict_accuracy.exact} -> ${single.admitted_verdict_accuracy.exact}`)}</strong><span>admitted verdict accuracy</span></div>
       </div>
+      <p>${escapeHtml(comparisonConclusion)}</p>
+      <p>${escapeHtml(directAuditConclusion)}</p>
       <p>${escapeHtml(irConclusion)}</p>
     </section>
 
@@ -1741,6 +1848,7 @@ async function main() {
   await writeJson("lineage_index.json", lineageIndex);
 
   const metrics = scoreRows();
+  const directSmtAudit = buildDirectSmtAudit(metrics.ioRecords);
   const modelMeta = await modelMetadata(metrics.liveCalls);
   for (const record of metrics.ioRecords) {
     await writeJson(`model_io/${record.route_id}/${record.group_id}/seed-${record.seed}.json`, record);
@@ -1748,6 +1856,7 @@ async function main() {
   await writeJson("metrics/raw_rows.json", metrics.rawRows);
   await writeJson("metrics/route_metrics.json", metrics.routeMetrics);
   await writeJson("metrics/lift_table.json", metrics.liftTable);
+  await writeJson("metrics/direct_smt_audit.json", directSmtAudit);
 
   const diagnosticsSummary = {};
   for (const row of metrics.rawRows) {
@@ -1779,6 +1888,7 @@ async function main() {
       route_metrics: metrics.routeMetrics,
       lift_table: metrics.liftTable
     },
+    direct_smt_audit: directSmtAudit,
     real_guideline_intake: {
       artifact_id: realGuidelineIntake.artifact_id,
       registry_path: realGuidelineIntake.registry_path,
@@ -1878,6 +1988,7 @@ async function main() {
     route_metrics: metrics.routeMetrics,
     lift_table: metrics.liftTable,
     raw_rows: metrics.rawRows,
+    direct_smt_audit: directSmtAudit,
     real_guideline_intake: realGuidelineIntake,
     model_io: metrics.ioRecords,
     artifacts: replayManifest.files,
@@ -1903,6 +2014,7 @@ async function main() {
       "lineage_index.json",
       "real_guidelines/source_intake.json",
       "metrics/raw_rows.json",
+      "metrics/direct_smt_audit.json",
       "model_io/route.direct_smt/group.m1_conflict/seed-11.json"
     ];
     const commonAssertions = [
@@ -1924,8 +2036,14 @@ async function main() {
           report.live_model_calls === metrics.liveCalls,
           metrics.ioRecords.every((record) => record.subprocess?.exit_status === 0),
           metrics.ioRecords.every((record) => record.response_hash && record.response_hash.length === 64),
-          direct.admission_rate.exact === "0/6",
-          direct.admitted_verdict_accuracy.exact === "0/6",
+          direct.target_syntax_validity.exact === "6/6",
+          direct.admission_rate.exact === "6/6",
+          direct.admitted_verdict_accuracy.exact === "6/6",
+          direct.candidate_verdict_accuracy.exact === "6/6",
+          direct.k_sample_stability.exact === "2/2",
+          report.direct_smt_audit.exact_template_match_rate.exact === "0/6",
+          report.direct_smt_audit.missing_named_assertion_rate.exact === "6/6",
+          report.direct_smt_audit.negated_sepsis_assertion_rate.exact === "6/6",
           single.target_syntax_validity.exact === "6/6",
           single.admission_rate.exact === "0/6",
           single.admitted_verdict_accuracy.exact === "0/6",
