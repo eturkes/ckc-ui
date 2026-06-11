@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const runId = "m2-one-shot";
 const runDir = path.join(root, "runs", runId);
-const webDataPath = path.join(root, "workbench", "run-data.js");
+const webDataPath = path.join(root, "index.html");
 const verifyMode = process.argv.includes("--verify");
 const recordedModel = process.argv.includes("--recorded-model");
 const liveModel = process.argv.includes("--live-model") || !recordedModel;
@@ -982,6 +982,165 @@ ${liftRows}
 `;
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\"", "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function renderBasicUi(data) {
+  const report = data.report;
+  const direct = data.route_metrics.find((entry) => entry.route_id === "route.direct_smt");
+  const single = data.route_metrics.find((entry) => entry.route_id === "route.single_ir");
+  const routeRows = data.route_metrics.map((entry) => `
+          <tr>
+            <td><code>${escapeHtml(entry.route_id)}</code></td>
+            <td>${escapeHtml(entry.target_syntax_validity.exact)}</td>
+            <td>${escapeHtml(entry.admission_rate.exact)}</td>
+            <td>${escapeHtml(entry.verdict_accuracy.exact)}</td>
+            <td>${escapeHtml(entry.k_sample_stability.exact)}</td>
+          </tr>`).join("");
+  const rawRows = data.raw_rows.map((row) => `
+          <tr>
+            <td><code>${escapeHtml(row.route_id)}</code></td>
+            <td><code>${escapeHtml(row.group_id)}</code></td>
+            <td>${escapeHtml(row.seed)}</td>
+            <td>${row.syntax_valid ? "yes" : "no"}</td>
+            <td>${row.admitted ? "yes" : "no"}</td>
+            <td>${escapeHtml(row.verdict)}</td>
+            <td>${row.verdict_correct ? "yes" : "no"}</td>
+            <td>${escapeHtml(row.diagnostics.join(", ") || "none")}</td>
+          </tr>`).join("");
+  const ioBlocks = data.model_io.map((record) => `
+        <details>
+          <summary><code>${escapeHtml(record.route_id)}</code> / <code>${escapeHtml(record.group_id)}</code> / seed ${escapeHtml(record.seed)} / ${record.row.admitted ? "admitted" : "not admitted"}</summary>
+          <h3>Prompt</h3>
+          <pre>${escapeHtml(record.prompt)}</pre>
+          <h3>Response</h3>
+          <pre>${escapeHtml(record.response)}</pre>
+          <h3>Scored row</h3>
+          <pre>${escapeHtml(JSON.stringify(record.row, null, 2))}</pre>
+        </details>`).join("");
+  const finding = report.findings[0];
+  const nullResult = report.null_results[0];
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CKC live local model run</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f2f5f7;
+      --surface: #fff;
+      --line: #d6dee5;
+      --ink: #17212b;
+      --muted: #64727f;
+      --ok: #126f54;
+      --warn: #8a5b00;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 15px;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); }
+    main { max-width: 1180px; margin: 0 auto; padding: 18px; }
+    header, section { border: 1px solid var(--line); border-radius: 6px; background: var(--surface); margin-bottom: 12px; }
+    header { padding: 16px; }
+    section { padding: 14px; }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: 1.15rem; }
+    h2 { font-size: .98rem; margin-bottom: 8px; }
+    h3 { font-size: .86rem; margin: 10px 0 6px; }
+    p { color: var(--muted); margin-top: 4px; line-height: 1.4; }
+    code, pre { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; font-size: .82rem; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 280px; overflow: auto; margin: 0; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: #101820; color: #eef6f4; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+    .chip { display: inline-flex; align-items: center; min-height: 28px; border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; background: #f7fafb; color: var(--muted); font-size: .8rem; }
+    .chip.ok { color: var(--ok); background: #e4f2ec; border-color: #b9ddcf; }
+    .chip.warn { color: var(--warn); background: #fff1cf; border-color: #e7cf91; }
+    .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .metric { border: 1px solid var(--line); border-radius: 6px; padding: 12px; }
+    .metric strong { display: block; font-size: 1.45rem; line-height: 1; }
+    .metric span { display: block; color: var(--muted); margin-top: 6px; font-size: .82rem; }
+    table { width: 100%; border-collapse: collapse; min-width: 720px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 8px; text-align: left; vertical-align: top; font-size: .82rem; }
+    th { color: var(--muted); background: #f7fafb; }
+    .table-wrap { overflow-x: auto; }
+    .quote { border-left: 3px solid var(--ok); background: #e4f2ec; padding: 8px 10px; margin-top: 8px; line-height: 1.45; }
+    details { border: 1px solid var(--line); border-radius: 6px; padding: 9px 10px; margin-top: 8px; }
+    summary { cursor: pointer; }
+    @media (max-width: 760px) {
+      main { padding: 10px; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>CKC live local model run</h1>
+      <p>Basic fixture-scale UI for the current weak local model experiment. This is a research harness view over synthetic fixtures; it makes no clinical, patient-care, deployment, or regulatory claim.</p>
+      <div class="chips">
+        <span class="chip ok">run ${escapeHtml(report.run_id)}</span>
+        <span class="chip ok">${escapeHtml(report.model_mode)}</span>
+        <span class="chip warn">live model calls: ${escapeHtml(report.live_model_calls)}</span>
+        <span class="chip">${escapeHtml(report.model_identity)}</span>
+      </div>
+    </header>
+
+    <section>
+      <h2>Summary</h2>
+      <div class="grid">
+        <div class="metric"><strong>${escapeHtml(report.findings.length)}</strong><span>finding: ${escapeHtml(finding.conflict_kind)}</span></div>
+        <div class="metric"><strong>${escapeHtml(report.null_results.length)}</strong><span>null result: ${escapeHtml(nullResult.reason)}</span></div>
+        <div class="metric"><strong>${escapeHtml(`${direct.verdict_accuracy.exact} -> ${single.verdict_accuracy.exact}`)}</strong><span>direct SMT to single IR accuracy</span></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>M1 evidence</h2>
+      <p><code>${escapeHtml(finding.finding_id)}</code> / <code>${escapeHtml(nullResult.null_result_id)}</code></p>
+      ${finding.quoted_spans.map((span) => `<div class="quote"><code>${escapeHtml(span.region_id)}</code>: ${escapeHtml(span.text)}</div>`).join("")}
+      <div class="quote"><code>${escapeHtml(nullResult.quoted_spans[1].region_id)}</code>: ${escapeHtml(nullResult.quoted_spans[1].text)}</div>
+    </section>
+
+    <section>
+      <h2>Route metrics</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Route</th><th>Syntax</th><th>Admission</th><th>Accuracy</th><th>Stability</th></tr></thead>
+          <tbody>${routeRows}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Raw rows</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Route</th><th>Group</th><th>Seed</th><th>Syntax</th><th>Admitted</th><th>Verdict</th><th>Correct</th><th>Diagnostics</th></tr></thead>
+          <tbody>${rawRows}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Model I/O</h2>
+      ${ioBlocks}
+    </section>
+  </main>
+</body>
+</html>
+`;
+}
+
 async function walkFiles(directory) {
   const entries = await readdir(directory);
   const files = [];
@@ -1240,7 +1399,7 @@ async function main() {
     }))
   };
   await mkdir(path.dirname(webDataPath), { recursive: true });
-  await writeFile(webDataPath, `window.CKC_RUN = ${JSON.stringify(stable(uiData), null, 2)};\n`);
+  await writeFile(webDataPath, renderBasicUi(stable(uiData)));
 
   if (verifyMode) {
     const direct = metrics.routeMetrics.find((entry) => entry.route_id === "route.direct_smt");
@@ -1287,7 +1446,7 @@ async function main() {
 
   console.log(JSON.stringify({
     run_dir: path.relative(root, runDir),
-    workbench_data: path.relative(root, webDataPath),
+    ui: path.relative(root, webDataPath),
     model_mode: report.model_mode,
     live_model_calls: report.live_model_calls,
     findings: report.findings.length,

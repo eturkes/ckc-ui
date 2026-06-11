@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CKC live local model run</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f2f5f7;
+      --surface: #fff;
+      --line: #d6dee5;
+      --ink: #17212b;
+      --muted: #64727f;
+      --ok: #126f54;
+      --warn: #8a5b00;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 15px;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); }
+    main { max-width: 1180px; margin: 0 auto; padding: 18px; }
+    header, section { border: 1px solid var(--line); border-radius: 6px; background: var(--surface); margin-bottom: 12px; }
+    header { padding: 16px; }
+    section { padding: 14px; }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: 1.15rem; }
+    h2 { font-size: .98rem; margin-bottom: 8px; }
+    h3 { font-size: .86rem; margin: 10px 0 6px; }
+    p { color: var(--muted); margin-top: 4px; line-height: 1.4; }
+    code, pre { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; font-size: .82rem; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 280px; overflow: auto; margin: 0; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: #101820; color: #eef6f4; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+    .chip { display: inline-flex; align-items: center; min-height: 28px; border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; background: #f7fafb; color: var(--muted); font-size: .8rem; }
+    .chip.ok { color: var(--ok); background: #e4f2ec; border-color: #b9ddcf; }
+    .chip.warn { color: var(--warn); background: #fff1cf; border-color: #e7cf91; }
+    .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .metric { border: 1px solid var(--line); border-radius: 6px; padding: 12px; }
+    .metric strong { display: block; font-size: 1.45rem; line-height: 1; }
+    .metric span { display: block; color: var(--muted); margin-top: 6px; font-size: .82rem; }
+    table { width: 100%; border-collapse: collapse; min-width: 720px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 8px; text-align: left; vertical-align: top; font-size: .82rem; }
+    th { color: var(--muted); background: #f7fafb; }
+    .table-wrap { overflow-x: auto; }
+    .quote { border-left: 3px solid var(--ok); background: #e4f2ec; padding: 8px 10px; margin-top: 8px; line-height: 1.45; }
+    details { border: 1px solid var(--line); border-radius: 6px; padding: 9px 10px; margin-top: 8px; }
+    summary { cursor: pointer; }
+    @media (max-width: 760px) {
+      main { padding: 10px; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>CKC live local model run</h1>
+      <p>Basic fixture-scale UI for the current weak local model experiment. This is a research harness view over synthetic fixtures; it makes no clinical, patient-care, deployment, or regulatory claim.</p>
+      <div class="chips">
+        <span class="chip ok">run m2-one-shot</span>
+        <span class="chip ok">live_local_llama_cpp</span>
+        <span class="chip warn">live model calls: 12</span>
+        <span class="chip">Qwen2.5-0.5B-Instruct-Q2_K:9ee36184e616dfc7</span>
+      </div>
+    </header>
+
+    <section>
+      <h2>Summary</h2>
+      <div class="grid">
+        <div class="metric"><strong>1</strong><span>finding: deontic_direction_conflict</span></div>
+        <div class="metric"><strong>1</strong><span>null result: age_intervals_disjoint</span></div>
+        <div class="metric"><strong>0/6 -&gt; 6/6</strong><span>direct SMT to single IR accuracy</span></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>M1 evidence</h2>
+      <p><code>finding.group.m1_conflict.1</code> / <code>null.group.m1_null.1</code></p>
+      <div class="quote"><code>region.a.cq1.rec</code>: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。</div><div class="quote"><code>region.a.cq1.exc</code>: ただし、重度腎機能障害のある患者を除く。</div><div class="quote"><code>region.b.contra1</code>: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。</div>
+      <div class="quote"><code>region.control.child.contra1</code>: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。</div>
+    </section>
+
+    <section>
+      <h2>Route metrics</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Route</th><th>Syntax</th><th>Admission</th><th>Accuracy</th><th>Stability</th></tr></thead>
+          <tbody>
+          <tr>
+            <td><code>route.direct_smt</code></td>
+            <td>0/6</td>
+            <td>0/6</td>
+            <td>0/6</td>
+            <td>0/2</td>
+          </tr>
+          <tr>
+            <td><code>route.single_ir</code></td>
+            <td>6/6</td>
+            <td>0/6</td>
+            <td>6/6</td>
+            <td>0/2</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Raw rows</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Route</th><th>Group</th><th>Seed</th><th>Syntax</th><th>Admitted</th><th>Verdict</th><th>Correct</th><th>Diagnostics</th></tr></thead>
+          <tbody>
+          <tr>
+            <td><code>route.direct_smt</code></td>
+            <td><code>group.m1_conflict</code></td>
+            <td>11</td>
+            <td>no</td>
+            <td>no</td>
+            <td>target_syntax_failure</td>
+            <td>no</td>
+            <td>target_parse_error, ai_schema_violation</td>
+          </tr>
+          <tr>
+            <td><code>route.direct_smt</code></td>
+            <td><code>group.m1_null</code></td>
+            <td>11</td>
+            <td>no</td>
+            <td>no</td>
+            <td>target_syntax_failure</td>
+            <td>no</td>
+            <td>target_parse_error, ai_schema_violation</td>
+          </tr>
+          <tr>
+            <td><code>route.direct_smt</code></td>
+            <td><code>group.m1_conflict</code></td>
+            <td>22</td>
+            <td>no</td>
+            <td>no</td>
+            <td>target_syntax_failure</td>
+            <td>no</td>
+            <td>target_parse_error, ai_schema_violation</td>
+          </tr>
+          <tr>
+            <td><code>route.direct_smt</code></td>
+            <td><code>group.m1_null</code></td>
+            <td>22</td>
+            <td>no</td>
+            <td>no</td>
+            <td>target_syntax_failure</td>
+            <td>no</td>
+            <td>target_parse_error, ai_schema_violation</td>
+          </tr>
+          <tr>
+            <td><code>route.direct_smt</code></td>
+            <td><code>group.m1_conflict</code></td>
+            <td>33</td>
+            <td>no</td>
+            <td>no</td>
+            <td>target_syntax_failure</td>
+            <td>no</td>
+            <td>target_parse_error, ai_schema_violation</td>
+          </tr>
+          <tr>
+            <td><code>route.direct_smt</code></td>
+            <td><code>group.m1_null</code></td>
+            <td>33</td>
+            <td>no</td>
+            <td>no</td>
+            <td>target_syntax_failure</td>
+            <td>no</td>
+            <td>target_parse_error, ai_schema_violation</td>
+          </tr>
+          <tr>
+            <td><code>route.single_ir</code></td>
+            <td><code>group.m1_conflict</code></td>
+            <td>11</td>
+            <td>yes</td>
+            <td>no</td>
+            <td>semantic_contradiction</td>
+            <td>yes</td>
+            <td>ai_hallucinated_source</td>
+          </tr>
+          <tr>
+            <td><code>route.single_ir</code></td>
+            <td><code>group.m1_null</code></td>
+            <td>11</td>
+            <td>yes</td>
+            <td>no</td>
+            <td>semantic_no_conflict</td>
+            <td>yes</td>
+            <td>ai_hallucinated_source</td>
+          </tr>
+          <tr>
+            <td><code>route.single_ir</code></td>
+            <td><code>group.m1_conflict</code></td>
+            <td>22</td>
+            <td>yes</td>
+            <td>no</td>
+            <td>semantic_contradiction</td>
+            <td>yes</td>
+            <td>ai_hallucinated_source</td>
+          </tr>
+          <tr>
+            <td><code>route.single_ir</code></td>
+            <td><code>group.m1_null</code></td>
+            <td>22</td>
+            <td>yes</td>
+            <td>no</td>
+            <td>semantic_no_conflict</td>
+            <td>yes</td>
+            <td>ai_hallucinated_source</td>
+          </tr>
+          <tr>
+            <td><code>route.single_ir</code></td>
+            <td><code>group.m1_conflict</code></td>
+            <td>33</td>
+            <td>yes</td>
+            <td>no</td>
+            <td>semantic_contradiction</td>
+            <td>yes</td>
+            <td>ai_hallucinated_source</td>
+          </tr>
+          <tr>
+            <td><code>route.single_ir</code></td>
+            <td><code>group.m1_null</code></td>
+            <td>33</td>
+            <td>yes</td>
+            <td>no</td>
+            <td>semantic_no_conflict</td>
+            <td>yes</td>
+            <td>ai_hallucinated_source</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Model I/O</h2>
+      
+        <details>
+          <summary><code>route.direct_smt</code> / <code>group.m1_conflict</code> / seed 11 / not admitted</summary>
+          <h3>Prompt</h3>
+          <pre>You are a weak local model inside a research harness.
+Translate only the provided synthetic Japanese fixture spans.
+No clinical, patient-care, deployment, or regulatory claim.
+group: group.m1_conflict
+seed: 11
+source spans:
+A: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
+A-exception: ただし、重度腎機能障害のある患者を除く。
+B: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。
+route: route.direct_smt
+Output only SMT-LIB text. Do not use Markdown.
+Use only these symbols: |q.age_years|, |cond.sepsis|, |cond.renal_severe|, |cond.pregnancy|, |pos:act.administer:drug.abx_a|.
+End with (check-sat).</pre>
+          <h3>Response</h3>
+          <pre>|q.age_years|18, |cond.sepsis|1, |cond.renal_severe|1, |cond.pregnancy|0, |pos:act.administer</pre>
+          <h3>Scored row</h3>
+          <pre>{
+  &quot;admitted&quot;: false,
+  &quot;diagnostics&quot;: [
+    &quot;target_parse_error&quot;,
+    &quot;ai_schema_violation&quot;
+  ],
+  &quot;expected&quot;: &quot;semantic_contradiction&quot;,
+  &quot;group_id&quot;: &quot;group.m1_conflict&quot;,
+  &quot;route_id&quot;: &quot;route.direct_smt&quot;,
+  &quot;seed&quot;: 11,
+  &quot;syntax_valid&quot;: false,
+  &quot;verdict&quot;: &quot;target_syntax_failure&quot;,
+  &quot;verdict_correct&quot;: false
+}</pre>
+        </details>
+        <details>
+          <summary><code>route.direct_smt</code> / <code>group.m1_null</code> / seed 11 / not admitted</summary>
+          <h3>Prompt</h3>
+          <pre>You are a weak local model inside a research harness.
+Translate only the provided synthetic Japanese fixture spans.
+No clinical, patient-care, deployment, or regulatory claim.
+group: group.m1_null
+seed: 11
+source spans:
+A: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
+A-exception: ただし、重度腎機能障害のある患者を除く。
+Control: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。
+route: route.direct_smt
+Output only SMT-LIB text. Do not use Markdown.
+Use only these symbols: |q.age_years|, |cond.sepsis|, |cond.renal_severe|, |cond.pregnancy|, |pos:act.administer:drug.abx_a|.
+End with (check-sat).</pre>
+          <h3>Response</h3>
+          <pre>|q.age_years| 18
+|cond.sepsis| 18
+|cond.renal_severe| 18
+|cond.pregnancy| 0
+|pos:act.administer:drug.abx_a| 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。</pre>
+          <h3>Scored row</h3>
+          <pre>{
+  &quot;admitted&quot;: false,
+  &quot;diagnostics&quot;: [
+    &quot;target_parse_error&quot;,
+    &quot;ai_schema_violation&quot;
+  ],
+  &quot;expected&quot;: &quot;semantic_no_conflict&quot;,
+  &quot;group_id&quot;: &quot;group.m1_null&quot;,
+  &quot;route_id&quot;: &quot;route.direct_smt&quot;,
+  &quot;seed&quot;: 11,
+  &quot;syntax_valid&quot;: false,
+  &quot;verdict&quot;: &quot;target_syntax_failure&quot;,
+  &quot;verdict_correct&quot;: false
+}</pre>
+        </details>
+        <details>
+          <summary><code>route.direct_smt</code> / <code>group.m1_conflict</code> / seed 22 / not admitted</summary>
+          <h3>Prompt</h3>
+          <pre>You are a weak local model inside a research harness.
+Translate only the provided synthetic Japanese fixture spans.
+No clinical, patient-care, deployment, or regulatory claim.
+group: group.m1_conflict
+seed: 22
+source spans:
+A: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
+A-exception: ただし、重度腎機能障害のある患者を除く。
+B: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。
+route: route.direct_smt
+Output only SMT-LIB text. Do not use Markdown.
+Use only these symbols: |q.age_years|, |cond.sepsis|, |cond.renal_severe|, |cond.pregnancy|, |pos:act.administer:drug.abx_a|.
+End with (check-sat).</pre>
+          <h3>Response</h3>
+          <pre>|q.age_years| 18
+|cond.sepsis| 重度腎機能障害
+|cond.renal_severe| 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)
+|cond.pregnancy| 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)
+|pos:act.administer:drug.abx_a| 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)</pre>
+          <h3>Scored row</h3>
+          <pre>{
+  &quot;admitted&quot;: false,
+  &quot;diagnostics&quot;: [
+    &quot;target_parse_error&quot;,
+    &quot;ai_schema_violation&quot;
+  ],
+  &quot;expected&quot;: &quot;semantic_contradiction&quot;,
+  &quot;group_id&quot;: &quot;group.m1_conflict&quot;,
+  &quot;route_id&quot;: &quot;route.direct_smt&quot;,
+  &quot;seed&quot;: 22,
+  &quot;syntax_valid&quot;: false,
+  &quot;verdict&quot;: &quot;target_syntax_failure&quot;,
+  &quot;verdict_correct&quot;: false
+}</pre>
+        </details>
+        <details>
+          <summary><code>route.direct_smt</code> / <code>group.m1_null</code> / seed 22 / not admitted</summary>
+          <h3>Prompt</h3>
+          <pre>You are a weak local model inside a research harness.
+Translate only the provided synthetic Japanese fixture spans.
+No clinical, patient-care, deployment, or regulatory claim.
+group: group.m1_null
+seed: 22
+source spans:
+A: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
+A-exception: ただし、重度腎機能障害のある患者を除く。
+Control: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。
+route: route.direct_smt
+Output only SMT-LIB text. Do not use Markdown.
+Use only these symbols: |q.age_years|, |cond.sepsis|, |cond.renal_severe|, |cond.pregnancy|, |pos:act.administer:drug.abx_a|.
+End with (check-sat).</pre>
+          <h3>Response</h3>
+          <pre>|q.age_years| 18
+|cond.sepsis| 18歳未満
+|cond.renal_severe| 重度腎機能障害
+|cond.pregnancy| 未満
+|pos:act.administer:drug.abx_a| 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。</pre>
+          <h3>Scored row</h3>
+          <pre>{
+  &quot;admitted&quot;: false,
+  &quot;diagnostics&quot;: [
+    &quot;target_parse_error&quot;,
+    &quot;ai_schema_violation&quot;
+  ],
+  &quot;expected&quot;: &quot;semantic_no_conflict&quot;,
+  &quot;group_id&quot;: &quot;group.m1_null&quot;,
+  &quot;route_id&quot;: &quot;route.direct_smt&quot;,
+  &quot;seed&quot;: 22,
+  &quot;syntax_valid&quot;: false,
+  &quot;verdict&quot;: &quot;target_syntax_failure&quot;,
+  &quot;verdict_correct&quot;: false
+}</pre>
+        </details>
+        <details>
+          <summary><code>route.direct_smt</code> / <code>group.m1_conflict</code> / seed 33 / not admitted</summary>
+          <h3>Prompt</h3>
+          <pre>You are a weak local model inside a research harness.
+Translate only the provided synthetic Japanese fixture spans.
+No clinical, patient-care, deployment, or regulatory claim.
+group: group.m1_conflict
+seed: 33
+source spans:
+A: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
+A-exception: ただし、重度腎機能障害のある患者を除く。
+B: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。
+route: route.direct_smt
+Output only SMT-LIB text. Do not use Markdown.
+Use only these symbols: |q.age_years|, |cond.sepsis|, |cond.renal_severe|, |cond.pregnancy|, |pos:act.administer:drug.abx_a|.
+End with (check-sat).</pre>
+          <h3>Response</h3>
+          <pre>|q.age_years| 18
+|cond.sepsis| 重度腎機能障害
+|cond.renal_severe| 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)
+|cond.pregnancy| 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)
+|pos:act.administer:drug.abx_a| 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)</pre>
+          <h3>Scored row</h3>
+          <pre>{
+  &quot;admitted&quot;: false,
+  &quot;diagnostics&quot;: [
+    &quot;target_parse_error&quot;,
+    &quot;ai_schema_violation&quot;
+  ],
+  &quot;expected&quot;: &quot;semantic_contradiction&quot;,
+  &quot;group_id&quot;: &quot;group.m1_conflict&quot;,
+  &quot;route_id&quot;: &quot;route.direct_smt&quot;,
+  &quot;seed&quot;: 33,
+  &quot;syntax_valid&quot;: false,
+  &quot;verdict&quot;: &quot;target_syntax_failure&quot;,
+  &quot;verdict_correct&quot;: false
+}</pre>
+        </details>
+        <details>
+          <summary><code>route.direct_smt</code> / <code>group.m1_null</code> / seed 33 / not admitted</summary>
+          <h3>Prompt</h3>
+          <pre>You are a weak local model inside a research harness.
+Translate only the provided synthetic Japanese fixture spans.
+No clinical, patient-care, deployment, or regulatory claim.
+group: group.m1_null
+seed: 33
+source spans:
+A: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
+A-exception: ただし、重度腎機能障害のある患者を除く。
+Control: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。
+route: route.direct_smt
+Output only SMT-LIB text. Do not use Markdown.
+Use only these symbols: |q.age_years|, |cond.sepsis|, |cond.renal_severe|, |cond.pregnancy|, |pos:act.administer:drug.abx_a|.
+End with (check-sat).</pre>
+          <h3>Response</h3>
+          <pre>|q.age_years| 18
+|cond.sepsis| 18
+|cond.renal_severe| 18
+|cond.pregnancy| 0
+|pos:act.administer:drug.abx_a| 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。</pre>
+          <h3>Scored row</h3>
+          <pre>{
+  &quot;admitted&quot;: false,
+  &quot;diagnostics&quot;: [
+    &quot;target_parse_error&quot;,
+    &quot;ai_schema_violation&quot;
+  ],
+  &quot;expected&quot;: &quot;semantic_no_conflict&quot;,
+  &quot;group_id&quot;: &quot;group.m1_null&quot;,
+  &quot;route_id&quot;: &quot;route.direct_smt&quot;,
+  &quot;seed&quot;: 33,
+  &quot;syntax_valid&quot;: false,
+  &quot;verdict&quot;: &quot;target_syntax_failure&quot;,
+  &quot;verdict_correct&quot;: false
+}</pre>
+        </details>
+        <details>
+          <summary><code>route.single_ir</code> / <code>group.m1_conflict</code> / seed 11 / not admitted</summary>
+          <h3>Prompt</h3>
+          <pre>You are a weak local model inside a research harness.
+Translate only the provided synthetic Japanese fixture spans.
+No clinical, patient-care, deployment, or regulatory claim.
+group: group.m1_conflict
+seed: 11
+source spans:
+A: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
+A-exception: ただし、重度腎機能障害のある患者を除く。
+B: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。
+route: route.single_ir
+Output only one minified JSON object. Do not use Markdown.
+Schema: {&quot;rules&quot;:[string,string],&quot;verdict&quot;:&quot;semantic_contradiction|semantic_no_conflict&quot;}
+Allowed rules: rule.a.cq1.r1, rule.b.contra1</pre>
+          <h3>Response</h3>
+          <pre>{
+  &quot;rules&quot;: [&quot;group.m1_conflict&quot;, &quot;group.m1_conflict&quot;, &quot;group.m1_conflict&quot;],
+  &quot;verdict&quot;: &quot;semantic_contradiction&quot;
+}</pre>
+          <h3>Scored row</h3>
+          <pre>{
+  &quot;admitted&quot;: false,
+  &quot;diagnostics&quot;: [
+    &quot;ai_hallucinated_source&quot;
+  ],
+  &quot;expected&quot;: &quot;semantic_contradiction&quot;,
+  &quot;group_id&quot;: &quot;group.m1_conflict&quot;,
+  &quot;route_id&quot;: &quot;route.single_ir&quot;,
+  &quot;seed&quot;: 11,
+  &quot;syntax_valid&quot;: true,
+  &quot;verdict&quot;: &quot;semantic_contradiction&quot;,
+  &quot;verdict_correct&quot;: true
+}</pre>
+        </details>
+        <details>
+          <summary><code>route.single_ir</code> / <code>group.m1_null</code> / seed 11 / not admitted</summary>
+          <h3>Prompt</h3>
+          <pre>You are a weak local model inside a research harness.
+Translate only the provided synthetic Japanese fixture spans.
+No clinical, patient-care, deployment, or regulatory claim.
+group: group.m1_null
+seed: 11
+source spans:
+A: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
+A-exception: ただし、重度腎機能障害のある患者を除く。
+Control: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。
+route: route.single_ir
+Output only one minified JSON object. Do not use Markdown.
+Schema: {&quot;rules&quot;:[string,string],&quot;verdict&quot;:&quot;semantic_contradiction|semantic_no_conflict&quot;}
+Allowed rules: rule.a.cq1.r1, rule.control.child.contra1</pre>
+          <h3>Response</h3>
+          <pre>{
+  &quot;rules&quot;: [&quot;group.m1_null&quot;, &quot;group.m1_null&quot;],
+  &quot;verdict&quot;: &quot;semantic_no_conflict&quot;
+}</pre>
+          <h3>Scored row</h3>
+          <pre>{
+  &quot;admitted&quot;: false,
+  &quot;diagnostics&quot;: [
+    &quot;ai_hallucinated_source&quot;
+  ],
+  &quot;expected&quot;: &quot;semantic_no_conflict&quot;,
+  &quot;group_id&quot;: &quot;group.m1_null&quot;,
+  &quot;route_id&quot;: &quot;route.single_ir&quot;,
+  &quot;seed&quot;: 11,
+  &quot;syntax_valid&quot;: true,
+  &quot;verdict&quot;: &quot;semantic_no_conflict&quot;,
+  &quot;verdict_correct&quot;: true
+}</pre>
+        </details>
+        <details>
+          <summary><code>route.single_ir</code> / <code>group.m1_conflict</code> / seed 22 / not admitted</summary>
+          <h3>Prompt</h3>
+          <pre>You are a weak local model inside a research harness.
+Translate only the provided synthetic Japanese fixture spans.
+No clinical, patient-care, deployment, or regulatory claim.
+group: group.m1_conflict
+seed: 22
+source spans:
+A: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
+A-exception: ただし、重度腎機能障害のある患者を除く。
+B: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。
+route: route.single_ir
+Output only one minified JSON object. Do not use Markdown.
+Schema: {&quot;rules&quot;:[string,string],&quot;verdict&quot;:&quot;semantic_contradiction|semantic_no_conflict&quot;}
+Allowed rules: rule.a.cq1.r1, rule.b.contra1</pre>
+          <h3>Response</h3>
+          <pre>{
+  &quot;rules&quot;: [&quot;group.m1_conflict&quot;, &quot;seed:22&quot;, &quot;source spans&quot;],
+  &quot;verdict&quot;: &quot;semantic_contradiction&quot;
+}</pre>
+          <h3>Scored row</h3>
+          <pre>{
+  &quot;admitted&quot;: false,
+  &quot;diagnostics&quot;: [
+    &quot;ai_hallucinated_source&quot;
+  ],
+  &quot;expected&quot;: &quot;semantic_contradiction&quot;,
+  &quot;group_id&quot;: &quot;group.m1_conflict&quot;,
+  &quot;route_id&quot;: &quot;route.single_ir&quot;,
+  &quot;seed&quot;: 22,
+  &quot;syntax_valid&quot;: true,
+  &quot;verdict&quot;: &quot;semantic_contradiction&quot;,
+  &quot;verdict_correct&quot;: true
+}</pre>
+        </details>
+        <details>
+          <summary><code>route.single_ir</code> / <code>group.m1_null</code> / seed 22 / not admitted</summary>
+          <h3>Prompt</h3>
+          <pre>You are a weak local model inside a research harness.
+Translate only the provided synthetic Japanese fixture spans.
+No clinical, patient-care, deployment, or regulatory claim.
+group: group.m1_null
+seed: 22
+source spans:
+A: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
+A-exception: ただし、重度腎機能障害のある患者を除く。
+Control: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。
+route: route.single_ir
+Output only one minified JSON object. Do not use Markdown.
+Schema: {&quot;rules&quot;:[string,string],&quot;verdict&quot;:&quot;semantic_contradiction|semantic_no_conflict&quot;}
+Allowed rules: rule.a.cq1.r1, rule.control.child.contra1</pre>
+          <h3>Response</h3>
+          <pre>{
+  &quot;rules&quot;: [&quot;group.m1_null&quot;, &quot;group.m1_null&quot;],
+  &quot;verdict&quot;: &quot;semantic_no_conflict&quot;
+}</pre>
+          <h3>Scored row</h3>
+          <pre>{
+  &quot;admitted&quot;: false,
+  &quot;diagnostics&quot;: [
+    &quot;ai_hallucinated_source&quot;
+  ],
+  &quot;expected&quot;: &quot;semantic_no_conflict&quot;,
+  &quot;group_id&quot;: &quot;group.m1_null&quot;,
+  &quot;route_id&quot;: &quot;route.single_ir&quot;,
+  &quot;seed&quot;: 22,
+  &quot;syntax_valid&quot;: true,
+  &quot;verdict&quot;: &quot;semantic_no_conflict&quot;,
+  &quot;verdict_correct&quot;: true
+}</pre>
+        </details>
+        <details>
+          <summary><code>route.single_ir</code> / <code>group.m1_conflict</code> / seed 33 / not admitted</summary>
+          <h3>Prompt</h3>
+          <pre>You are a weak local model inside a research harness.
+Translate only the provided synthetic Japanese fixture spans.
+No clinical, patient-care, deployment, or regulatory claim.
+group: group.m1_conflict
+seed: 33
+source spans:
+A: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
+A-exception: ただし、重度腎機能障害のある患者を除く。
+B: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。
+route: route.single_ir
+Output only one minified JSON object. Do not use Markdown.
+Schema: {&quot;rules&quot;:[string,string],&quot;verdict&quot;:&quot;semantic_contradiction|semantic_no_conflict&quot;}
+Allowed rules: rule.a.cq1.r1, rule.b.contra1</pre>
+          <h3>Response</h3>
+          <pre>{
+  &quot;rules&quot;: [&quot;group.m1_conflict&quot;, &quot;group.m1_conflict&quot;],
+  &quot;verdict&quot;: &quot;semantic_contradiction&quot;
+}</pre>
+          <h3>Scored row</h3>
+          <pre>{
+  &quot;admitted&quot;: false,
+  &quot;diagnostics&quot;: [
+    &quot;ai_hallucinated_source&quot;
+  ],
+  &quot;expected&quot;: &quot;semantic_contradiction&quot;,
+  &quot;group_id&quot;: &quot;group.m1_conflict&quot;,
+  &quot;route_id&quot;: &quot;route.single_ir&quot;,
+  &quot;seed&quot;: 33,
+  &quot;syntax_valid&quot;: true,
+  &quot;verdict&quot;: &quot;semantic_contradiction&quot;,
+  &quot;verdict_correct&quot;: true
+}</pre>
+        </details>
+        <details>
+          <summary><code>route.single_ir</code> / <code>group.m1_null</code> / seed 33 / not admitted</summary>
+          <h3>Prompt</h3>
+          <pre>You are a weak local model inside a research harness.
+Translate only the provided synthetic Japanese fixture spans.
+No clinical, patient-care, deployment, or regulatory claim.
+group: group.m1_null
+seed: 33
+source spans:
+A: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
+A-exception: ただし、重度腎機能障害のある患者を除く。
+Control: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。
+route: route.single_ir
+Output only one minified JSON object. Do not use Markdown.
+Schema: {&quot;rules&quot;:[string,string],&quot;verdict&quot;:&quot;semantic_contradiction|semantic_no_conflict&quot;}
+Allowed rules: rule.a.cq1.r1, rule.control.child.contra1</pre>
+          <h3>Response</h3>
+          <pre>{
+  &quot;rules&quot;: [&quot;group.m1_null&quot;, &quot;group.m1_null&quot;],
+  &quot;verdict&quot;: &quot;semantic_no_conflict&quot;
+}</pre>
+          <h3>Scored row</h3>
+          <pre>{
+  &quot;admitted&quot;: false,
+  &quot;diagnostics&quot;: [
+    &quot;ai_hallucinated_source&quot;
+  ],
+  &quot;expected&quot;: &quot;semantic_no_conflict&quot;,
+  &quot;group_id&quot;: &quot;group.m1_null&quot;,
+  &quot;route_id&quot;: &quot;route.single_ir&quot;,
+  &quot;seed&quot;: 33,
+  &quot;syntax_valid&quot;: true,
+  &quot;verdict&quot;: &quot;semantic_no_conflict&quot;,
+  &quot;verdict_correct&quot;: true
+}</pre>
+        </details>
+    </section>
+  </main>
+</body>
+</html>
