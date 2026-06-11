@@ -1577,7 +1577,7 @@ function renderBasicUi(data) {
   const direct = data.route_metrics.find((entry) => entry.route_id === "route.direct_smt");
   const single = data.route_metrics.find((entry) => entry.route_id === "route.single_ir");
   const irConclusion = single.admission_rate.numerator > 0
-    ? `IR path: ${single.admission_rate.exact} admitted rows and ${single.admitted_verdict_accuracy.exact} admitted accuracy after deterministic bridge checks.`
+    ? `IR path: ${single.admission_rate.exact} admitted rows and ${single.admitted_verdict_accuracy.exact} admitted accuracy after deterministic bridge checks; this harness does not emit per-route single_ir SMT.`
     : "IR route produced no admitted rows; rejected candidate verdicts are audit data only.";
   const comparisonConclusion = direct.admitted_verdict_accuracy.numerator >= single.admitted_verdict_accuracy.numerator
     ? `Direct SMT is ${direct.admitted_verdict_accuracy.exact} on admitted accuracy here, so this run does not show IR lift.`
@@ -1662,8 +1662,10 @@ function renderBasicUi(data) {
           </tr>`).join("");
   const routeBurdenRows = [
     ["Model input", "same source cues", "same source cues"],
-    ["Model output", "one executable SMT-LIB target", "one small JSON field per call"],
-    ["Target syntax burden", "model-owned", "deterministic code-owned"],
+    ["Model output target", "SMT-LIB text", "IR JSON fields"],
+    ["End of route in this harness", "candidate SMT-LIB admission check", "deterministic IR bridge/verdict check"],
+    ["Per-route SMT artifact", "model output itself", "not materialized in this JS harness"],
+    ["Spec target path", "direct formal target", "IR should compile to SMT-LIB in the normative compiler"],
     ["Representative row", `rejected: ${directDiagnostics}`, `admitted: ${irConflictBridge?.verdict ?? "missing"}`],
     ["Full run", `${direct.admitted_verdict_accuracy.exact} admitted accuracy`, `${single.admitted_verdict_accuracy.exact} admitted accuracy`]
   ].map(([label, directValue, irValue]) => `
@@ -1868,21 +1870,21 @@ function renderBasicUi(data) {
       <h2>How IR improves this pipeline</h2>
       <div class="takeaway">
         <strong>Short version</strong>
-        <p>The IR does not add new source evidence. It makes the weak model do a smaller job: copy bounded fields from the same cues. Deterministic code then builds rule rows and runs the verifier.</p>
+        <p>The two M2 routes do not both ask the model to write SMT. Direct asks for SMT-LIB. IR asks for bounded JSON fields; this JS harness then runs deterministic bridge checks. In the normative compiler path, admitted IR is the thing that should compile to SMT-LIB.</p>
       </div>
-      <p>Both routes use <code>${escapeHtml(data.source_cue_layer.extractor_id)}</code> (cue hash <code>${escapeHtml(shortDigest(report.source_cue_layer.cue_hash))}</code>). The difference is where target-language composition happens.</p>
+      <p>Both routes use <code>${escapeHtml(data.source_cue_layer.extractor_id)}</code> (cue hash <code>${escapeHtml(shortDigest(report.source_cue_layer.cue_hash))}</code>). The current lift measurement is about moving formal-target burden away from the weak model, not about proving that both route outputs already materialize SMT artifacts.</p>
       <div class="flow">
         <div class="flow-step">
           <strong>1. Same input</strong>
           <span>Japanese fixture spans become shared source cues before either route runs.</span>
         </div>
         <div class="flow-step warn">
-          <strong>2. Hard model job</strong>
+          <strong>2. Direct route</strong>
           <span><code>route.direct_smt</code> asks the model to write a whole executable SMT-LIB target.</span>
         </div>
         <div class="flow-step ok">
-          <strong>3. Smaller model job</strong>
-          <span><code>route.single_ir</code> asks for tiny JSON fields; deterministic code owns the formal target.</span>
+          <strong>3. IR route</strong>
+          <span><code>route.single_ir</code> asks for tiny JSON fields; this harness checks the derived rule predicates without writing route SMT.</span>
         </div>
       </div>
       <h3>What changed</h3>
@@ -1928,6 +1930,7 @@ function renderBasicUi(data) {
       </div>
       <details>
         <summary>Evidence details: shared cues, bridge checks, and IR internals</summary>
+        <p>M1 compiled group artifacts still emit SMT-LIB under <code>groups/&lt;group&gt;/smt/</code>. The M2 <code>route.single_ir</code> comparison rows shown here are model-route evidence: they record IR JSON, deterministic bridge predicates, and verdicts, but no per-route SMT-LIB file.</p>
         <h3>Shared source cues</h3>
         <div class="table-wrap">
           <table class="extra-wide">

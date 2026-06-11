@@ -108,28 +108,28 @@
       </div>
       <p>Plain result: with the same source cues, the IR path produced accepted correct rows where direct SMT produced none.</p>
       <p>Direct failure mode: 6/6 direct outputs lacked named assertions, and admitted accuracy stayed 0/6.</p>
-      <p>IR path: 6/6 admitted rows and 6/6 admitted accuracy after deterministic bridge checks.</p>
+      <p>IR path: 6/6 admitted rows and 6/6 admitted accuracy after deterministic bridge checks; this harness does not emit per-route single_ir SMT.</p>
     </section>
 
     <section>
       <h2>How IR improves this pipeline</h2>
       <div class="takeaway">
         <strong>Short version</strong>
-        <p>The IR does not add new source evidence. It makes the weak model do a smaller job: copy bounded fields from the same cues. Deterministic code then builds rule rows and runs the verifier.</p>
+        <p>The two M2 routes do not both ask the model to write SMT. Direct asks for SMT-LIB. IR asks for bounded JSON fields; this JS harness then runs deterministic bridge checks. In the normative compiler path, admitted IR is the thing that should compile to SMT-LIB.</p>
       </div>
-      <p>Both routes use <code>lexical_cue_v1</code> (cue hash <code>4a2f00546f6a0ce6...2496b4</code>). The difference is where target-language composition happens.</p>
+      <p>Both routes use <code>lexical_cue_v1</code> (cue hash <code>4a2f00546f6a0ce6...2496b4</code>). The current lift measurement is about moving formal-target burden away from the weak model, not about proving that both route outputs already materialize SMT artifacts.</p>
       <div class="flow">
         <div class="flow-step">
           <strong>1. Same input</strong>
           <span>Japanese fixture spans become shared source cues before either route runs.</span>
         </div>
         <div class="flow-step warn">
-          <strong>2. Hard model job</strong>
+          <strong>2. Direct route</strong>
           <span><code>route.direct_smt</code> asks the model to write a whole executable SMT-LIB target.</span>
         </div>
         <div class="flow-step ok">
-          <strong>3. Smaller model job</strong>
-          <span><code>route.single_ir</code> asks for tiny JSON fields; deterministic code owns the formal target.</span>
+          <strong>3. IR route</strong>
+          <span><code>route.single_ir</code> asks for tiny JSON fields; this harness checks the derived rule predicates without writing route SMT.</span>
         </div>
       </div>
       <h3>What changed</h3>
@@ -143,14 +143,24 @@
             <td>same source cues</td>
           </tr>
           <tr>
-            <th>Model output</th>
-            <td>one executable SMT-LIB target</td>
-            <td>one small JSON field per call</td>
+            <th>Model output target</th>
+            <td>SMT-LIB text</td>
+            <td>IR JSON fields</td>
           </tr>
           <tr>
-            <th>Target syntax burden</th>
-            <td>model-owned</td>
-            <td>deterministic code-owned</td>
+            <th>End of route in this harness</th>
+            <td>candidate SMT-LIB admission check</td>
+            <td>deterministic IR bridge/verdict check</td>
+          </tr>
+          <tr>
+            <th>Per-route SMT artifact</th>
+            <td>model output itself</td>
+            <td>not materialized in this JS harness</td>
+          </tr>
+          <tr>
+            <th>Spec target path</th>
+            <td>direct formal target</td>
+            <td>IR should compile to SMT-LIB in the normative compiler</td>
           </tr>
           <tr>
             <th>Representative row</th>
@@ -225,6 +235,7 @@ assert (not (contraindicated))  # 禁忌</pre>
       </div>
       <details>
         <summary>Evidence details: shared cues, bridge checks, and IR internals</summary>
+        <p>M1 compiled group artifacts still emit SMT-LIB under <code>groups/&lt;group&gt;/smt/</code>. The M2 <code>route.single_ir</code> comparison rows shown here are model-route evidence: they record IR JSON, deterministic bridge predicates, and verdicts, but no per-route SMT-LIB file.</p>
         <h3>Shared source cues</h3>
         <div class="table-wrap">
           <table class="extra-wide">
