@@ -35,6 +35,14 @@ let groups = [];
 let routeIds = ["route.direct_smt", "route.single_ir"];
 let sampleSeeds = [11, 22, 33];
 let m1InputRefs = null;
+const baselineRouteId = "route.direct_smt";
+const comparisonMetricIds = [
+  "target_syntax_validity",
+  "admission_rate",
+  "admitted_verdict_accuracy",
+  "candidate_verdict_accuracy",
+  "k_sample_stability"
+];
 
 function stable(value) {
   if (Array.isArray(value)) return value.map(stable);
@@ -90,6 +98,10 @@ function subtractRatio(a, b) {
     a.numerator * b.denominator - b.numerator * a.denominator,
     a.denominator * b.denominator
   );
+}
+
+function compareRatios(a, b) {
+  return (a.numerator * b.denominator) - (b.numerator * a.denominator);
 }
 
 async function writeJson(relativePath, value) {
@@ -187,6 +199,11 @@ async function loadM1FixtureInputs() {
   groups = m2EvaluationGroups.map((group) => loadGroupSpec(group, "M2 evaluation group"));
 
   routeIds = cloneData(m2Experiment.routes ?? routeIds);
+  if (!Array.isArray(routeIds) || routeIds.length === 0) throw new Error("exp.m2_lift routes must contain at least one route");
+  if (new Set(routeIds).size !== routeIds.length) throw new Error("exp.m2_lift routes must be unique");
+  if (!routeIds.includes(baselineRouteId)) {
+    throw new Error(`exp.m2_lift routes must include baseline route: ${baselineRouteId}`);
+  }
   sampleSeeds = cloneData(m2Experiment.sample_seeds ?? sampleSeeds);
   m1InputRefs = {
     corpora_registry_path: path.relative(root, corporaRegistryPath),
@@ -1832,6 +1849,49 @@ function runLiveSingleIrRoute(groupId, seed, expected) {
   };
 }
 
+function buildRouteMatrix(routeMetrics) {
+  const byRoute = new Map(routeMetrics.map((entry) => [entry.route_id, entry]));
+  const baseline = byRoute.get(baselineRouteId);
+  if (!baseline) throw new Error(`route-matrix baseline missing: ${baselineRouteId}`);
+
+  const rows = routeIds.map((routeId) => {
+    const routeMetric = byRoute.get(routeId);
+    if (!routeMetric) throw new Error(`route metrics missing for configured route: ${routeId}`);
+    return {
+      route_id: routeId,
+      comparison_role: routeId === baselineRouteId ? "baseline" : "compared_route",
+      metrics: Object.fromEntries(comparisonMetricIds.map((metric) => [
+        metric,
+        {
+          value: routeMetric[metric],
+          baseline_value: baseline[metric],
+          delta_from_baseline: subtractRatio(routeMetric[metric], baseline[metric])
+        }
+      ]))
+    };
+  });
+
+  return {
+    artifact_kind: "RouteComparisonMatrix",
+    schema_version: "route_comparison_matrix.v1",
+    baseline_route_id: baselineRouteId,
+    route_ids: [...routeIds],
+    metrics: comparisonMetricIds,
+    comparison_scope: "Exact route metric values and per-route deltas against the direct SMT baseline over identical groups and seeds.",
+    migration_note: "C1 replaced the fixed direct_smt-versus-single_ir lift table with this route-matrix artifact; report and manifest hashes can change from artifact shape even when raw row measurements are unchanged.",
+    rows,
+    cells: rows.flatMap((row) => comparisonMetricIds.map((metric) => ({
+      route_id: row.route_id,
+      comparison_role: row.comparison_role,
+      metric,
+      value: row.metrics[metric].value,
+      baseline_route_id: baselineRouteId,
+      baseline_value: row.metrics[metric].baseline_value,
+      delta_from_baseline: row.metrics[metric].delta_from_baseline
+    })))
+  };
+}
+
 function scoreRows() {
   const routes = routeIds;
   const seeds = sampleSeeds;
@@ -1909,21 +1969,10 @@ function scoreRows() {
     });
   }
 
-  const baseline = byRoute.get("route.direct_smt");
-  const lifted = byRoute.get("route.single_ir");
-  const liftTable = [
-    "target_syntax_validity",
-    "admission_rate",
-    "admitted_verdict_accuracy",
-    "k_sample_stability"
-  ].map((metric) => ({
-    metric,
-    baseline: baseline[metric],
-    lifted: lifted[metric],
-    delta: subtractRatio(lifted[metric], baseline[metric])
-  }));
+  const routeMetrics = [...byRoute.values()];
+  const routeMatrix = buildRouteMatrix(routeMetrics);
 
-  return { rawRows, routeMetrics: [...byRoute.values()], liftTable, ioRecords, liveCalls };
+  return { rawRows, routeMetrics, routeMatrix, ioRecords, liveCalls };
 }
 
 function buildSourceCueLayer() {
@@ -1978,21 +2027,34 @@ function buildDirectSmtAudit(ioRecords) {
 
 function buildRouteTargetSummary(ioRecords) {
   const targetRecords = ioRecords.filter((record) => record.compiled_target);
-  const smtFiles = targetRecords.flatMap((record) => record.compiled_target.smt_files.map(({ text, ...metadata }) => ({
-    route_id: record.route_id,
-    group_id: record.group_id,
-    seed: record.seed,
-    ...metadata
-  })));
+  const routeSummaries = routeIds.map((routeId) => {
+    const records = targetRecords.filter((record) => record.route_id === routeId);
+    const smtFiles = records
+      .flatMap((record) => record.compiled_target.smt_files.map(({ text, ...metadata }) => ({
+        route_id: record.route_id,
+        group_id: record.group_id,
+        seed: record.seed,
+        ...metadata
+      })))
+      .sort((left, right) => left.file.localeCompare(right.file));
+    return {
+      route_id: routeId,
+      compiled_target: records.length > 0,
+      source_ir_schema_ids: [...new Set(records.map((record) => record.compiled_target.source_ir_schema_id).filter(Boolean))].sort(),
+      target_profiles: [...new Set(records.map((record) => record.compiled_target.target_profile).filter(Boolean))].sort(),
+      compiler_ids: [...new Set(records.map((record) => record.compiled_target.compiler_id).filter(Boolean))].sort(),
+      compiled_row_count: records.length,
+      smt_file_count: smtFiles.length,
+      smt_files: smtFiles
+    };
+  });
   return {
     artifact_kind: "RouteTargetSummary",
-    route_id: "route.single_ir",
-    source_ir_schema_id: "schema.route_rule_ir.v0",
-    target_profile: "smt-lib-2",
-    compiler_id: "route_rule_ir_v0_to_smt_v0",
-    compiled_row_count: targetRecords.length,
-    smt_file_count: smtFiles.length,
-    smt_files: smtFiles
+    schema_version: "route_target_summary.v1",
+    route_ids: [...routeIds],
+    routes: routeSummaries,
+    total_compiled_row_count: routeSummaries.reduce((sum, route) => sum + route.compiled_row_count, 0),
+    total_smt_file_count: routeSummaries.reduce((sum, route) => sum + route.smt_file_count, 0)
   };
 }
 
@@ -2019,6 +2081,7 @@ function buildRouteEvaluation(rawRows) {
     scope: "Both M2 routes are scored over the same source-derived expected cue rows and group verdicts.",
     evaluation_strength: "scaffolded_cue_translation_test",
     evaluation_strength_note: "R3 removes exact filled JSON payloads from route.single_ir prompts and adds a holdout mutation group. The prompt still supplies schema and cue definitions, so this remains a scaffolded cue-translation test rather than raw Japanese guideline understanding.",
+    harness_change_note: "C1 generalizes the comparison harness from a fixed lift table to a baseline-aware route matrix and per-route target summaries; current route raw rows are still the measurement source.",
     diagnostic_categories: diagnosticCategoryDefinitions,
     evaluation_groups: evaluationGroups,
     holdout_group_ids: evaluationGroups
@@ -2451,20 +2514,75 @@ ${residualRows}
 ${artifactRows}`;
 }
 
+function routeMetricById(report, routeId) {
+  return report.metrics.route_metrics.find((entry) => entry.route_id === routeId);
+}
+
+function matrixCell(routeMatrix, routeId, metric) {
+  const row = routeMatrix.rows.find((entry) => entry.route_id === routeId);
+  if (!row) throw new Error(`route matrix row missing: ${routeId}`);
+  const cell = row.metrics[metric];
+  if (!cell) throw new Error(`route matrix metric missing: ${routeId} ${metric}`);
+  return cell;
+}
+
+function routeMatrixMarkdown(routeMatrix, mode) {
+  const header = `| Metric | ${routeMatrix.route_ids.map((routeId) => `\`${routeId}\``).join(" | ")} |`;
+  const align = `| --- | ${routeMatrix.route_ids.map(() => "---:").join(" | ")} |`;
+  const rows = routeMatrix.metrics.map((metric) => {
+    const values = routeMatrix.route_ids.map((routeId) => {
+      const cell = matrixCell(routeMatrix, routeId, metric);
+      return mode === "delta" ? cell.delta_from_baseline.exact : cell.value.exact;
+    });
+    return `| ${metric} | ${values.join(" | ")} |`;
+  }).join("\n");
+  return [header, align, rows].join("\n");
+}
+
+function routeMatrixConclusion(report, locale = "en") {
+  const matrix = report.metrics.route_matrix;
+  const baseline = routeMetricById(report, matrix.baseline_route_id);
+  const compared = report.metrics.route_metrics.filter((entry) => entry.route_id !== matrix.baseline_route_id);
+  const admittedLifts = compared.filter((entry) => compareRatios(entry.admitted_verdict_accuracy, baseline.admitted_verdict_accuracy) > 0);
+  const targetLeader = report.metrics.route_metrics
+    .slice()
+    .sort((left, right) => compareRatios(right.target_syntax_validity, left.target_syntax_validity) || left.route_id.localeCompare(right.route_id))
+    .at(0);
+  const candidateLeader = report.metrics.route_metrics
+    .slice()
+    .sort((left, right) => compareRatios(right.candidate_verdict_accuracy, left.candidate_verdict_accuracy) || left.route_id.localeCompare(right.route_id))
+    .at(0);
+  if (locale === "ja") {
+    return [
+      `baseline は \`${matrix.baseline_route_id}\`。`,
+      admittedLifts.length === 0
+        ? `この run では baseline を上回る admitted verdict accuracy の route はない。baseline は ${baseline.admitted_verdict_accuracy.exact}。`
+        : `admitted verdict accuracy で baseline を上回る route: ${admittedLifts.map((entry) => `\`${entry.route_id}\` ${entry.admitted_verdict_accuracy.exact}`).join(", ")}。`,
+      `target syntax の最大値は \`${targetLeader.route_id}\` ${targetLeader.target_syntax_validity.exact}。candidate verdict accuracy の最大値は \`${candidateLeader.route_id}\` ${candidateLeader.candidate_verdict_accuracy.exact}。candidate accuracy は rejected output の監査情報としてのみ扱う。`
+    ].join(" ");
+  }
+  return [
+    `Baseline route: \`${matrix.baseline_route_id}\`.`,
+    admittedLifts.length === 0
+      ? `No compared route exceeds the baseline on admitted verdict accuracy in this run; baseline admitted accuracy is ${baseline.admitted_verdict_accuracy.exact}.`
+      : `Compared routes exceeding baseline admitted verdict accuracy: ${admittedLifts.map((entry) => `\`${entry.route_id}\` ${entry.admitted_verdict_accuracy.exact}`).join(", ")}.`,
+    `The highest target-syntax route is \`${targetLeader.route_id}\` at ${targetLeader.target_syntax_validity.exact}; the highest candidate-verdict route is \`${candidateLeader.route_id}\` at ${candidateLeader.candidate_verdict_accuracy.exact}, reported only as rejected-output audit evidence.`
+  ].join(" ");
+}
+
+function routeTargetSummaryMarkdown(routeTargetSummary) {
+  const rows = routeTargetSummary.routes.map((route) => `| \`${route.route_id}\` | ${route.compiled_target} | ${route.source_ir_schema_ids.map((entry) => `\`${entry}\``).join(", ") || "none"} | ${route.compiler_ids.map((entry) => `\`${entry}\``).join(", ") || "none"} | ${route.target_profiles.map((entry) => `\`${entry}\``).join(", ") || "none"} | ${route.compiled_row_count} | ${route.smt_file_count} |`).join("\n");
+  return `| Route | Compiled target | IR schema(s) | Compiler(s) | Target profile(s) | Compiled rows | SMT files |
+| --- | --- | --- | --- | --- | ---: | ---: |
+${rows}`;
+}
+
 function markdownReport(report) {
-  const liftRows = report.metrics.lift_table.map((row) => `| ${row.metric} | ${row.baseline.exact} | ${row.lifted.exact} | ${row.delta.exact} |`).join("\n");
   const rawRows = report.metrics.raw_rows.map((row) => `| ${row.route_id} | ${row.group_id} | ${row.measurement_role} | ${row.seed} | ${row.model_output_syntax_valid} | ${row.target_syntax_valid} | ${row.admitted} | ${row.verdict} | ${row.verdict_correct} | ${row.candidate_verdict_correct} | ${row.diagnostic_categories.join(", ") || "none"} |`).join("\n");
   const groupRows = report.m2_evaluation.evaluation_groups.map((group) => `| \`${group.group_id}\` | ${group.measurement_role} | ${group.source_labels.join(", ")} | ${group.expected_outcome} | ${group.mutation_note ?? "none"} |`).join("\n");
   const diagnosticCategoryRows = Object.entries(report.m2_evaluation.diagnostic_categories).map(([category, codes]) => `| ${category} | ${codes.map((code) => `\`${code}\``).join(", ")} |`).join("\n");
   const diagnostics = Object.entries(report.diagnostics_summary).map(([code, count]) => `- ${code}: ${count}`).join("\n") || "- none: 0";
-  const directMetric = report.metrics.route_metrics.find((entry) => entry.route_id === "route.direct_smt");
-  const irMetric = report.metrics.route_metrics.find((entry) => entry.route_id === "route.single_ir");
-  const irConclusion = irMetric.admission_rate.numerator > 0
-    ? `The IR route produced ${irMetric.admission_rate.exact} admitted rows; admitted verdict accuracy is ${irMetric.admitted_verdict_accuracy.exact}.`
-    : `The IR route produced no admitted rows in this live run; candidate verdicts are reported only as rejected model outputs.`;
-  const comparisonConclusion = directMetric.admitted_verdict_accuracy.numerator >= irMetric.admitted_verdict_accuracy.numerator
-    ? `Direct SMT reached ${directMetric.target_syntax_validity.exact} target syntax validity, ${directMetric.admission_rate.exact} admission, and ${directMetric.admitted_verdict_accuracy.exact} admitted verdict accuracy on this locked fixture. This live run does not demonstrate an IR lift over direct SMT.`
-    : `With the shared source-cue layer and the small local model, direct SMT remains below the IR route on admitted verdict accuracy for this locked fixture.`;
+  const comparisonConclusion = routeMatrixConclusion(report);
   const directAudit = report.direct_smt_audit;
   const directAuditConclusion = `Direct SMT residual audit: exact template matches ${directAudit.exact_template_match_rate.exact}; rows without named assertions ${directAudit.missing_named_assertion_rate.exact}; rows asserting negated sepsis ${directAudit.negated_sepsis_assertion_rate.exact}. This audit is non-admission evidence for malformed direct target composition under the shared cue layer.`;
   const realGuidelineRows = report.real_guideline_intake.sources.map((source) => `| ${source.id} | ${source.license_label} | ${source.raw_cache_status} | ${source.candidate_span_count} | ${source.admitted_candidate_rule_count} | ${source.rejected_residual_count} | ${source.guideline_relation} |`).join("\n");
@@ -2499,34 +2617,35 @@ ${realGuidelineCoverageMarkdown(report.real_guideline_intake)}
 
 ${realismAuditMarkdown(report.realism_audit)}
 
-## M2 lift table
+## M2 route matrix
 
 Shared route input: \`${report.source_cue_layer.extractor_id}\` / cue hash \`${report.source_cue_layer.cue_hash}\`. Both routes finish at SMT-LIB: direct SMT asks the model for target text, while single IR asks the model to derive bounded JSON rows from source excerpts under cue definitions, then compiles \`route_rule_ir.v0\` deterministically to SMT-LIB before verifier scoring.
 
 Evaluation strength: \`${report.m2_evaluation.evaluation_strength}\`. ${report.m2_evaluation.evaluation_strength_note}
 
+Harness note: ${report.m2_evaluation.harness_change_note}
+
 | Group | Role | Source labels | Expected | Note |
 | --- | --- | --- | --- | --- |
 ${groupRows}
 
-| Metric | direct_smt | single_ir | delta |
-| --- | ---: | ---: | ---: |
-${liftRows}
+### Exact route values
+
+${routeMatrixMarkdown(report.metrics.route_matrix, "value")}
+
+### Delta from \`${report.metrics.route_matrix.baseline_route_id}\`
+
+${routeMatrixMarkdown(report.metrics.route_matrix, "delta")}
 
 ${comparisonConclusion}
 
 ${directAuditConclusion}
 
-${irConclusion}
-
 ${promptCatalogMarkdown(report.prompt_catalog)}
 
-## route.single_ir compiled SMT target
+## Compiled route targets
 
-- IR schema: \`${report.route_target_summary.source_ir_schema_id}\`
-- Compiler: \`${report.route_target_summary.compiler_id}\`
-- Compiled rows: ${report.route_target_summary.compiled_row_count}
-- SMT files: ${report.route_target_summary.smt_file_count}
+${routeTargetSummaryMarkdown(report.route_target_summary)}
 
 ## Raw route rows
 
@@ -2555,16 +2674,8 @@ ${diagnostics}
 }
 
 function japaneseReport(report) {
-  const liftRows = report.metrics.lift_table.map((row) => `| ${row.metric} | ${row.baseline.exact} | ${row.lifted.exact} | ${row.delta.exact} |`).join("\n");
   const groupRows = report.m2_evaluation.evaluation_groups.map((group) => `| \`${group.group_id}\` | ${group.measurement_role} | ${group.source_labels.join(", ")} | ${group.expected_outcome} | ${group.mutation_note ?? "none"} |`).join("\n");
-  const directMetric = report.metrics.route_metrics.find((entry) => entry.route_id === "route.direct_smt");
-  const irMetric = report.metrics.route_metrics.find((entry) => entry.route_id === "route.single_ir");
-  const irConclusion = irMetric.admission_rate.numerator > 0
-    ? `IR route は ${irMetric.admission_rate.exact} 行を admitted とした。admitted verdict accuracy は ${irMetric.admitted_verdict_accuracy.exact}。`
-    : "この live run では IR route の admitted 行は 0。candidate verdict は rejected model output の監査情報としてのみ扱う。";
-  const comparisonConclusion = directMetric.admitted_verdict_accuracy.numerator >= irMetric.admitted_verdict_accuracy.numerator
-    ? `direct SMT はこの locked fixture で target syntax ${directMetric.target_syntax_validity.exact}、admission ${directMetric.admission_rate.exact}、admitted verdict accuracy ${directMetric.admitted_verdict_accuracy.exact} に達した。この live run は direct SMT に対する IR lift を示さない。`
-    : "shared source-cue layer と小さい local model の条件で、direct SMT baseline はこの locked fixture の admitted verdict accuracy で IR route を下回った。";
+  const comparisonConclusion = routeMatrixConclusion(report, "ja");
   const directAudit = report.direct_smt_audit;
   const directAuditConclusion = `Direct SMT residual audit: exact template match ${directAudit.exact_template_match_rate.exact}、named assertion なし ${directAudit.missing_named_assertion_rate.exact}、negated sepsis assertion ${directAudit.negated_sepsis_assertion_rate.exact}。これは admission 判定外の監査情報であり、shared cue layer 下で direct target composition が malformed になることを記録する。`;
   const realGuidelineRows = report.real_guideline_intake.sources.map((source) => `| ${source.id} | ${source.license_label} | ${source.raw_cache_status} | ${source.candidate_span_count} | ${source.admitted_candidate_rule_count} | ${source.rejected_residual_count} |`).join("\n");
@@ -2597,34 +2708,35 @@ ${realGuidelineCoverageMarkdown(report.real_guideline_intake)}
 
 ${realismAuditJapaneseMarkdown(report.realism_audit)}
 
-## M2 lift table
+## M2 route matrix
 
 shared route input: \`${report.source_cue_layer.extractor_id}\` / cue hash \`${report.source_cue_layer.cue_hash}\`。両 route は SMT-LIB を final target とする。direct SMT は model が target text を直接構成し、single IR は source excerpt と cue definition から bounded JSON row を導出し、\`route_rule_ir.v0\` から deterministic compiler で SMT-LIB に変換して verifier で score する。
 
 evaluation strength: \`${report.m2_evaluation.evaluation_strength}\`。${report.m2_evaluation.evaluation_strength_note}
 
+harness note: ${report.m2_evaluation.harness_change_note}
+
 | group | role | source labels | expected | note |
 | --- | --- | --- | --- | --- |
 ${groupRows}
 
-| metric | direct_smt | single_ir | delta |
-| --- | ---: | ---: | ---: |
-${liftRows}
+### Exact route values
+
+${routeMatrixMarkdown(report.metrics.route_matrix, "value")}
+
+### Delta from \`${report.metrics.route_matrix.baseline_route_id}\`
+
+${routeMatrixMarkdown(report.metrics.route_matrix, "delta")}
 
 ${comparisonConclusion}
 
 ${directAuditConclusion}
 
-${irConclusion}
-
 ${promptCatalogJapaneseMarkdown(report.prompt_catalog)}
 
-## route.single_ir compiled SMT target
+## Compiled route targets
 
-- IR schema: \`${report.route_target_summary.source_ir_schema_id}\`
-- compiler: \`${report.route_target_summary.compiler_id}\`
-- compiled rows: ${report.route_target_summary.compiled_row_count}
-- SMT files: ${report.route_target_summary.smt_file_count}
+${routeTargetSummaryMarkdown(report.route_target_summary)}
 `;
 }
 
@@ -2802,7 +2914,7 @@ async function main() {
   await writeJson("prompts/catalog.json", promptCatalog);
   await writeJson("metrics/raw_rows.json", metrics.rawRows);
   await writeJson("metrics/route_metrics.json", metrics.routeMetrics);
-  await writeJson("metrics/lift_table.json", metrics.liftTable);
+  await writeJson("metrics/route_matrix.json", metrics.routeMatrix);
   await writeJson("metrics/direct_smt_audit.json", directSmtAudit);
   await writeJson("metrics/source_cues.json", sourceCueLayer);
   await writeJson("metrics/route_targets.json", routeTargetSummary);
@@ -2842,7 +2954,7 @@ async function main() {
     metrics: {
       raw_rows: metrics.rawRows,
       route_metrics: metrics.routeMetrics,
-      lift_table: metrics.liftTable
+      route_matrix: metrics.routeMatrix
     },
     direct_smt_audit: directSmtAudit,
     route_target_summary: routeTargetSummary,
@@ -2868,6 +2980,7 @@ async function main() {
       evaluator_id: routeEvaluation.evaluator_id,
       evaluation_strength: routeEvaluation.evaluation_strength,
       evaluation_strength_note: routeEvaluation.evaluation_strength_note,
+      harness_change_note: routeEvaluation.harness_change_note,
       evaluation_groups: routeEvaluation.evaluation_groups,
       holdout_group_ids: routeEvaluation.holdout_group_ids,
       diagnostic_categories: routeEvaluation.diagnostic_categories
@@ -2968,6 +3081,7 @@ async function main() {
     real_guideline_intake_hash: sha256(realGuidelineIntake),
     source_cue_layer_hash: sha256(sourceCueLayer),
     route_target_summary_hash: sha256(routeTargetSummary),
+    route_matrix_hash: sha256(metrics.routeMatrix),
     route_evaluation_hash: sha256(routeEvaluation),
     realism_audit_hash: realismAuditHash,
     prompt_catalog_hash: sha256(promptCatalog),
@@ -3018,8 +3132,12 @@ async function main() {
   await writeJson("replay_manifest.json", replayManifest);
 
   if (verifyMode) {
-    const direct = metrics.routeMetrics.find((entry) => entry.route_id === "route.direct_smt");
-    const single = metrics.routeMetrics.find((entry) => entry.route_id === "route.single_ir");
+    const routeMetricsById = new Map(metrics.routeMetrics.map((entry) => [entry.route_id, entry]));
+    const direct = routeMetricsById.get(baselineRouteId);
+    const single = routeMetricsById.get("route.single_ir");
+    const compiledTargetRecords = metrics.ioRecords.filter((record) => record.compiled_target);
+    const compiledSmtFiles = routeTargetSummary.routes.flatMap((route) => route.smt_files);
+    const uniquePromptHashCount = new Set(metrics.ioRecords.map((record) => sha256Text(record.route_call?.prompt ?? record.prompt))).size;
     const requiredFiles = [
       "report.json",
       "report.md",
@@ -3029,6 +3147,7 @@ async function main() {
       "real_guidelines/source_intake.json",
       ...realGuidelineIntake.sources.flatMap((source) => Object.values(source.artifacts).map((artifact) => artifact.path)),
       "metrics/raw_rows.json",
+      "metrics/route_matrix.json",
       "metrics/direct_smt_audit.json",
       "metrics/source_cues.json",
       "metrics/route_targets.json",
@@ -3036,17 +3155,28 @@ async function main() {
       "metrics/realism_audit.json",
       "prompts/catalog.json",
       ...promptCatalog.entries.map((entry) => entry.prompt_path),
-      ...(liveModel ? [`route_targets/route.single_ir/${conflictGroupResult.compiled.group_id}/seed-${sampleSeeds[0]}/smt/q.overlap.smt2`] : []),
-      `model_io/route.direct_smt/${conflictGroupResult.compiled.group_id}/seed-${sampleSeeds[0]}.json`
+      ...(liveModel ? compiledSmtFiles.map((entry) => entry.file) : []),
+      `model_io/${baselineRouteId}/${conflictGroupResult.compiled.group_id}/seed-${sampleSeeds[0]}.json`
     ];
     const commonAssertions = [
       finding?.conflict_kind === "deontic_direction_conflict",
       nullResult?.classification === "documented_null_result",
       direct.samples === groups.length * sampleSeeds.length,
-      single.samples === groups.length * sampleSeeds.length,
+      metrics.routeMetrics.every((entry) => entry.samples === groups.length * sampleSeeds.length),
       metrics.rawRows.length === routeIds.length * groups.length * sampleSeeds.length,
       metrics.ioRecords.length === metrics.rawRows.length,
       routeEvaluation.raw_row_count === metrics.rawRows.length,
+      metrics.routeMatrix.baseline_route_id === baselineRouteId,
+      report.metrics.route_matrix.baseline_route_id === baselineRouteId,
+      metrics.routeMatrix.route_ids.join("\u0000") === routeIds.join("\u0000"),
+      metrics.routeMatrix.rows.length === routeIds.length,
+      metrics.routeMatrix.cells.length === routeIds.length * comparisonMetricIds.length,
+      metrics.routeMatrix.rows.every((row) => routeIds.includes(row.route_id) && comparisonMetricIds.every((metric) => row.metrics[metric]?.value?.exact)),
+      routeTargetSummary.route_ids.join("\u0000") === routeIds.join("\u0000"),
+      routeTargetSummary.routes.length === routeIds.length,
+      routeTargetSummary.total_compiled_row_count === compiledTargetRecords.length,
+      routeTargetSummary.total_smt_file_count === compiledTargetRecords.flatMap((record) => record.compiled_target?.smt_files ?? []).length,
+      routeTargetSummary.routes.every((route) => route.compiled_row_count === compiledTargetRecords.filter((record) => record.route_id === route.route_id).length),
       routeEvaluation.holdout_group_ids.includes("group.m2_holdout_conflict"),
       routeEvaluation.evaluation_groups.some((group) => group.group_id === "group.m2_holdout_conflict" && group.measurement_role === "holdout_mutation_conflict"),
       metrics.rawRows.some((row) => row.group_id === "group.m2_holdout_conflict"),
@@ -3064,12 +3194,13 @@ async function main() {
       report.real_guideline_intake.admitted_candidate_rule_count === realGuidelineIntake.admitted_candidate_rule_count,
       report.real_guideline_intake.rejected_residuals.length === realGuidelineIntake.blocking_residual_count,
       report.real_guideline_intake.scoring_scope === "not_in_locked_m1_m2_measurement",
-      promptCatalog.prompt_count === routeIds.length * groups.length,
+      promptCatalog.prompt_count === uniquePromptHashCount,
       promptCatalog.call_count === metrics.ioRecords.length,
       promptCatalog.entries.every((entry) => !/Import payload:\n\{/.test(entry.prompt_text)),
       promptCatalog.entries.every((entry) => !/normalized fields for /.test(entry.prompt_text)),
       report.prompt_catalog.catalog_hash === sha256(promptCatalog),
       report.m2_evaluation.evaluation_strength === "scaffolded_cue_translation_test",
+      report.m2_evaluation.harness_change_note === routeEvaluation.harness_change_note,
       report.m2_evaluation.holdout_group_ids.includes("group.m2_holdout_conflict"),
       report.realism_audit.audit_hash === realismAuditHash,
       realismAudit.surfaces.some((surface) => surface.surface_id === "fixture_regions" && surface.classification === "data_driven"),
@@ -3084,32 +3215,26 @@ async function main() {
       ? [
           report.model_mode === "live_local_llama_cpp",
           report.live_model_calls === metrics.liveCalls,
-          report.live_model_calls === routeIds.length * groups.length * sampleSeeds.length,
           report.model_identity.startsWith("Qwen2.5-0.5B-Instruct-Q2_K:"),
           report.source_cue_layer.extractor_id === "lexical_cue_v1",
-          report.route_target_summary.compiled_row_count === metrics.ioRecords.filter((record) => record.route_id === "route.single_ir" && record.compiled_target).length,
-          report.route_target_summary.smt_file_count === metrics.ioRecords
-            .filter((record) => record.route_id === "route.single_ir")
-            .flatMap((record) => record.compiled_target?.smt_files ?? []).length,
-          metrics.ioRecords.filter((record) => record.route_id === "route.single_ir").every((record) => record.compiled_target?.target_profile === "smt-lib-2"),
+          report.route_target_summary.total_compiled_row_count === compiledTargetRecords.length,
+          report.route_target_summary.total_smt_file_count === compiledTargetRecords.flatMap((record) => record.compiled_target?.smt_files ?? []).length,
+          compiledTargetRecords.every((record) => record.compiled_target?.target_profile === "smt-lib-2"),
           metrics.ioRecords.every((record) => record.subprocess?.exit_status === 0),
           metrics.ioRecords.every((record) => record.response_hash && record.response_hash.length === 64),
           direct.target_syntax_validity.denominator === direct.samples,
-          single.target_syntax_validity.denominator === single.samples,
+          ...(single ? [single.target_syntax_validity.denominator === single.samples] : []),
           report.direct_smt_audit.exact_template_match_rate.denominator === direct.samples,
           report.direct_smt_audit.missing_named_assertion_rate.denominator === direct.samples,
           report.direct_smt_audit.negated_sepsis_assertion_rate.denominator === direct.samples,
-          single.k_sample_stability.denominator === groups.length
+          ...(single ? [single.k_sample_stability.denominator === groups.length] : [])
         ]
       : [
           report.model_mode === "recorded_unsupported",
           report.live_model_calls === 0,
-          direct.target_syntax_validity.exact === `0/${direct.samples}`,
-          direct.admission_rate.exact === `0/${direct.samples}`,
-          direct.admitted_verdict_accuracy.exact === `0/${direct.samples}`,
-          single.target_syntax_validity.exact === `0/${single.samples}`,
-          single.admission_rate.exact === `0/${single.samples}`,
-          single.admitted_verdict_accuracy.exact === `0/${single.samples}`
+          metrics.routeMetrics.every((entry) => entry.target_syntax_validity.exact === `0/${entry.samples}`),
+          metrics.routeMetrics.every((entry) => entry.admission_rate.exact === `0/${entry.samples}`),
+          metrics.routeMetrics.every((entry) => entry.admitted_verdict_accuracy.exact === `0/${entry.samples}`)
         ];
     const assertions = [...commonAssertions, ...modelAssertions];
     if (assertions.some((entry) => !entry)) {
@@ -3125,9 +3250,8 @@ async function main() {
     live_model_calls: report.live_model_calls,
     findings: report.findings.length,
     null_results: report.null_results.length,
-    direct_smt_admitted_accuracy: metrics.routeMetrics.find((entry) => entry.route_id === "route.direct_smt").admitted_verdict_accuracy.exact,
-    single_ir_admitted_accuracy: metrics.routeMetrics.find((entry) => entry.route_id === "route.single_ir").admitted_verdict_accuracy.exact,
-    single_ir_candidate_accuracy: metrics.routeMetrics.find((entry) => entry.route_id === "route.single_ir").candidate_verdict_accuracy.exact,
+    route_admitted_accuracy: Object.fromEntries(metrics.routeMetrics.map((entry) => [entry.route_id, entry.admitted_verdict_accuracy.exact])),
+    route_candidate_accuracy: Object.fromEntries(metrics.routeMetrics.map((entry) => [entry.route_id, entry.candidate_verdict_accuracy.exact])),
     verified: verifyMode
   }, null, 2));
 }

@@ -11,14 +11,14 @@
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{figures/manuscript/fig02_route_metrics.pdf}
-  \caption{Route metrics from the current M2 run. Single-IR reaches 9/9 target syntax and 3/9 candidate verdict accuracy, but admission and admitted verdict accuracy remain 0/9.}
+  \caption{Route metrics from the current M2 run, shown as exact ratios over the route matrix with direct SMT retained as baseline. Candidate verdict accuracy is rejected-output audit evidence, not admitted lift.}
   \label{fig:route-metrics}
 \end{figure}
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{figures/manuscript/fig03_failure_taxonomy.pdf}
-  \caption{Diagnostic row-category hits show direct SMT failing mainly at target syntax, while single-IR produces syntactic targets that are rejected by grounding and wrong-verdict checks.}
+  \caption{Diagnostic row-category hits are shown for every route in the route matrix. Categories can co-occur, so columns show diagnostic burden rather than a partition of samples.}
   \label{fig:failure-taxonomy}
 \end{figure}
 

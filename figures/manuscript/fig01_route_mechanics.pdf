@@ -10,12 +10,12 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 1600 900] /Resources << /Font << /F1 5 0 R /F2 6 0 R /F3 7 0 R >> >> /Contents 4 0 R >>
 endobj
 4 0 obj
-<< /Length 5251 >>
+<< /Length 5264 >>
 stream
 0.067 0.094 0.153 rg
 BT /F2 32 Tf 54 842 Td (Route mechanics and evidence boundaries) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 19 Tf 54 808 Td (M2 compares direct SMT emission with a bounded IR hop over identical fixture groups.) Tj ET
+BT /F1 19 Tf 54 808 Td (M2 compares baseline target emission with route outputs over identical fixture groups.) Tj ET
 0.349 0.384 0.451 rg
 BT /F1 16 Tf 1416.4 842 Td (run m2-one-shot) Tj ET
 1 1 1 rg
@@ -101,7 +101,7 @@ BT /F1 17 Tf 863 645 Td (Admission: 0/9.) Tj ET
 845 305 310 205 re
 B
 0.067 0.094 0.153 rg
-BT /F2 22 Tf 863 478 Td (IR route) Tj ET
+BT /F2 22 Tf 863 478 Td (Compiled route) Tj ET
 0.91 0.961 0.973 rg
 0.663 0.812 0.855 RG
 1 w
@@ -110,13 +110,13 @@ B
 0.122 0.435 0.545 rg
 BT /F2 16 Tf 1049 477 Td (LLM + det) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 17 Tf 863 444 Td (The model emits bounded pair) Tj ET
+BT /F1 17 Tf 863 444 Td (single_ir emits an) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 17 Tf 863 421 Td (JSON.) Tj ET
+BT /F1 17 Tf 863 421 Td (intermediate route artifact.) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 17 Tf 863 398 Td (A deterministic bridge) Tj ET
+BT /F1 17 Tf 863 398 Td (9 rows compile to 15 SMT) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 17 Tf 863 375 Td (constructs route_rule_ir.v0.) Tj ET
+BT /F1 17 Tf 863 375 Td (file\(s\).) Tj ET
 0.349 0.384 0.451 rg
 BT /F1 17 Tf 863 352 Td (Target syntax: 9/9.) Tj ET
 0.349 0.384 0.451 RG
@@ -207,9 +207,9 @@ B
 0.067 0.094 0.153 rg
 BT /F2 22 Tf 96 195 Td (Current R3 result) Tj ET
 0.067 0.094 0.153 rg
-BT /F1 18 Tf 96 165 Td (The run shows a target-syntax lift \(3/9 -> 9/9\) but no admitted lift: both routes have 0/9 admission and 0/9 admitted verdict accuracy.) Tj ET
+BT /F1 18 Tf 96 165 Td (The run shows a target-syntax lift \(3/9 -> 9/9\) but no admitted lift: baseline admitted accuracy is 0/9 and single_ir admitted accuracy is) Tj ET
 0.067 0.094 0.153 rg
-BT /F1 18 Tf 96 140 Td (Candidate verdict accuracy for single_ir is 3/9 and remains rejected evidence.) Tj ET
+BT /F1 18 Tf 96 140 Td (0/9. Candidate verdict accuracy for single_ir is 3/9 and remains rejected evidence.) Tj ET
 0.898 0.914 0.937 RG
 1 w
 54 56 m 1546 56 l S
@@ -230,16 +230,16 @@ endobj
 endobj
 xref
 0 8
-0000000000 65535 f 
-0000000015 00000 n 
-0000000064 00000 n 
-0000000121 00000 n 
-0000000268 00000 n 
-0000005570 00000 n 
-0000005640 00000 n 
-0000005715 00000 n 
+0000000000 65535 f
+0000000015 00000 n
+0000000064 00000 n
+0000000121 00000 n
+0000000268 00000 n
+0000005583 00000 n
+0000005653 00000 n
+0000005728 00000 n
 trailer
 << /Size 8 /Root 1 0 R >>
 startxref
-5783
+5796
 %%EOF

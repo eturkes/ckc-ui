@@ -10,12 +10,12 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 1600 900] /Resources << /Font << /F1 5 0 R /F2 6 0 R /F3 7 0 R >> >> /Contents 4 0 R >>
 endobj
 4 0 obj
-<< /Length 3833 >>
+<< /Length 3753 >>
 stream
 0.067 0.094 0.153 rg
-BT /F2 32 Tf 54 842 Td (M2 route metrics) Tj ET
+BT /F2 32 Tf 54 842 Td (M2 route matrix metrics) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 19 Tf 54 808 Td (Exact-ratio measurements over three groups and three seeds per route.) Tj ET
+BT /F1 19 Tf 54 808 Td (Exact-ratio measurements over identical groups and seeds per route.) Tj ET
 0.349 0.384 0.451 rg
 BT /F1 16 Tf 1373.2 842 Td (n = 9 rows per route) Tj ET
 0.898 0.914 0.937 RG
@@ -52,124 +52,122 @@ BT /F1 15 Tf 69.6 724 Td (100%) Tj ET
 0.706 0.361 0.216 rg
 0.706 0.361 0.216 RG
 1 w
-177 210 54 173.333 re
+190 210 44 173.333 re
 B
+0.706 0.361 0.216 rg
+BT /F2 15 Tf 199.85 393.333 Td (3/9) Tj ET
 0.122 0.435 0.545 rg
 0.122 0.435 0.545 RG
 1 w
-245 210 54 520 re
+242 210 44 520 re
 B
-0.706 0.361 0.216 rg
-BT /F2 15 Tf 191.85 393.333 Td (3/9) Tj ET
 0.122 0.435 0.545 rg
-BT /F2 15 Tf 259.85 740 Td (9/9) Tj ET
+BT /F2 15 Tf 251.85 740 Td (9/9) Tj ET
 0.067 0.094 0.153 rg
 BT /F1 16 Tf 103.84 176 Td (Target syntax) Tj ET
 0.706 0.361 0.216 rg
 0.706 0.361 0.216 RG
 1 w
-413 210 54 0 re
+426 210 44 0 re
 B
+0.706 0.361 0.216 rg
+BT /F2 15 Tf 435.85 220 Td (0/9) Tj ET
 0.122 0.435 0.545 rg
 0.122 0.435 0.545 RG
 1 w
-481 210 54 0 re
+478 210 44 0 re
 B
-0.706 0.361 0.216 rg
-BT /F2 15 Tf 427.85 220 Td (0/9) Tj ET
 0.122 0.435 0.545 rg
-BT /F2 15 Tf 495.85 220 Td (0/9) Tj ET
+BT /F2 15 Tf 487.85 220 Td (0/9) Tj ET
 0.067 0.094 0.153 rg
 BT /F1 16 Tf 357.12 176 Td (Admission) Tj ET
 0.706 0.361 0.216 rg
 0.706 0.361 0.216 RG
 1 w
-649 210 54 0 re
+662 210 44 0 re
 B
+0.706 0.361 0.216 rg
+BT /F2 15 Tf 671.85 220 Td (0/9) Tj ET
 0.122 0.435 0.545 rg
 0.122 0.435 0.545 RG
 1 w
-717 210 54 0 re
+714 210 44 0 re
 B
-0.706 0.361 0.216 rg
-BT /F2 15 Tf 663.85 220 Td (0/9) Tj ET
 0.122 0.435 0.545 rg
-BT /F2 15 Tf 731.85 220 Td (0/9) Tj ET
+BT /F2 15 Tf 723.85 220 Td (0/9) Tj ET
 0.067 0.094 0.153 rg
 BT /F1 16 Tf 558.56 176 Td (Admitted accuracy) Tj ET
 0.706 0.361 0.216 rg
 0.706 0.361 0.216 RG
 1 w
-885 210 54 0 re
+898 210 44 0 re
 B
+0.706 0.361 0.216 rg
+BT /F2 15 Tf 907.85 220 Td (0/9) Tj ET
 0.122 0.435 0.545 rg
 0.122 0.435 0.545 RG
 1 w
-953 210 54 173.333 re
+950 210 44 173.333 re
 B
-0.706 0.361 0.216 rg
-BT /F2 15 Tf 899.85 220 Td (0/9) Tj ET
 0.122 0.435 0.545 rg
-BT /F2 15 Tf 967.85 393.333 Td (3/9) Tj ET
+BT /F2 15 Tf 959.85 393.333 Td (3/9) Tj ET
 0.067 0.094 0.153 rg
 BT /F1 16 Tf 790.24 176 Td (Candidate accuracy) Tj ET
 0.706 0.361 0.216 rg
 0.706 0.361 0.216 RG
 1 w
-1121 210 54 0 re
+1134 210 44 0 re
 B
+0.706 0.361 0.216 rg
+BT /F2 15 Tf 1143.85 220 Td (0/3) Tj ET
 0.122 0.435 0.545 rg
 0.122 0.435 0.545 RG
 1 w
-1189 210 54 0 re
+1186 210 44 0 re
 B
-0.706 0.361 0.216 rg
-BT /F2 15 Tf 1135.85 220 Td (0/3) Tj ET
 0.122 0.435 0.545 rg
-BT /F2 15 Tf 1203.85 220 Td (0/3) Tj ET
+BT /F2 15 Tf 1195.85 220 Td (0/3) Tj ET
 0.067 0.094 0.153 rg
 BT /F1 16 Tf 1043.52 176 Td (Seed stability) Tj ET
-1 0.941 0.91 rg
-0.898 0.714 0.616 RG
+0.984 0.988 0.992 rg
+0.706 0.361 0.216 RG
 1 w
-1360 691 115.8 29 re
+1360 693 105 27 re
 B
 0.706 0.361 0.216 rg
-BT /F2 17 Tf 1372 700 Td (direct_smt) Tj ET
-0.91 0.961 0.973 rg
-0.663 0.812 0.855 RG
+BT /F2 15 Tf 1372 702 Td (direct_smt) Tj ET
+0.984 0.988 0.992 rg
+0.122 0.435 0.545 RG
 1 w
-1360 649 106.62 29 re
+1360 651 96.9 27 re
 B
 0.122 0.435 0.545 rg
-BT /F2 17 Tf 1372 658 Td (single_ir) Tj ET
+BT /F2 15 Tf 1372 660 Td (single_ir) Tj ET
 0.984 0.988 0.992 rg
 0.898 0.914 0.937 RG
 2 w
-1340 300 205 300 re
+1340 120 205 480 re
 B
 0.067 0.094 0.153 rg
 BT /F2 21 Tf 1360 562 Td (Interpretation) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1360 528 Td (The IR route) Tj ET
+BT /F1 16 Tf 1360 528 Td (Baseline) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1360 506 Td (preserves) Tj ET
+BT /F1 16 Tf 1360 506 Td (direct_smt) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1360 484 Td (machine-readable) Tj ET
+BT /F1 16 Tf 1360 484 Td (admitted accuracy) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1360 462 Td (target syntax, but) Tj ET
+BT /F1 16 Tf 1360 462 Td (is 0/9. Highest) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1360 440 Td (grounding checks) Tj ET
+BT /F1 16 Tf 1360 440 Td (target syntax:) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1360 418 Td (reject all rows in) Tj ET
+BT /F1 16 Tf 1360 418 Td (single_ir 9/9.) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1360 396 Td (this run.) Tj ET
+BT /F1 16 Tf 1360 396 Td (Highest candidate) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1360 374 Td (Candidate accuracy) Tj ET
+BT /F1 16 Tf 1360 374 Td (accuracy:) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1360 352 Td (is shown only for) Tj ET
-0.349 0.384 0.451 rg
-BT /F1 16 Tf 1360 330 Td (rejected outputs.) Tj ET
+BT /F1 16 Tf 1360 352 Td (single_ir 3/9.) Tj ET
 0.898 0.914 0.937 RG
 1 w
 54 56 m 1546 56 l S
@@ -188,16 +186,16 @@ endobj
 endobj
 xref
 0 8
-0000000000 65535 f 
-0000000015 00000 n 
-0000000064 00000 n 
-0000000121 00000 n 
-0000000268 00000 n 
-0000004152 00000 n 
-0000004222 00000 n 
-0000004297 00000 n 
+0000000000 65535 f
+0000000015 00000 n
+0000000064 00000 n
+0000000121 00000 n
+0000000268 00000 n
+0000004072 00000 n
+0000004142 00000 n
+0000004217 00000 n
 trailer
 << /Size 8 /Root 1 0 R >>
 startxref
-4365
+4285
 %%EOF

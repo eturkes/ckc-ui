@@ -244,26 +244,61 @@ function routeMetric(report, routeId) {
   return report.metrics.route_metrics.find((entry) => entry.route_id === routeId);
 }
 
+function routeIdsForReport(report) {
+  return report.metrics.route_matrix?.route_ids ?? report.metrics.route_metrics.map((entry) => entry.route_id);
+}
+
+function baselineRouteId(report) {
+  return report.metrics.route_matrix?.baseline_route_id ?? "route.direct_smt";
+}
+
+function routeColor(routeId, index = 0) {
+  if (routeId === "route.direct_smt") return colors.direct;
+  if (routeId === "route.single_ir") return colors.ir;
+  const palette = [colors.det, colors.purple, colors.blue, colors.warn, colors.gray, colors.bad];
+  return palette[index % palette.length];
+}
+
+function shortRouteLabel(routeId) {
+  return String(routeId).replace(/^route\./, "");
+}
+
 function metricRows(report) {
-  const direct = routeMetric(report, "route.direct_smt");
-  const ir = routeMetric(report, "route.single_ir");
   return [
-    ["Target syntax", direct.target_syntax_validity, ir.target_syntax_validity],
-    ["Admission", direct.admission_rate, ir.admission_rate],
-    ["Admitted accuracy", direct.admitted_verdict_accuracy, ir.admitted_verdict_accuracy],
-    ["Candidate accuracy", direct.candidate_verdict_accuracy, ir.candidate_verdict_accuracy],
-    ["Seed stability", direct.k_sample_stability, ir.k_sample_stability]
+    ["Target syntax", "target_syntax_validity"],
+    ["Admission", "admission_rate"],
+    ["Admitted accuracy", "admitted_verdict_accuracy"],
+    ["Candidate accuracy", "candidate_verdict_accuracy"],
+    ["Seed stability", "k_sample_stability"]
   ];
+}
+
+function bestRouteForMetric(report, metricId) {
+  return report.metrics.route_metrics
+    .slice()
+    .sort((left, right) => (
+      ratioValue(right[metricId]) - ratioValue(left[metricId])
+      || left.route_id.localeCompare(right.route_id)
+    ))
+    .at(0);
+}
+
+function compiledRouteSummaries(report) {
+  return report.route_target_summary?.routes ?? [];
 }
 
 function buildRouteMechanicsFigure(report) {
   const shapes = [];
-  const direct = routeMetric(report, "route.direct_smt");
-  const ir = routeMetric(report, "route.single_ir");
+  const baselineId = baselineRouteId(report);
+  const direct = routeMetric(report, baselineId);
+  const compiledSummary = compiledRouteSummaries(report).find((entry) => entry.compiled_target)
+    ?? { route_id: "route.single_ir", compiled_row_count: 0, smt_file_count: 0 };
+  const compiledMetric = routeMetric(report, compiledSummary.route_id) ?? routeMetric(report, "route.single_ir") ?? direct;
+  const singleIr = routeMetric(report, "route.single_ir");
   addTitle(
     shapes,
     "Route mechanics and evidence boundaries",
-    "M2 compares direct SMT emission with a bounded IR hop over identical fixture groups.",
+    "M2 compares baseline target emission with route outputs over identical fixture groups.",
     `run ${report.run_id}`
   );
 
@@ -314,12 +349,12 @@ function buildRouteMechanicsFigure(report) {
     y: 390,
     w: 310,
     h: 205,
-    title: "IR route",
+    title: "Compiled route",
     accent: colors.ir,
     lines: [
-      "The model emits bounded pair JSON.",
-      "A deterministic bridge constructs route_rule_ir.v0.",
-      `Target syntax: ${ratioExact(ir.target_syntax_validity)}.`
+      `${shortRouteLabel(compiledSummary.route_id)} emits an intermediate route artifact.`,
+      `${compiledSummary.compiled_row_count} rows compile to ${compiledSummary.smt_file_count} SMT file(s).`,
+      `Target syntax: ${ratioExact(compiledMetric.target_syntax_validity)}.`
     ],
     badge: { label: "LLM + det", w: 118, fill: "#e8f5f8", stroke: "#a9cfda", textFill: colors.ir }
   });
@@ -348,7 +383,7 @@ function buildRouteMechanicsFigure(report) {
     accent: colors.det,
     lines: [
       "Complete IR rows compile to SMT-LIB and are scored by the same evaluator.",
-      `Admission: ${ratioExact(ir.admission_rate)}.`
+      `Admission: ${ratioExact(compiledMetric.admission_rate)}.`
     ],
     badge: { label: "det", w: 74, fill: "#eaf4ee", stroke: "#b9d6c5", textFill: colors.det }
   });
@@ -359,7 +394,9 @@ function buildRouteMechanicsFigure(report) {
   addText(shapes, "Current R3 result", 96, 705, { size: 22, weight: "bold" });
   addWrappedText(
     shapes,
-    `The run shows a target-syntax lift (${ratioExact(direct.target_syntax_validity)} -> ${ratioExact(ir.target_syntax_validity)}) but no admitted lift: both routes have ${ratioExact(ir.admission_rate)} admission and ${ratioExact(ir.admitted_verdict_accuracy)} admitted verdict accuracy. Candidate verdict accuracy for single_ir is ${ratioExact(ir.candidate_verdict_accuracy)} and remains rejected evidence.`,
+    singleIr
+      ? `The run shows a target-syntax lift (${ratioExact(direct.target_syntax_validity)} -> ${ratioExact(singleIr.target_syntax_validity)}) but no admitted lift: baseline admitted accuracy is ${ratioExact(direct.admitted_verdict_accuracy)} and single_ir admitted accuracy is ${ratioExact(singleIr.admitted_verdict_accuracy)}. Candidate verdict accuracy for single_ir is ${ratioExact(singleIr.candidate_verdict_accuracy)} and remains rejected evidence.`
+      : `The route matrix keeps ${baselineId} as baseline. Highest target syntax is ${shortRouteLabel(bestRouteForMetric(report, "target_syntax_validity").route_id)} at ${ratioExact(bestRouteForMetric(report, "target_syntax_validity").target_syntax_validity)}; candidate accuracy remains rejected-output audit evidence.`,
     96,
     735,
     1370,
@@ -369,10 +406,13 @@ function buildRouteMechanicsFigure(report) {
     shapes,
     `Scope: ${report.wording_scope}; ${report.m2_evaluation.evaluation_strength}. This figure makes no clinical, patient-care, deployment, or regulatory claim.`
   );
+  const mechanicsCaption = singleIr && ratioValue(singleIr.target_syntax_validity) > ratioValue(direct.target_syntax_validity)
+    ? "M2 route mechanics. Both routes consume the same fixture groups and are scored by the same evaluator; the current run shows target-syntax lift only, not admitted verdict lift."
+    : "M2 route mechanics. Routes consume the same fixture groups and are scored by the same evaluator; admitted verdict lift is shown only when route-matrix rows exceed the direct SMT baseline.";
   return scene(
     "fig01_route_mechanics",
     "Route mechanics and evidence boundaries",
-    "M2 route mechanics. Both routes consume the same fixture groups and are scored by the same evaluator; the current run shows target-syntax lift only, not admitted verdict lift.",
+    mechanicsCaption,
     1600,
     900,
     shapes
@@ -381,11 +421,13 @@ function buildRouteMechanicsFigure(report) {
 
 function buildRouteMetricsFigure(report) {
   const shapes = [];
+  const routeIds = routeIdsForReport(report);
+  const sampleCount = Math.max(...report.metrics.route_metrics.map((entry) => entry.samples ?? 0));
   addTitle(
     shapes,
-    "M2 route metrics",
-    "Exact-ratio measurements over three groups and three seeds per route.",
-    "n = 9 rows per route"
+    "M2 route matrix metrics",
+    "Exact-ratio measurements over identical groups and seeds per route.",
+    `n = ${sampleCount} rows per route`
   );
   const rows = metricRows(report);
   const chart = { x: 120, y: 170, w: 1180, h: 520 };
@@ -402,36 +444,28 @@ function buildRouteMetricsFigure(report) {
   addLine(shapes, chart.x, chart.y, chart.x, chart.y + chart.h, { stroke: colors.line, strokeWidth: 2 });
   addLine(shapes, chart.x, chart.y + chart.h, chart.x + chart.w, chart.y + chart.h, { stroke: colors.line, strokeWidth: 2 });
   const groupW = chart.w / rows.length;
-  const barW = 54;
-  rows.forEach(([label, directRatio, irRatio], index) => {
+  const barW = Math.max(16, Math.min(44, (groupW - 28) / Math.max(routeIds.length, 1) - 8));
+  rows.forEach(([label, metricId], index) => {
     const center = chart.x + groupW * index + groupW / 2;
-    const directH = ratioValue(directRatio) * chart.h;
-    const irH = ratioValue(irRatio) * chart.h;
-    const directX = center - barW - 7;
-    const irX = center + 7;
-    addRect(shapes, directX, chart.y + chart.h - directH, barW, directH, {
-      fill: colors.direct,
-      stroke: colors.direct,
-      strokeWidth: 1,
-      rx: 3
-    });
-    addRect(shapes, irX, chart.y + chart.h - irH, barW, irH, {
-      fill: colors.ir,
-      stroke: colors.ir,
-      strokeWidth: 1,
-      rx: 3
-    });
-    addText(shapes, ratioExact(directRatio), directX + barW / 2, chart.y + chart.h - directH - 10, {
-      size: 15,
-      fill: colors.direct,
-      anchor: "middle",
-      weight: "bold"
-    });
-    addText(shapes, ratioExact(irRatio), irX + barW / 2, chart.y + chart.h - irH - 10, {
-      size: 15,
-      fill: colors.ir,
-      anchor: "middle",
-      weight: "bold"
+    const totalW = routeIds.length * barW + (routeIds.length - 1) * 8;
+    routeIds.forEach((routeId, routeIndex) => {
+      const metric = routeMetric(report, routeId);
+      const ratio = metric[metricId];
+      const h = ratioValue(ratio) * chart.h;
+      const x = center - totalW / 2 + routeIndex * (barW + 8);
+      const color = routeColor(routeId, routeIndex);
+      addRect(shapes, x, chart.y + chart.h - h, barW, h, {
+        fill: color,
+        stroke: color,
+        strokeWidth: 1,
+        rx: 3
+      });
+      addText(shapes, ratioExact(ratio), x + barW / 2, chart.y + chart.h - h - 10, {
+        size: routeIds.length > 3 ? 12 : 15,
+        fill: color,
+        anchor: "middle",
+        weight: "bold"
+      });
     });
     addWrappedText(shapes, label, center - 78, chart.y + chart.h + 34, 156, {
       size: 16,
@@ -440,15 +474,26 @@ function buildRouteMetricsFigure(report) {
       lineHeight: 20
     });
   });
-  addBadge(shapes, "direct_smt", 1360, 180, { fill: "#fff0e8", stroke: "#e5b69d", textFill: colors.direct, size: 17 });
-  addBadge(shapes, "single_ir", 1360, 222, { fill: "#e8f5f8", stroke: "#a9cfda", textFill: colors.ir, size: 17 });
-  addRect(shapes, 1340, 300, 205, 300, { fill: "#fbfcfd", stroke: colors.grid, strokeWidth: 2, rx: 8 });
-  addText(shapes, "Interpretation", 1360, 338, { size: 21, weight: "bold" });
+  routeIds.forEach((routeId, index) => {
+    const color = routeColor(routeId, index);
+    addBadge(shapes, shortRouteLabel(routeId), 1360, 180 + index * 42, {
+      fill: "#fbfcfd",
+      stroke: color,
+      textFill: color,
+      size: 15
+    });
+  });
+  const sideCardY = Math.max(300, 180 + routeIds.length * 42 + 24);
+  addRect(shapes, 1340, sideCardY, 205, Math.max(150, 780 - sideCardY), { fill: "#fbfcfd", stroke: colors.grid, strokeWidth: 2, rx: 8 });
+  addText(shapes, "Interpretation", 1360, sideCardY + 38, { size: 21, weight: "bold" });
+  const baseline = routeMetric(report, baselineRouteId(report));
+  const targetLeader = bestRouteForMetric(report, "target_syntax_validity");
+  const candidateLeader = bestRouteForMetric(report, "candidate_verdict_accuracy");
   addWrappedText(
     shapes,
-    "The IR route preserves machine-readable target syntax, but grounding checks reject all rows in this run. Candidate accuracy is shown only for rejected outputs.",
+    `Baseline ${shortRouteLabel(baseline.route_id)} admitted accuracy is ${ratioExact(baseline.admitted_verdict_accuracy)}. Highest target syntax: ${shortRouteLabel(targetLeader.route_id)} ${ratioExact(targetLeader.target_syntax_validity)}. Highest candidate accuracy: ${shortRouteLabel(candidateLeader.route_id)} ${ratioExact(candidateLeader.candidate_verdict_accuracy)}.`,
     1360,
-    372,
+    sideCardY + 72,
     160,
     { size: 16, fill: colors.muted, lineHeight: 22 }
   );
@@ -458,8 +503,8 @@ function buildRouteMetricsFigure(report) {
   );
   return scene(
     "fig02_route_metrics",
-    "M2 route metrics",
-    "Route metrics from the current M2 run. Single-IR reaches 9/9 target syntax and 3/9 candidate verdict accuracy, but admission and admitted verdict accuracy remain 0/9.",
+    "M2 route matrix metrics",
+    "Route metrics from the current M2 run, shown as exact ratios over the route matrix with direct SMT retained as baseline. Candidate verdict accuracy is rejected-output audit evidence, not admitted lift.",
     1600,
     900,
     shapes
@@ -468,10 +513,12 @@ function buildRouteMetricsFigure(report) {
 
 function buildFailureTaxonomyFigure(report) {
   const shapes = [];
+  const routeIds = routeIdsForReport(report);
+  const sampleCount = Math.max(...report.metrics.route_metrics.map((entry) => entry.samples ?? 0));
   addTitle(
     shapes,
     "Failure taxonomy by route",
-    "Diagnostic categories are non-exclusive row hits over nine route rows.",
+    "Diagnostic categories are non-exclusive row hits over each route's rows.",
     "row-category hits"
   );
   const counts = report.route_evaluation.route_category_counts;
@@ -484,8 +531,8 @@ function buildFailureTaxonomyFigure(report) {
   ];
   const chart = { x: 150, y: 170, w: 1120, h: 520 };
   for (let tick = 0; tick <= 3; tick += 1) {
-    const value = tick * 3;
-    const y = chart.y + chart.h - (value / 9) * chart.h;
+    const value = Math.round((sampleCount * tick) / 3);
+    const y = chart.y + chart.h - (value / sampleCount) * chart.h;
     addLine(shapes, chart.x, y, chart.x + chart.w, y, { stroke: colors.grid, strokeWidth: 1 });
     addText(shapes, String(value), chart.x - 18, y + 6, { size: 15, fill: colors.muted, anchor: "end" });
   }
@@ -493,38 +540,27 @@ function buildFailureTaxonomyFigure(report) {
   addLine(shapes, chart.x, chart.y, chart.x, chart.y + chart.h, { stroke: colors.line, strokeWidth: 2 });
   addLine(shapes, chart.x, chart.y + chart.h, chart.x + chart.w, chart.y + chart.h, { stroke: colors.line, strokeWidth: 2 });
   const groupW = chart.w / categories.length;
-  const barW = 54;
+  const barW = Math.max(16, Math.min(44, (groupW - 28) / Math.max(routeIds.length, 1) - 8));
   categories.forEach(([category, color], index) => {
     const center = chart.x + groupW * index + groupW / 2;
-    const directCount = counts["route.direct_smt"][category] ?? 0;
-    const irCount = counts["route.single_ir"][category] ?? 0;
-    const directH = (directCount / 9) * chart.h;
-    const irH = (irCount / 9) * chart.h;
-    const directX = center - barW - 7;
-    const irX = center + 7;
-    addRect(shapes, directX, chart.y + chart.h - directH, barW, directH, {
-      fill: colors.direct,
-      stroke: colors.direct,
-      strokeWidth: 1,
-      rx: 3
-    });
-    addRect(shapes, irX, chart.y + chart.h - irH, barW, irH, {
-      fill: colors.ir,
-      stroke: colors.ir,
-      strokeWidth: 1,
-      rx: 3
-    });
-    addText(shapes, `${directCount}/9`, directX + barW / 2, chart.y + chart.h - directH - 10, {
-      size: 15,
-      fill: colors.direct,
-      anchor: "middle",
-      weight: "bold"
-    });
-    addText(shapes, `${irCount}/9`, irX + barW / 2, chart.y + chart.h - irH - 10, {
-      size: 15,
-      fill: colors.ir,
-      anchor: "middle",
-      weight: "bold"
+    const totalW = routeIds.length * barW + (routeIds.length - 1) * 8;
+    routeIds.forEach((routeId, routeIndex) => {
+      const count = counts[routeId]?.[category] ?? 0;
+      const h = (count / sampleCount) * chart.h;
+      const x = center - totalW / 2 + routeIndex * (barW + 8);
+      const routeColorValue = routeColor(routeId, routeIndex);
+      addRect(shapes, x, chart.y + chart.h - h, barW, h, {
+        fill: routeColorValue,
+        stroke: routeColorValue,
+        strokeWidth: 1,
+        rx: 3
+      });
+      addText(shapes, `${count}/${sampleCount}`, x + barW / 2, chart.y + chart.h - h - 10, {
+        size: routeIds.length > 3 ? 12 : 15,
+        fill: routeColorValue,
+        anchor: "middle",
+        weight: "bold"
+      });
     });
     addWrappedText(shapes, category.replace("_", " "), center - 86, chart.y + chart.h + 34, 172, {
       size: 16,
@@ -533,15 +569,23 @@ function buildFailureTaxonomyFigure(report) {
       lineHeight: 20
     });
   });
-  addBadge(shapes, "direct_smt", 1330, 178, { fill: "#fff0e8", stroke: "#e5b69d", textFill: colors.direct, size: 17 });
-  addBadge(shapes, "single_ir", 1330, 220, { fill: "#e8f5f8", stroke: "#a9cfda", textFill: colors.ir, size: 17 });
-  addRect(shapes, 1310, 300, 230, 238, { fill: "#fbfcfd", stroke: colors.grid, strokeWidth: 2, rx: 8 });
-  addText(shapes, "Residual audit", 1330, 338, { size: 21, weight: "bold" });
+  routeIds.forEach((routeId, index) => {
+    const routeColorValue = routeColor(routeId, index);
+    addBadge(shapes, shortRouteLabel(routeId), 1330, 178 + index * 42, {
+      fill: "#fbfcfd",
+      stroke: routeColorValue,
+      textFill: routeColorValue,
+      size: 15
+    });
+  });
+  const sideCardY = Math.max(300, 178 + routeIds.length * 42 + 24);
+  addRect(shapes, 1310, sideCardY, 230, Math.max(150, 760 - sideCardY), { fill: "#fbfcfd", stroke: colors.grid, strokeWidth: 2, rx: 8 });
+  addText(shapes, "Residual audit", 1330, sideCardY + 38, { size: 21, weight: "bold" });
   addWrappedText(
     shapes,
     `Direct SMT: ${ratioExact(report.direct_smt_audit.missing_named_assertion_rate)} rows lacked named assertions; exact template matches ${ratioExact(report.direct_smt_audit.exact_template_match_rate)}.`,
     1330,
-    372,
+    sideCardY + 72,
     180,
     { size: 16, fill: colors.muted, lineHeight: 22 }
   );
@@ -552,7 +596,7 @@ function buildFailureTaxonomyFigure(report) {
   return scene(
     "fig03_failure_taxonomy",
     "Failure taxonomy by route",
-    "Diagnostic row-category hits show direct SMT failing mainly at target syntax, while single-IR produces syntactic targets that are rejected by grounding and wrong-verdict checks.",
+    "Diagnostic row-category hits are shown for every route in the route matrix. Categories can co-occur, so columns show diagnostic burden rather than a partition of samples.",
     1600,
     900,
     shapes
@@ -802,9 +846,9 @@ function writePdfObjects(objects) {
     pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
   });
   const xrefOffset = Buffer.byteLength(pdf, "binary");
-  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f\n`;
   for (let index = 1; index < offsets.length; index += 1) {
-    pdf += `${String(offsets[index]).padStart(10, "0")} 00000 n \n`;
+    pdf += `${String(offsets[index]).padStart(10, "0")} 00000 n\n`;
   }
   pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
   return Buffer.from(pdf, "binary");

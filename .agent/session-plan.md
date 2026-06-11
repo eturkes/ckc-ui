@@ -35,7 +35,7 @@ Global constraints:
 ## Queue
 
 ### C1 Route-Matrix Harness Generalization
-status: pending
+status: done
 
 Intent: remove the two-route assumptions so the harness can compare any
 registry-declared route set before new route behavior is added.
