@@ -39,6 +39,7 @@
     .metric strong { display: block; font-size: 1.45rem; line-height: 1; }
     .metric span { display: block; color: var(--muted); margin-top: 6px; font-size: .82rem; }
     table { width: 100%; border-collapse: collapse; min-width: 720px; }
+    .wide { min-width: 920px; }
     th, td { border-bottom: 1px solid var(--line); padding: 8px; text-align: left; vertical-align: top; font-size: .82rem; }
     th { color: var(--muted); background: #f7fafb; }
     .table-wrap { overflow-x: auto; }
@@ -79,6 +80,146 @@
       <p><code>finding.group.m1_conflict.1</code> / <code>null.group.m1_null.1</code></p>
       <div class="quote"><code>region.a.cq1.rec</code>: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。</div><div class="quote"><code>region.a.cq1.exc</code>: ただし、重度腎機能障害のある患者を除く。</div><div class="quote"><code>region.b.contra1</code>: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。</div>
       <div class="quote"><code>region.control.child.contra1</code>: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。</div>
+    </section>
+
+    <section>
+      <h2>Real guideline intake</h2>
+      <p>Permission-recorded source candidates fetched for PoC extraction work. These rows are not included in the locked M1/M2 score and make no clinical recommendation claim.</p>
+      <div class="table-wrap">
+        <table class="wide">
+          <thead><tr><th>Source</th><th>Title</th><th>License</th><th>Raw cache</th><th>Spans</th><th>Relation</th></tr></thead>
+          <tbody>
+          <tr>
+            <td><code>real.jstage.thyroid_tumor_2024.cq_recommendations</code></td>
+            <td>甲状腺腫瘍診療ガイドライン2024 CQ推奨一覧</td>
+            <td>CC BY-NC 4.0</td>
+            <td>complete</td>
+            <td>4</td>
+            <td>normative_cq_recommendation_list</td>
+          </tr>
+          <tr>
+            <td><code>real.jstage.sepsis_dic_2025.guideline_article</code></td>
+            <td>敗血症に伴うDICの診断と治療</td>
+            <td>CC BY-NC-SA 4.0</td>
+            <td>complete</td>
+            <td>3</td>
+            <td>guideline_derived_article_jsth_dic_gl_2024_and_j_sscg2024</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+
+        <details>
+          <summary><code>real.jstage.thyroid_tumor_2024.cq_recommendations</code> / 甲状腺腫瘍診療ガイドライン2024 CQ推奨一覧</summary>
+          <h3>Selected candidate spans</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Region</th><th>CQ</th><th>Direction</th><th>Action hint</th><th>Source span</th></tr></thead>
+              <tbody>
+          <tr>
+            <td><code>real.thyroid.cq2_1.recommendation</code></td>
+            <td>CQ2-1</td>
+            <td>against</td>
+            <td>ultrasound_thyroid_cancer_screening</td>
+            <td>家族歴や甲状腺がんに関連する遺伝性症候群，小児期の頸部被ばく歴など特段の甲状腺がん発症リスクがない無症状の成人に対する超音波検査による甲状腺がん検診は行わないことを推奨する。</td>
+          </tr>
+          <tr>
+            <td><code>real.thyroid.cq3_1.recommendation</code></td>
+            <td>CQ3-1</td>
+            <td>for</td>
+            <td>active_surveillance</td>
+            <td>成人の超低リスク乳頭癌には積極的経過観察が推奨される。</td>
+          </tr>
+          <tr>
+            <td><code>real.thyroid.cq8_1.adjuvant_rhtsh</code></td>
+            <td>CQ8-1</td>
+            <td>for</td>
+            <td>rhTSH_use</td>
+            <td>遠隔転移を認めない症例に対するRAI補助療法にrhTSHを使用することを推奨する。</td>
+          </tr>
+          <tr>
+            <td><code>real.thyroid.cq8_1.metastatic_rhtsh</code></td>
+            <td>CQ8-1</td>
+            <td>against</td>
+            <td>rhTSH_use</td>
+            <td>遠隔転移を認める症例に対するRAI治療にはrhTSHを使用しないことを推奨する。</td>
+          </tr>
+              </tbody>
+            </table>
+          </div>
+          <h3>Raw cache</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Artifact</th><th>Kind</th><th>Status</th><th>SHA-256</th></tr></thead>
+              <tbody>
+          <tr>
+            <td><code>thyroid_tumor_2024_cq_article_html</code></td>
+            <td>html</td>
+            <td>fetched</td>
+            <td>ff4cc6a666ba70e9b97b00082abf0db3a512ce7a21ff9045bf79d83d924ce07a</td>
+          </tr>
+          <tr>
+            <td><code>thyroid_tumor_2024_cq_pdf</code></td>
+            <td>pdf</td>
+            <td>fetched</td>
+            <td>07eda9e58807ee9868eea700bf91429579727a327ada8f9c2aac4d8f34e681ca</td>
+          </tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+        <details>
+          <summary><code>real.jstage.sepsis_dic_2025.guideline_article</code> / 敗血症に伴うDICの診断と治療</summary>
+          <h3>Selected candidate spans</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Region</th><th>CQ</th><th>Direction</th><th>Action hint</th><th>Source span</th></tr></thead>
+              <tbody>
+          <tr>
+            <td><code>real.sepsis_dic.diagnosis.criteria_selection</code></td>
+            <td>敗血症に伴うDICの診断方法</td>
+            <td>for</td>
+            <td>select_dic_diagnostic_criteria_by_context</td>
+            <td>敗血症に伴うDICの診断基準としては急性期DIC診断基準，Sepsis-induced Coagulopathy（SIC）診断基準，国際血栓止血学会（ISTH）overt DIC診断基準，日本血栓止血学会DIC診断基準などがあり，それぞれの特性を理解した上で適切なものを選択する</td>
+          </tr>
+          <tr>
+            <td><code>real.sepsis_dic.treatment.at_rtm</code></td>
+            <td>敗血症性DICに対する抗凝固薬</td>
+            <td>for</td>
+            <td>antithrombin_or_recombinant_thrombomodulin</td>
+            <td>敗血症性DICに対する特異的治療薬として，アンチトロンビン（AT）製剤とリコンビナントトロンボモジュリン（rTM）製剤の投与をいずれも「強く推奨する（1B）」と明確に位置づけた</td>
+          </tr>
+          <tr>
+            <td><code>real.sepsis_dic.comparison.j_sscg_weak</code></td>
+            <td>JSTH DIC GL 2024 vs J-SSCG2024 comparison</td>
+            <td>for</td>
+            <td>antithrombin</td>
+            <td>アンチトロンビン（AT）製剤 強く推奨 3） 弱く推奨（CQ5-3）</td>
+          </tr>
+              </tbody>
+            </table>
+          </div>
+          <h3>Raw cache</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Artifact</th><th>Kind</th><th>Status</th><th>SHA-256</th></tr></thead>
+              <tbody>
+          <tr>
+            <td><code>sepsis_dic_2025_article_html</code></td>
+            <td>html</td>
+            <td>fetched</td>
+            <td>effffd9ccebf4b52fa59836388d3a358f58781730f19038e330de2db9ee329c0</td>
+          </tr>
+          <tr>
+            <td><code>sepsis_dic_2025_pdf</code></td>
+            <td>pdf</td>
+            <td>fetched</td>
+            <td>b1a3922f9c10e948e662bfc8fc3947daed3ebc2b3b542fa478c941fd4ddd1321</td>
+          </tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
     </section>
 
     <section>

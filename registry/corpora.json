@@ -24,5 +24,7 @@
       "provenance": "synthetic",
       "role": "age_disjoint_control"
     }
-  ]
+  ],
+  "real_guideline_registry": "corpus/real_guidelines/japanese_guidelines.json",
+  "real_guideline_raw_cache": "corpus/raw/real-guidelines/manifest.json"
 }

@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "fetch:guidelines": "node tools/fetch-real-guidelines.mjs",
     "setup:model": "node tools/setup-local-model.mjs",
     "build:run": "node tools/build-run.mjs --live-model",
     "build:run:recorded": "node tools/build-run.mjs --recorded-model",

@@ -1,0 +1,192 @@
+{
+  "artifact_kind": "RealJapaneseGuidelineRegistry",
+  "schema_version": 1,
+  "purpose": "Permission-recorded real Japanese clinical-guideline candidates for the current PoC source-intake stage. These sources are not part of the locked M1/M2 solver score.",
+  "raw_cache_dir": "corpus/raw/real-guidelines",
+  "sources": [
+    {
+      "id": "real.jstage.thyroid_tumor_2024.cq_recommendations",
+      "title_ja": "甲状腺腫瘍診療ガイドライン2024 CQ推奨一覧",
+      "title_en": "Thyroid Tumor Clinical Practice Guideline 2024 CQ recommendation list",
+      "source_family": "jstage_pdf_article",
+      "guideline_relation": "normative_cq_recommendation_list",
+      "publisher": "一般社団法人日本内分泌外科学会",
+      "journal": "日本内分泌外科学会雑誌",
+      "publication": {
+        "year": "2024",
+        "volume": "41",
+        "issue": "Supplement2",
+        "pages": "G10-G12",
+        "jstage_released": "2024-06-25"
+      },
+      "access": {
+        "landing_url": "https://www.jstage.jst.go.jp/article/ojjaes/41/Supplement2/41_G10/_article/-char/ja",
+        "pdf_url": "https://www.jstage.jst.go.jp/article/ojjaes/41/Supplement2/41_G10/_pdf/-char/ja",
+        "doi": "https://doi.org/10.11226/ojjaes.41.Supplement2_G10",
+        "accessed_utc": "2026-06-11"
+      },
+      "license": {
+        "label": "CC BY-NC 4.0",
+        "url": "https://creativecommons.org/licenses/by-nc/4.0/deed.ja",
+        "redistribution_mode": "attributed_excerpt_noncommercial"
+      },
+      "raw_artifacts": [
+        {
+          "artifact_id": "thyroid_tumor_2024_cq_article_html",
+          "kind": "html",
+          "url": "https://www.jstage.jst.go.jp/article/ojjaes/41/Supplement2/41_G10/_article/-char/ja",
+          "path": "corpus/raw/real-guidelines/real.jstage.thyroid_tumor_2024.cq_recommendations/article.html"
+        },
+        {
+          "artifact_id": "thyroid_tumor_2024_cq_pdf",
+          "kind": "pdf",
+          "url": "https://www.jstage.jst.go.jp/article/ojjaes/41/Supplement2/41_G10/_pdf/-char/ja",
+          "path": "corpus/raw/real-guidelines/real.jstage.thyroid_tumor_2024.cq_recommendations/source.pdf"
+        }
+      ],
+      "candidate_spans": [
+        {
+          "region_id": "real.thyroid.cq2_1.recommendation",
+          "locator": "PDF page 1, CQ2-1 recommendation",
+          "cq_id": "CQ2-1",
+          "quote": "家族歴や甲状腺がんに関連する遺伝性症候群，小児期の頸部被ばく歴など特段の甲状腺がん発症リスクがない無症状の成人に対する超音波検査による甲状腺がん検診は行わないことを推奨する。",
+          "machine_hint": {
+            "population": "asymptomatic_adult_without_thyroid_cancer_risk",
+            "condition": "thyroid_cancer_screening_context",
+            "action": "ultrasound_thyroid_cancer_screening",
+            "direction": "against",
+            "strength": "weak",
+            "certainty": "B"
+          }
+        },
+        {
+          "region_id": "real.thyroid.cq3_1.recommendation",
+          "locator": "PDF page 1, CQ3-1 recommendation",
+          "cq_id": "CQ3-1",
+          "quote": "成人の超低リスク乳頭癌には積極的経過観察が推奨される。",
+          "machine_hint": {
+            "population": "adult_with_very_low_risk_papillary_thyroid_carcinoma",
+            "condition": "papillary_thyroid_carcinoma",
+            "action": "active_surveillance",
+            "direction": "for",
+            "strength": "strong",
+            "certainty": "B"
+          }
+        },
+        {
+          "region_id": "real.thyroid.cq8_1.adjuvant_rhtsh",
+          "locator": "PDF page 2, CQ8-1 recommendation 1",
+          "cq_id": "CQ8-1",
+          "quote": "遠隔転移を認めない症例に対するRAI補助療法にrhTSHを使用することを推奨する。",
+          "machine_hint": {
+            "population": "thyroid_cancer_without_distant_metastasis",
+            "condition": "rai_adjuvant_therapy_context",
+            "action": "rhTSH_use",
+            "direction": "for",
+            "strength": "weak",
+            "certainty": "C"
+          }
+        },
+        {
+          "region_id": "real.thyroid.cq8_1.metastatic_rhtsh",
+          "locator": "PDF page 2, CQ8-1 recommendation 2",
+          "cq_id": "CQ8-1",
+          "quote": "遠隔転移を認める症例に対するRAI治療にはrhTSHを使用しないことを推奨する。",
+          "machine_hint": {
+            "population": "thyroid_cancer_with_distant_metastasis",
+            "condition": "rai_treatment_context",
+            "action": "rhTSH_use",
+            "direction": "against",
+            "strength": "strong",
+            "certainty": "D"
+          }
+        }
+      ]
+    },
+    {
+      "id": "real.jstage.sepsis_dic_2025.guideline_article",
+      "title_ja": "敗血症に伴うDICの診断と治療",
+      "title_en": "Diagnosis and treatment of sepsis-associated DIC",
+      "source_family": "jstage_pdf_article",
+      "guideline_relation": "guideline_derived_article_jsth_dic_gl_2024_and_j_sscg2024",
+      "publisher": "日本血栓止血学会",
+      "journal": "日本血栓止血学会誌",
+      "publication": {
+        "year": "2025",
+        "volume": "36",
+        "issue": "5",
+        "pages": "624-629",
+        "jstage_released": "2025-10-15"
+      },
+      "access": {
+        "landing_url": "https://www.jstage.jst.go.jp/article/jjsth/36/5/36_2025_JJTH_36_5_624-629/_html/-char/en",
+        "pdf_url": "https://www.jstage.jst.go.jp/article/jjsth/36/5/36_2025_JJTH_36_5_624-629/_pdf/-char/ja",
+        "doi": "https://doi.org/10.2491/jjsth.36.624",
+        "accessed_utc": "2026-06-11"
+      },
+      "license": {
+        "label": "CC BY-NC-SA 4.0",
+        "url": "https://creativecommons.org/licenses/by-nc-sa/4.0/deed.ja",
+        "redistribution_mode": "attributed_excerpt_noncommercial_sharealike"
+      },
+      "raw_artifacts": [
+        {
+          "artifact_id": "sepsis_dic_2025_article_html",
+          "kind": "html",
+          "url": "https://www.jstage.jst.go.jp/article/jjsth/36/5/36_2025_JJTH_36_5_624-629/_html/-char/en",
+          "path": "corpus/raw/real-guidelines/real.jstage.sepsis_dic_2025.guideline_article/article.html"
+        },
+        {
+          "artifact_id": "sepsis_dic_2025_pdf",
+          "kind": "pdf",
+          "url": "https://www.jstage.jst.go.jp/article/jjsth/36/5/36_2025_JJTH_36_5_624-629/_pdf/-char/ja",
+          "path": "corpus/raw/real-guidelines/real.jstage.sepsis_dic_2025.guideline_article/source.pdf"
+        }
+      ],
+      "candidate_spans": [
+        {
+          "region_id": "real.sepsis_dic.diagnosis.criteria_selection",
+          "locator": "PDF page 2, diagnosis strategy paragraph",
+          "cq_id": "敗血症に伴うDICの診断方法",
+          "quote": "敗血症に伴うDICの診断基準としては急性期DIC診断基準，Sepsis-induced Coagulopathy（SIC）診断基準，国際血栓止血学会（ISTH）overt DIC診断基準，日本血栓止血学会DIC診断基準などがあり，それぞれの特性を理解した上で適切なものを選択する",
+          "machine_hint": {
+            "population": "patient_with_sepsis_and_suspected_dic",
+            "condition": "sepsis_associated_dic",
+            "action": "select_dic_diagnostic_criteria_by_context",
+            "direction": "for",
+            "strength": "statement",
+            "certainty": "not_extracted"
+          }
+        },
+        {
+          "region_id": "real.sepsis_dic.treatment.at_rtm",
+          "locator": "PDF page 3, JSTH DIC GL 2024 treatment strategy",
+          "cq_id": "敗血症性DICに対する抗凝固薬",
+          "quote": "敗血症性DICに対する特異的治療薬として，アンチトロンビン（AT）製剤とリコンビナントトロンボモジュリン（rTM）製剤の投与をいずれも「強く推奨する（1B）」と明確に位置づけた",
+          "machine_hint": {
+            "population": "patient_with_sepsis_associated_dic",
+            "condition": "sepsis_associated_dic",
+            "action": "antithrombin_or_recombinant_thrombomodulin",
+            "direction": "for",
+            "strength": "strong",
+            "certainty": "B"
+          }
+        },
+        {
+          "region_id": "real.sepsis_dic.comparison.j_sscg_weak",
+          "locator": "PDF page 3, recommendation comparison table",
+          "cq_id": "JSTH DIC GL 2024 vs J-SSCG2024 comparison",
+          "quote": "アンチトロンビン（AT）製剤 強く推奨 3） 弱く推奨（CQ5-3）",
+          "machine_hint": {
+            "population": "patient_with_sepsis_associated_dic",
+            "condition": "sepsis_associated_dic",
+            "action": "antithrombin",
+            "direction": "for",
+            "strength": "cross_guideline_strength_difference",
+            "certainty": "not_extracted"
+          }
+        }
+      ]
+    }
+  ]
+}

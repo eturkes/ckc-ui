@@ -1,6 +1,7 @@
 /runs/
 /target/
 /.local/
+/corpus/raw/
 node_modules/
 .npm/
 .cache/

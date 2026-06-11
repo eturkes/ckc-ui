@@ -16,6 +16,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const runId = "m2-one-shot";
 const runDir = path.join(root, "runs", runId);
 const webDataPath = path.join(root, "index.html");
+const realGuidelineRegistryPath = path.join(root, "corpus", "real_guidelines", "japanese_guidelines.json");
+const realGuidelineRawManifestPath = path.join(root, "corpus", "raw", "real-guidelines", "manifest.json");
 const verifyMode = process.argv.includes("--verify");
 const recordedModel = process.argv.includes("--recorded-model");
 const liveModel = process.argv.includes("--live-model") || !recordedModel;
@@ -146,6 +148,89 @@ async function writeText(relativePath, value) {
   const absolutePath = path.join(runDir, relativePath);
   await mkdir(path.dirname(absolutePath), { recursive: true });
   await writeFile(absolutePath, value.endsWith("\n") ? value : `${value}\n`);
+}
+
+async function readOptionalJson(absolutePath) {
+  if (!existsSync(absolutePath)) return null;
+  return JSON.parse(await readFile(absolutePath, "utf8"));
+}
+
+function stableRawManifest(rawManifest) {
+  if (!rawManifest) return null;
+  return {
+    artifact_kind: rawManifest.artifact_kind,
+    schema_version: rawManifest.schema_version,
+    registry_path: rawManifest.registry_path,
+    sources: (rawManifest.sources ?? []).map((source) => ({
+      id: source.id,
+      title_ja: source.title_ja,
+      license_label: source.license_label,
+      artifacts: (source.artifacts ?? []).map((artifact) => ({
+        artifact_id: artifact.artifact_id,
+        kind: artifact.kind,
+        url: artifact.url,
+        path: artifact.path,
+        bytes: artifact.bytes,
+        sha256: artifact.sha256
+      }))
+    }))
+  };
+}
+
+async function buildRealGuidelineIntake() {
+  const registry = JSON.parse(await readFile(realGuidelineRegistryPath, "utf8"));
+  const rawManifest = await readOptionalJson(realGuidelineRawManifestPath);
+  const rawManifestStable = stableRawManifest(rawManifest);
+  const rawBySource = new Map((rawManifest?.sources ?? []).map((source) => [source.id, source]));
+  const sources = registry.sources.map((source) => {
+    const rawSource = rawBySource.get(source.id);
+    const rawArtifacts = source.raw_artifacts.map((artifact) => {
+      const fetched = rawSource?.artifacts?.find((entry) => entry.artifact_id === artifact.artifact_id);
+      return {
+        artifact_id: artifact.artifact_id,
+        kind: artifact.kind,
+        url: artifact.url,
+        path: artifact.path,
+        cache_status: fetched ? "fetched" : "not_fetched",
+        bytes: fetched?.bytes ?? null,
+        sha256: fetched?.sha256 ?? null
+      };
+    });
+    const candidateSpans = source.candidate_spans.map((span) => ({
+      ...span,
+      quote_hash: sha256Bytes(Buffer.from(span.quote)),
+      quote_chars: [...span.quote].length
+    }));
+    return {
+      id: source.id,
+      title_ja: source.title_ja,
+      title_en: source.title_en,
+      source_family: source.source_family,
+      guideline_relation: source.guideline_relation,
+      publisher: source.publisher,
+      journal: source.journal,
+      publication: source.publication,
+      access: source.access,
+      license: source.license,
+      raw_artifacts: rawArtifacts,
+      raw_cache_status: rawArtifacts.every((artifact) => artifact.cache_status === "fetched") ? "complete" : "missing",
+      candidate_spans: candidateSpans
+    };
+  });
+  return {
+    artifact_id: "artifact.real_guidelines.source_intake",
+    artifact_kind: "RealGuidelineSourceIntake",
+    registry_path: path.relative(root, realGuidelineRegistryPath),
+    raw_manifest_path: path.relative(root, realGuidelineRawManifestPath),
+    registry_hash: sha256(registry),
+    raw_manifest_hash: rawManifestStable ? sha256(rawManifestStable) : null,
+    source_count: sources.length,
+    candidate_span_count: sources.reduce((count, source) => count + source.candidate_spans.length, 0),
+    sources,
+    admission_scope: "source_intake_candidate_only",
+    scoring_scope: "not_in_locked_m1_m2_measurement",
+    clinical_claim_scope: "none"
+  };
 }
 
 function stripTags(html) {
@@ -1107,7 +1192,7 @@ function scoreRows() {
   return { rawRows, routeMetrics: [...byRoute.values()], liftTable, ioRecords, liveCalls };
 }
 
-function buildTrace(artifactsByDoc, groupResults, finding, nullResult) {
+function buildTrace(artifactsByDoc, groupResults, finding, nullResult, realGuidelineIntake) {
   const nodes = [];
   const edges = [];
   for (const doc of artifactsByDoc.values()) {
@@ -1135,6 +1220,10 @@ function buildTrace(artifactsByDoc, groupResults, finding, nullResult) {
   }
   nodes.push({ id: "artifact.report.json", kind: "report" });
   for (const result of groupResults) edges.push({ from: `artifact.${result.compiled.group_id}.verifier_results`, to: "artifact.report.json", op: "render_report" });
+  if (realGuidelineIntake) {
+    nodes.push({ id: realGuidelineIntake.artifact_id, kind: "real_guideline_source_intake" });
+    edges.push({ from: realGuidelineIntake.artifact_id, to: "artifact.report.json", op: "render_source_intake" });
+  }
 
   return {
     artifact_kind: "TraceBundle",
@@ -1167,6 +1256,7 @@ function markdownReport(report) {
   const irConclusion = irMetric.admission_rate.numerator > 0
     ? `The IR route produced ${irMetric.admission_rate.exact} admitted rows; admitted verdict accuracy is ${irMetric.admitted_verdict_accuracy.exact}.`
     : `The IR route produced no admitted rows in this live run; candidate verdicts are reported only as rejected model outputs.`;
+  const realGuidelineRows = report.real_guideline_intake.sources.map((source) => `| ${source.id} | ${source.license_label} | ${source.raw_cache_status} | ${source.candidate_span_count} | ${source.guideline_relation} |`).join("\n");
   return `# CKC one-shot M1-M2 research report
 
 Run: \`${report.run_id}\`
@@ -1185,6 +1275,14 @@ Route verdict accuracy below is admitted verdict accuracy. Candidate verdict acc
 
 ${report.findings[0].quoted_spans.map((span) => `- \`${span.region_id}\`: ${span.text}`).join("\n")}
 - \`${report.null_results[0].quoted_spans[1].region_id}\`: ${report.null_results[0].quoted_spans[1].text}
+
+## Real guideline source intake
+
+Scope: source-intake candidate evidence only. These real Japanese guideline sources are fetched and permission-recorded for PoC extraction work, but they are not part of the locked M1/M2 solver score and make no clinical recommendation claim here.
+
+| Source | License | Raw cache | Candidate spans | Relation |
+| --- | --- | --- | ---: | --- |
+${realGuidelineRows}
 
 ## M2 lift table
 
@@ -1218,6 +1316,7 @@ function japaneseReport(report) {
   const irConclusion = irMetric.admission_rate.numerator > 0
     ? `IR route は ${irMetric.admission_rate.exact} 行を admitted とした。admitted verdict accuracy は ${irMetric.admitted_verdict_accuracy.exact}。`
     : "この live run では IR route の admitted 行は 0。candidate verdict は rejected model output の監査情報としてのみ扱う。";
+  const realGuidelineRows = report.real_guideline_intake.sources.map((source) => `| ${source.id} | ${source.license_label} | ${source.raw_cache_status} | ${source.candidate_span_count} |`).join("\n");
   return `# CKC one-shot M1-M2 研究レポート
 
 run: \`${report.run_id}\`
@@ -1234,6 +1333,14 @@ run: \`${report.run_id}\`
 
 ${report.findings[0].quoted_spans.map((span) => `- \`${span.region_id}\`: ${span.text}`).join("\n")}
 - \`${report.null_results[0].quoted_spans[1].region_id}\`: ${report.null_results[0].quoted_spans[1].text}
+
+## 実ガイドライン source intake
+
+範囲: source-intake candidate evidence のみ。実在する日本語診療ガイドライン系ソースを PoC 抽出候補として fetch/permission 記録したが、M1/M2 の locked score には含めず、ここでは臨床推奨の主張をしない。
+
+| source | license | raw cache | candidate spans |
+| --- | --- | --- | ---: |
+${realGuidelineRows}
 
 ## M2 lift table
 
@@ -1286,6 +1393,53 @@ function renderBasicUi(data) {
             <td>${row.candidate_verdict_correct ? "yes" : "no"}</td>
             <td>${escapeHtml(row.diagnostics.join(", ") || "none")}</td>
           </tr>`).join("");
+  const realGuideline = data.real_guideline_intake;
+  const realGuidelineRows = realGuideline.sources.map((source) => `
+          <tr>
+            <td><code>${escapeHtml(source.id)}</code></td>
+            <td>${escapeHtml(source.title_ja)}</td>
+            <td>${escapeHtml(source.license.label)}</td>
+            <td>${escapeHtml(source.raw_cache_status)}</td>
+            <td>${escapeHtml(source.candidate_spans.length)}</td>
+            <td>${escapeHtml(source.guideline_relation)}</td>
+          </tr>`).join("");
+  const realGuidelineDetails = realGuideline.sources.map((source) => {
+    const spans = source.candidate_spans.map((span) => `
+          <tr>
+            <td><code>${escapeHtml(span.region_id)}</code></td>
+            <td>${escapeHtml(span.cq_id)}</td>
+            <td>${escapeHtml(span.machine_hint.direction)}</td>
+            <td>${escapeHtml(span.machine_hint.action)}</td>
+            <td>${escapeHtml(span.quote)}</td>
+          </tr>`).join("");
+    const rawArtifacts = source.raw_artifacts.map((artifact) => `
+          <tr>
+            <td><code>${escapeHtml(artifact.artifact_id)}</code></td>
+            <td>${escapeHtml(artifact.kind)}</td>
+            <td>${escapeHtml(artifact.cache_status)}</td>
+            <td>${escapeHtml(artifact.sha256 ?? "not fetched")}</td>
+          </tr>`).join("");
+    return `
+        <details>
+          <summary><code>${escapeHtml(source.id)}</code> / ${escapeHtml(source.title_ja)}</summary>
+          <h3>Selected candidate spans</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Region</th><th>CQ</th><th>Direction</th><th>Action hint</th><th>Source span</th></tr></thead>
+              <tbody>${spans}
+              </tbody>
+            </table>
+          </div>
+          <h3>Raw cache</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Artifact</th><th>Kind</th><th>Status</th><th>SHA-256</th></tr></thead>
+              <tbody>${rawArtifacts}
+              </tbody>
+            </table>
+          </div>
+        </details>`;
+  }).join("").trimStart();
   const ioBlocks = data.model_io.map((record) => {
     const sourceCalls = record.source_calls
       ? [
@@ -1350,6 +1504,7 @@ function renderBasicUi(data) {
     .metric strong { display: block; font-size: 1.45rem; line-height: 1; }
     .metric span { display: block; color: var(--muted); margin-top: 6px; font-size: .82rem; }
     table { width: 100%; border-collapse: collapse; min-width: 720px; }
+    .wide { min-width: 920px; }
     th, td { border-bottom: 1px solid var(--line); padding: 8px; text-align: left; vertical-align: top; font-size: .82rem; }
     th { color: var(--muted); background: #f7fafb; }
     .table-wrap { overflow-x: auto; }
@@ -1390,6 +1545,19 @@ function renderBasicUi(data) {
       <p><code>${escapeHtml(finding.finding_id)}</code> / <code>${escapeHtml(nullResult.null_result_id)}</code></p>
       ${finding.quoted_spans.map((span) => `<div class="quote"><code>${escapeHtml(span.region_id)}</code>: ${escapeHtml(span.text)}</div>`).join("")}
       <div class="quote"><code>${escapeHtml(nullResult.quoted_spans[1].region_id)}</code>: ${escapeHtml(nullResult.quoted_spans[1].text)}</div>
+    </section>
+
+    <section>
+      <h2>Real guideline intake</h2>
+      <p>Permission-recorded source candidates fetched for PoC extraction work. These rows are not included in the locked M1/M2 score and make no clinical recommendation claim.</p>
+      <div class="table-wrap">
+        <table class="wide">
+          <thead><tr><th>Source</th><th>Title</th><th>License</th><th>Raw cache</th><th>Spans</th><th>Relation</th></tr></thead>
+          <tbody>${realGuidelineRows}
+          </tbody>
+        </table>
+      </div>
+      ${realGuidelineDetails}
     </section>
 
     <section>
@@ -1555,9 +1723,12 @@ async function main() {
     }
   }
 
+  const realGuidelineIntake = await buildRealGuidelineIntake();
+  await writeJson("real_guidelines/source_intake.json", realGuidelineIntake);
+
   const finding = buildFinding(groupResults.find((entry) => entry.compiled.group_id === "group.m1_conflict"), artifactsByDoc);
   const nullResult = buildNullResult(groupResults.find((entry) => entry.compiled.group_id === "group.m1_null"), artifactsByDoc);
-  const traceBundle = buildTrace(artifactsByDoc, groupResults, finding, nullResult);
+  const traceBundle = buildTrace(artifactsByDoc, groupResults, finding, nullResult, realGuidelineIntake);
   const lineageIndex = {
     artifact_kind: "LineageIndex",
     run_id: runId,
@@ -1588,7 +1759,10 @@ async function main() {
     run_id: runId,
     generated_by: "tools/build-run.mjs",
     experiments: ["exp.m1_spine", "exp.m2_lift"],
-    corpus_hash: sha256(fixtureRegistry.map((fixture) => ({ id: fixture.id, path: fixture.path }))),
+    corpus_hash: sha256({
+      synthetic_fixtures: fixtureRegistry.map((fixture) => ({ id: fixture.id, path: fixture.path })),
+      real_guidelines: realGuidelineIntake.registry_hash
+    }),
     lexicon_hash: sha256(["pop.adult", "pop.child", "cond.sepsis", "cond.renal_severe", "cond.pregnancy", "drug.abx_a"]),
     solver_identity: "one-shot-js-symbolic-verifier",
     model_identity: modelMeta.model_identity,
@@ -1605,9 +1779,38 @@ async function main() {
       route_metrics: metrics.routeMetrics,
       lift_table: metrics.liftTable
     },
+    real_guideline_intake: {
+      artifact_id: realGuidelineIntake.artifact_id,
+      registry_path: realGuidelineIntake.registry_path,
+      registry_hash: realGuidelineIntake.registry_hash,
+      raw_manifest_path: realGuidelineIntake.raw_manifest_path,
+      raw_manifest_hash: realGuidelineIntake.raw_manifest_hash,
+      source_count: realGuidelineIntake.source_count,
+      candidate_span_count: realGuidelineIntake.candidate_span_count,
+      admission_scope: realGuidelineIntake.admission_scope,
+      scoring_scope: realGuidelineIntake.scoring_scope,
+      clinical_claim_scope: realGuidelineIntake.clinical_claim_scope,
+      sources: realGuidelineIntake.sources.map((source) => ({
+        id: source.id,
+        title_ja: source.title_ja,
+        license_label: source.license.label,
+        license_url: source.license.url,
+        raw_cache_status: source.raw_cache_status,
+        candidate_span_count: source.candidate_spans.length,
+        guideline_relation: source.guideline_relation,
+        landing_url: source.access.landing_url,
+        doi: source.access.doi
+      }))
+    },
     replay: {
       status: "pending_manifest",
-      deterministic_inputs: ["corpus/fixtures", "corpus/gold/m1_expected.json", "registry"]
+      deterministic_inputs: [
+        "corpus/fixtures",
+        "corpus/gold/m1_expected.json",
+        "registry",
+        "corpus/real_guidelines/japanese_guidelines.json",
+        ...(realGuidelineIntake.raw_manifest_hash ? ["corpus/raw/real-guidelines/manifest.json"] : [])
+      ]
     },
     wording_scope: [
       "research harness",
@@ -1617,6 +1820,7 @@ async function main() {
       "replayable",
       "locked measurement",
       "synthetic fixture measurement",
+      "real guideline source intake candidate",
       "documented null result"
     ]
   };
@@ -1638,6 +1842,8 @@ async function main() {
     model_runtime: modelMeta.model_runtime,
     experiments: report.experiments,
     fixture_ids: fixtureRegistry.map((fixture) => fixture.id),
+    real_guideline_source_ids: realGuidelineIntake.sources.map((source) => source.id),
+    real_guideline_intake_hash: sha256(realGuidelineIntake),
     route_ids: ["route.direct_smt", "route.single_ir"],
     report_hash: sha256(report)
   };
@@ -1645,6 +1851,7 @@ async function main() {
 
   const events = [
     { event: "run_started", run_id: runId },
+    { event: "real_guideline_intake_completed", outcome: "ok", sources: realGuidelineIntake.source_count, candidate_spans: realGuidelineIntake.candidate_span_count },
     { event: "m1_spine_completed", outcome: "ok" },
     { event: "m2_lift_completed", outcome: "ok", model_mode: modelMeta.model_mode, live_model_calls: modelMeta.live_model_calls },
     { event: "run_completed", outcome: "ok" }
@@ -1671,6 +1878,7 @@ async function main() {
     route_metrics: metrics.routeMetrics,
     lift_table: metrics.liftTable,
     raw_rows: metrics.rawRows,
+    real_guideline_intake: realGuidelineIntake,
     model_io: metrics.ioRecords,
     artifacts: replayManifest.files,
     groups: groupResults.map((entry) => ({
@@ -1693,6 +1901,7 @@ async function main() {
       "report.ja.md",
       "trace_bundle.json",
       "lineage_index.json",
+      "real_guidelines/source_intake.json",
       "metrics/raw_rows.json",
       "model_io/route.direct_smt/group.m1_conflict/seed-11.json"
     ];
@@ -1703,6 +1912,9 @@ async function main() {
       single.samples === 6,
       metrics.rawRows.length === 12,
       metrics.ioRecords.length === 12,
+      realGuidelineIntake.source_count >= 2,
+      realGuidelineIntake.candidate_span_count >= 6,
+      report.real_guideline_intake.scoring_scope === "not_in_locked_m1_m2_measurement",
       existsSync(webDataPath),
       ...requiredFiles.map((relative) => existsSync(path.join(runDir, relative)))
     ];
