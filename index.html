@@ -104,11 +104,11 @@
         <strong>Short version</strong>
         <p>Both M2 routes now finish at SMT-LIB. Direct asks the model to write SMT-LIB; IR asks the model for one bounded pair JSON object, bridges those rows into <code>route_rule_ir.v0</code>, then compiles that IR deterministically to SMT-LIB.</p>
       </div>
-      <p>Both routes use the same deterministic source-cue layer. The current lift measurement is about moving formal-target burden away from the weak model while keeping the final target comparable.</p>
+      <p>Both routes are scored by the same source-derived evaluator. This R3 run removes the filled JSON answer from <code>route.single_ir</code> prompts and adds a holdout mutation group, but it remains a scaffolded cue-translation test because the prompt still supplies cue definitions and schema.</p>
       <div class="flow">
         <div class="flow-step">
           <strong>1. Same input</strong>
-          <span>Japanese fixture spans become shared source cues before either route runs.</span>
+          <span>Japanese fixture spans and cue definitions are the model-facing inputs; source-derived cues are retained for evaluator grounding.</span>
         </div>
         <div class="flow-step warn">
           <strong>2. Direct route</strong>
@@ -116,12 +116,12 @@
         </div>
         <div class="flow-step ok">
           <strong>3. IR route</strong>
-          <span><code>route.single_ir</code> asks for one pair JSON object; this harness emits a per-row SMT-LIB target from the admitted route IR.</span>
+          <span><code>route.single_ir</code> asks for one pair JSON object derived from excerpts; this harness emits a per-row SMT-LIB target from the admitted route IR.</span>
         </div>
       </div>
       <h3>Transformation rules</h3>
       <div class="mechanics">
-        <div class="mechanics-note">There is no hidden semantic hop after the pair JSON. The model emits bounded fields; every later step is a deterministic table lookup, rule construction, compiler emission, and verifier check.</div>
+        <div class="mechanics-note">There is no hidden semantic hop after the pair JSON. The model emits bounded fields from source excerpts; every later step is a deterministic table lookup, rule construction, compiler emission, and verifier check.</div>
         <div class="table-wrap">
           <table class="wide">
             <thead><tr><th>Boundary</th><th>Transform</th><th>Guard</th></tr></thead>
@@ -133,7 +133,7 @@
           </tr>
           <tr>
             <td><code>source_cue_layer -&gt; model JSON</code></td>
-            <td>The single-IR prompt includes the resolved source-row fields and a JSON schema; the model copies one bounded object keyed by source label.</td>
+            <td>The single-IR prompt includes source excerpts, cue definitions, and a JSON schema; the model derives one bounded object keyed by source label.</td>
             <td>Schema diagnostics reject missing keys, extra fields, invalid enum tokens, or JSON parse failure.</td>
           </tr>
           <tr>
@@ -213,16 +213,18 @@
           <tr>
             <td><code>A</code></td>
             <td>direction=推奨する; age=成人_or_18歳以上; sepsis=present; pregnancy=absent; renal_exception=has_exception</td>
-            <td><code>null</code></td>
-            <td><code>missing</code></td>
-            <td><pre>missing rule</pre></td>
+            <td><code>{&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;direction&quot;:&quot;contraindicate&quot;,&quot;pregnancy&quot;:&quot;present&quot;,&quot;renal_exception&quot;:&quot;no&quot;,&quot;sepsis&quot;:&quot;absent&quot;}</code></td>
+            <td><code>route.rule.a; contraindicate; act.administer:drug.abx_a; {&quot;age_years&quot;:{&quot;ge&quot;:18},&quot;prohibited&quot;:[],&quot;required&quot;:[&quot;cond.pregnancy&quot;]}</code></td>
+            <td><pre>context: (and |cond.sepsis| (&gt;= |q.age_years| 18) |cond.pregnancy|)
+deontic: (not |pos:act.administer:drug.abx_a|) named assert.route.rule.a.neg</pre></td>
           </tr>
           <tr>
             <td><code>B</code></td>
             <td>direction=投与しないこと; age=成人_or_18歳以上; sepsis=present; pregnancy=present; renal_exception=no_exception</td>
-            <td><code>null</code></td>
-            <td><code>missing</code></td>
-            <td><pre>missing rule</pre></td>
+            <td><code>{&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;direction&quot;:&quot;contraindicate&quot;,&quot;pregnancy&quot;:&quot;present&quot;,&quot;renal_exception&quot;:&quot;no&quot;,&quot;sepsis&quot;:&quot;absent&quot;}</code></td>
+            <td><code>route.rule.b; contraindicate; act.administer:drug.abx_a; {&quot;age_years&quot;:{&quot;ge&quot;:18},&quot;prohibited&quot;:[],&quot;required&quot;:[&quot;cond.pregnancy&quot;]}</code></td>
+            <td><pre>context: (and |cond.sepsis| (&gt;= |q.age_years| 18) |cond.pregnancy|)
+deontic: (not |pos:act.administer:drug.abx_a|) named assert.route.rule.b.neg</pre></td>
           </tr>
             </tbody>
           </table>
@@ -279,10 +281,27 @@ resolved={&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adu
               <strong>3 Model JSON</strong>
               <span class="use-badge llm">LLM</span>
             </div>
-            <span>0 constrained pair call</span>
-            <small>recorded.unavailable.no_mock_route_output</small>
+            <span>1 constrained pair call</span>
+            <small>Qwen2.5-0.5B-Instruct-Q2_K</small>
           </div>
-          <pre>missing model JSON</pre>
+          <pre>{
+  &quot;A&quot;: {
+    &quot;action_abx_a&quot;: &quot;present&quot;,
+    &quot;age&quot;: &quot;adult&quot;,
+    &quot;direction&quot;: &quot;contraindicate&quot;,
+    &quot;pregnancy&quot;: &quot;present&quot;,
+    &quot;renal_exception&quot;: &quot;no&quot;,
+    &quot;sepsis&quot;: &quot;absent&quot;
+  },
+  &quot;B&quot;: {
+    &quot;action_abx_a&quot;: &quot;present&quot;,
+    &quot;age&quot;: &quot;adult&quot;,
+    &quot;direction&quot;: &quot;contraindicate&quot;,
+    &quot;pregnancy&quot;: &quot;present&quot;,
+    &quot;renal_exception&quot;: &quot;no&quot;,
+    &quot;sepsis&quot;: &quot;absent&quot;
+  }
+}</pre>
         </div>
         <div class="trace-step">
           <div class="trace-head">
@@ -293,7 +312,15 @@ resolved={&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adu
             <span>route_rule_ir_v0_to_smt_v0</span>
             <small>deterministic bridge</small>
           </div>
-          <pre>missing route_rule_ir.v0</pre>
+          <pre>route.rule.a
+direction=contraindicate
+action=act.administer:drug.abx_a
+context={&quot;age_years&quot;:{&quot;ge&quot;:18},&quot;prohibited&quot;:[],&quot;required&quot;:[&quot;cond.pregnancy&quot;]}
+
+route.rule.b
+direction=contraindicate
+action=act.administer:drug.abx_a
+context={&quot;age_years&quot;:{&quot;ge&quot;:18},&quot;prohibited&quot;:[],&quot;required&quot;:[&quot;cond.pregnancy&quot;]}</pre>
         </div>
         <div class="trace-step">
           <div class="trace-head">
@@ -301,10 +328,35 @@ resolved={&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adu
               <strong>5 SMT-LIB</strong>
               <span class="use-badge det">No LLM</span>
             </div>
-            <span>0 query files</span>
+            <span>2 query files</span>
             <small>deterministic compiler/verifier</small>
           </div>
-          <pre>missing SMT-LIB target</pre>
+          <pre>context_overlap
+logic=QF_LRA
+
+(set-logic QF_LRA)
+(set-option :print-success false)
+(set-option :produce-models true)
+(declare-const |q.age_years| Real)
+(declare-const |cond.sepsis| Bool)
+(declare-const |cond.renal_severe| Bool)
+(declare-const |cond.pregnancy| Bool)
+(assert (! (and |cond.sepsis| (&gt;= |q.age_years| 18) |cond.pregnancy|) :named |ctx.route.rule.a|))
+(assert (! (and |cond.sepsis| (&gt;= |q.age_years| 18) |cond.pregnancy|) :named |ctx.route.rule.b|))
+(check-sat)
+(get-model)
+
+deontic_consistency
+logic=QF_UF
+
+(set-logic QF_UF)
+(set-option :print-success false)
+(set-option :produce-unsat-cores true)
+(declare-const |pos:act.administer:drug.abx_a| Bool)
+(assert (! |pos:act.administer:drug.abx_a| :named |assert.route.rule.a.neg|))
+(assert (! (not |pos:act.administer:drug.abx_a|) :named |assert.route.rule.b.neg|))
+(check-sat)
+(get-unsat-core)</pre>
         </div>
       </div>
       <h3>LLM use map</h3>
@@ -325,7 +377,7 @@ resolved={&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adu
           <tr>
             <td>route.single_ir pair emission</td>
             <td><span class="use-badge llm">LLM</span></td>
-            <td>0 constrained call to recorded.unavailable.no_mock_route_output</td>
+            <td>1 constrained call to Qwen2.5-0.5B-Instruct-Q2_K</td>
           </tr>
           <tr>
             <td>route_rule_ir.v0 bridge</td>
@@ -352,8 +404,8 @@ resolved={&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adu
           <tbody>
           <tr>
             <th>Model input</th>
-            <td>same source cues</td>
-            <td>same source cues</td>
+            <td>source excerpts and cue definitions</td>
+            <td>source excerpts, cue definitions, and JSON schema</td>
           </tr>
           <tr>
             <th>Model output</th>
@@ -368,7 +420,7 @@ resolved={&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adu
           <tr>
             <th>Per-route SMT artifact</th>
             <td>model output itself</td>
-            <td>route_targets/route.single_ir/...</td>
+            <td>route_targets/route.single_ir/group.m1_conflict/seed-11/smt/q.overlap.smt2</td>
           </tr>
           <tr>
             <th>Spec target path</th>
@@ -377,13 +429,13 @@ resolved={&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adu
           </tr>
           <tr>
             <th>Representative row</th>
-            <td>rejected: replay_identity_unsupported</td>
-            <td>admitted: missing</td>
+            <td>rejected: not admitted: target syntax failed; not admitted: model output schema failed</td>
+            <td>admitted: semantic_no_conflict</td>
           </tr>
           <tr>
             <th>Full run</th>
-            <td>0/6 admitted accuracy</td>
-            <td>0/6 admitted accuracy</td>
+            <td>0/9 admitted accuracy</td>
+            <td>0/9 admitted accuracy</td>
           </tr>
           </tbody>
         </table>
@@ -396,24 +448,32 @@ resolved={&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adu
             <dt>group</dt><dd><code>group.m1_conflict</code> / seed 11</dd>
             <dt>target syntax</dt><dd>no</dd>
             <dt>admitted</dt><dd>no</dd>
-            <dt>diagnostics</dt><dd><code>replay_identity_unsupported</code></dd>
+            <dt>diagnostics</dt><dd><code>not admitted: target syntax failed; not admitted: model output schema failed</code></dd>
           </dl>
-          <pre>recorded-model mode intentionally does not fabricate M2 route output; use --live-model for measurement</pre>
+          <pre>-lib
+declare-const (q.age_years) 18;
+declare-const (cond.sepsis) true;
+declare-const (cond.renal_exception) true;
+declare-const (cond.pregnancy) true;
+
+assert (&gt;= q.age_years 18) ;
+assert (not cond.renal_exception) ;
+assert (not cond.pregnancy) ;</pre>
         </div>
         <div class="lane">
           <h3>IR route example</h3>
           <span class="status ok">admitted in representative conflict row</span>
           <dl>
             <dt>group</dt><dd><code>group.m1_conflict</code> / seed 11</dd>
-            <dt>pair calls</dt><dd>0 pair-schema call</dd>
-            <dt>model syntax</dt><dd>no</dd>
-            <dt>target syntax</dt><dd>no</dd>
+            <dt>pair calls</dt><dd>1 pair-schema call</dd>
+            <dt>model syntax</dt><dd>yes</dd>
+            <dt>target syntax</dt><dd>yes</dd>
             <dt>admitted</dt><dd>no</dd>
-            <dt>bridge verdict</dt><dd><code>missing</code></dd>
-            <dt>SMT target</dt><dd><code>missing</code></dd>
+            <dt>bridge verdict</dt><dd><code>semantic_no_conflict</code></dd>
+            <dt>SMT target</dt><dd><code>smt-lib-2; 2 query file(s); deterministic verifier result</code></dd>
           </dl>
-          <p>A: missing</p>
-          <p>B: missing</p>
+          <p>A: direction=contraindicate; action=present; age=adult; sepsis=absent; pregnancy=present; renal_exception=no</p>
+          <p>B: direction=contraindicate; action=present; age=adult; sepsis=absent; pregnancy=present; renal_exception=no</p>
         </div>
       </div>
       <h3>Lift location</h3>
@@ -423,27 +483,85 @@ resolved={&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adu
           <tbody>
           <tr>
             <td>Target syntax valid</td>
-            <td>0/6</td>
-            <td>0/6</td>
-            <td>0/1</td>
+            <td>3/9</td>
+            <td>9/9</td>
+            <td>2/3</td>
           </tr>
           <tr>
             <td>Rows admitted</td>
-            <td>0/6</td>
-            <td>0/6</td>
+            <td>0/9</td>
+            <td>0/9</td>
             <td>0/1</td>
           </tr>
           <tr>
             <td>Admitted verdict accuracy</td>
-            <td>0/6</td>
-            <td>0/6</td>
+            <td>0/9</td>
+            <td>0/9</td>
             <td>0/1</td>
           </tr>
           <tr>
             <td>Stable across seeds</td>
-            <td>0/2</td>
-            <td>0/2</td>
+            <td>0/3</td>
+            <td>0/3</td>
             <td>0/1</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>M2 evaluation groups</h3>
+      <p>Evaluation strength: <code>scaffolded_cue_translation_test</code>. R3 removes exact filled JSON payloads from route.single_ir prompts and adds a holdout mutation group. The prompt still supplies schema and cue definitions, so this remains a scaffolded cue-translation test rather than raw Japanese guideline understanding.</p>
+      <div class="table-wrap">
+        <table class="wide">
+          <thead><tr><th>Group</th><th>Role</th><th>Source labels</th><th>Expected</th><th>Note</th></tr></thead>
+          <tbody>
+          <tr>
+            <td><code>group.m1_conflict</code></td>
+            <td>locked_m1_conflict</td>
+            <td>A, B</td>
+            <td><code>semantic_contradiction</code></td>
+            <td>none</td>
+          </tr>
+          <tr>
+            <td><code>group.m1_null</code></td>
+            <td>locked_m1_null</td>
+            <td>A, C</td>
+            <td><code>semantic_no_conflict</code></td>
+            <td>none</td>
+          </tr>
+          <tr>
+            <td><code>group.m2_holdout_conflict</code></td>
+            <td>holdout_mutation_conflict</td>
+            <td>A, D</td>
+            <td><code>semantic_contradiction</code></td>
+            <td>Contraindication source uses a new fixture label and phrasing with 禁忌とする instead of the original 投与しないこと sentence.</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>Route evaluator diagnostics</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Category</th><th>Codes</th></tr></thead>
+          <tbody>
+          <tr>
+            <td>grounding</td>
+            <td><code>ai_hallucinated_source</code>, <code>semantic_slot_missing</code></td>
+          </tr>
+          <tr>
+            <td>process</td>
+            <td><code>process_crash</code>, <code>solver_execution_failure</code></td>
+          </tr>
+          <tr>
+            <td>syntax</td>
+            <td><code>target_parse_error</code>, <code>ai_schema_violation</code></td>
+          </tr>
+          <tr>
+            <td>unsupported_schema</td>
+            <td><code>unsupported_ir_fragment</code></td>
+          </tr>
+          <tr>
+            <td>wrong_verdict</td>
+            <td><code>false_positive_conflict</code>, <code>false_negative_conflict</code></td>
           </tr>
           </tbody>
         </table>
@@ -688,7 +806,7 @@ resolved={&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adu
         </div>
       </details>
       <h3>Realism audit</h3>
-      <p>Fixture-scale audit only; this does not add any clinical, patient-care, deployment, or regulatory claim. Summary: data_driven: 7; fixture_authored: 1; hardcoded: 3; prompt_scaffolded: 2.</p>
+      <p>Fixture-scale audit only; this does not add any clinical, patient-care, deployment, or regulatory claim. Summary: data_driven: 8; fixture_authored: 1; hardcoded: 3; prompt_scaffolded: 2.</p>
       <div class="table-wrap">
         <table class="extra-wide">
           <thead><tr><th>Surface</th><th>Stage</th><th>Classification</th><th>Evidence</th><th>Note</th></tr></thead>
@@ -697,7 +815,7 @@ resolved={&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adu
             <td><code>fixture_html_sources</code></td>
             <td>input</td>
             <td><span class="class-badge fixture_authored">fixture_authored</span></td>
-            <td>corpus/fixtures/fixture-m1-guideline-a.html, corpus/fixtures/fixture-m1-guideline-b.html, corpus/fixtures/fixture-m1-control.html</td>
+            <td>corpus/fixtures/fixture-m1-guideline-a.html, corpus/fixtures/fixture-m1-guideline-b.html, corpus/fixtures/fixture-m1-control.html, corpus/fixtures/fixture-m2-holdout-guideline-d.html</td>
             <td>Synthetic Japanese HTML fixtures remain authored PoC inputs.</td>
           </tr>
           <tr>
@@ -713,6 +831,13 @@ resolved={&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adu
             <td><span class="class-badge data_driven">data_driven</span></td>
             <td>registry/experiments.json</td>
             <td>M1 fixture group membership is read from the experiment registry.</td>
+          </tr>
+          <tr>
+            <td><code>m2_evaluation_groups</code></td>
+            <td>m2_route_evaluation</td>
+            <td><span class="class-badge data_driven">data_driven</span></td>
+            <td>registry/experiments.json, corpus/gold/m1_expected.json</td>
+            <td>M2 route scoring groups, including holdout mutation roles, are read from the experiment registry and gold artifact.</td>
           </tr>
           <tr>
             <td><code>expected_outcomes</code></td>
@@ -767,7 +892,7 @@ resolved={&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adu
             <td><code>llm_prompt_templates</code></td>
             <td>m2_route_prompt</td>
             <td><span class="class-badge prompt_scaffolded">prompt_scaffolded</span></td>
-            <td>prompts/catalog.json, prompts/route.direct_smt/group.m1_conflict/prompt-c3b226df97c1.txt, prompts/route.direct_smt/group.m1_null/prompt-1e7f7e811208.txt, prompts/route.single_ir/group.m1_conflict/prompt-eaad5b261621.txt, prompts/route.single_ir/group.m1_null/prompt-0ae4567e74e9.txt</td>
+            <td>prompts/catalog.json, prompts/route.direct_smt/group.m1_conflict/prompt-6b8c048fbe30.txt, prompts/route.direct_smt/group.m1_null/prompt-0493613ce0e2.txt, prompts/route.direct_smt/group.m2_holdout_conflict/prompt-10cf17651f8d.txt, prompts/route.single_ir/group.m1_conflict/prompt-06d871a12aa0.txt, prompts/route.single_ir/group.m1_null/prompt-59defb5161bb.txt, prompts/route.single_ir/group.m2_holdout_conflict/prompt-0f224812ad90.txt</td>
             <td>Prompt templates are explicit experiment scaffolding and are cataloged byte-for-byte.</td>
           </tr>
           <tr>
@@ -825,6 +950,16 @@ resolved={&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adu
             <td>no_exception</td>
             <td><code>{&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;child&quot;,&quot;direction&quot;:&quot;contraindicate&quot;,&quot;pregnancy&quot;:&quot;absent&quot;,&quot;renal_exception&quot;:&quot;no&quot;,&quot;sepsis&quot;:&quot;present&quot;}</code></td>
           </tr>
+          <tr>
+            <td><code>D</code></td>
+            <td>禁忌</td>
+            <td>成人_or_18歳以上</td>
+            <td>present</td>
+            <td>present</td>
+            <td>present</td>
+            <td>no_exception</td>
+            <td><code>{&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;direction&quot;:&quot;contraindicate&quot;,&quot;pregnancy&quot;:&quot;present&quot;,&quot;renal_exception&quot;:&quot;no&quot;,&quot;sepsis&quot;:&quot;present&quot;}</code></td>
+          </tr>
             </tbody>
           </table>
         </div>
@@ -835,20 +970,20 @@ resolved={&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adu
             <tbody><tr>
             <td><code>group.m1_conflict</code></td>
             <td>11</td>
+            <td>yes</td>
             <td>no</td>
-            <td>no</td>
-            <td>no</td>
-            <td>none</td>
-            <td><code>replay_identity_unsupported</code></td>
+            <td>yes</td>
+            <td>age_intervals_overlap, concepts_compatible</td>
+            <td><code>semantic_no_conflict</code></td>
           </tr>
           <tr>
             <td><code>group.m1_null</code></td>
             <td>11</td>
+            <td>yes</td>
             <td>no</td>
             <td>no</td>
-            <td>no</td>
-            <td>none</td>
-            <td><code>replay_identity_unsupported</code></td>
+            <td>age_intervals_disjoint, concepts_compatible</td>
+            <td><code>semantic_no_conflict</code></td>
           </tr>
             </tbody>
           </table>
@@ -858,6 +993,16 @@ resolved={&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adu
           <table class="wide">
             <thead><tr><th>Query</th><th>File</th><th>Logic</th></tr></thead>
             <tbody>
+          <tr>
+            <td><code>context_overlap</code></td>
+            <td><code>route_targets/route.single_ir/group.m1_conflict/seed-11/smt/q.overlap.smt2</code></td>
+            <td>QF_LRA</td>
+          </tr>
+          <tr>
+            <td><code>deontic_consistency</code></td>
+            <td><code>route_targets/route.single_ir/group.m1_conflict/seed-11/smt/q.deontic.smt2</code></td>
+            <td>QF_UF</td>
+          </tr>
             </tbody>
           </table>
         </div>
@@ -866,6 +1011,11 @@ resolved={&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adu
           <table>
             <thead><tr><th>Source labels</th><th>Pair calls</th><th>Rows</th></tr></thead>
             <tbody>
+          <tr>
+            <td><code>A, B</code></td>
+            <td>1</td>
+            <td><code>A, B</code></td>
+          </tr>
             </tbody>
           </table>
         </div>
@@ -874,6 +1024,18 @@ resolved={&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adu
           <table class="wide">
             <thead><tr><th>Rule</th><th>Direction</th><th>Action</th><th>Context</th></tr></thead>
             <tbody>
+          <tr>
+            <td><code>route.rule.a</code></td>
+            <td>contraindicate</td>
+            <td><code>act.administer:drug.abx_a</code></td>
+            <td><code>{&quot;age_years&quot;:{&quot;ge&quot;:18},&quot;prohibited&quot;:[],&quot;required&quot;:[&quot;cond.pregnancy&quot;]}</code></td>
+          </tr>
+          <tr>
+            <td><code>route.rule.b</code></td>
+            <td>contraindicate</td>
+            <td><code>act.administer:drug.abx_a</code></td>
+            <td><code>{&quot;age_years&quot;:{&quot;ge&quot;:18},&quot;prohibited&quot;:[],&quot;required&quot;:[&quot;cond.pregnancy&quot;]}</code></td>
+          </tr>
             </tbody>
           </table>
         </div>

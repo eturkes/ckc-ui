@@ -146,6 +146,53 @@
           "source_region_ids": ["region.control.child.contra1"]
         }
       ]
+    },
+    {
+      "id": "fixture.m2_guideline_d",
+      "key": "d",
+      "source_label": "D",
+      "title": "合成敗血症診療ガイドライン D",
+      "report_primary_region_ids": ["region.d.holdout.contra1"],
+      "regions": [
+        {
+          "id": "region.d.holdout.contra1",
+          "role": "contraindication",
+          "quote": "成人(18歳以上)で敗血症を有する妊娠中の患者では、抗菌薬Aの投与は禁忌とする。"
+        }
+      ],
+      "terminology_bindings": [
+        { "mention": "成人", "system": "ckc.lex", "code": "pop.adult", "status": "exact" },
+        { "mention": "敗血症", "system": "ckc.lex", "code": "cond.sepsis", "status": "exact" },
+        { "mention": "妊娠中", "system": "ckc.lex", "code": "cond.pregnancy", "status": "exact" },
+        { "mention": "抗菌薬A", "system": "ckc.lex", "code": "drug.abx_a", "status": "exact" }
+      ],
+      "clinical_statements": [
+        {
+          "statement_id": "statement.d.1",
+          "population": "pop.adult",
+          "condition": "cond.sepsis",
+          "action": "act.administer:drug.abx_a",
+          "modality": "contraindicate",
+          "strength": "strong",
+          "certainty": "moderate",
+          "source_region_ids": ["region.d.holdout.contra1"]
+        }
+      ],
+      "rules": [
+        {
+          "rule_id": "rule.d.mutation1",
+          "direction": "contraindicate",
+          "action_key": "act.administer:drug.abx_a",
+          "strength": "strong",
+          "certainty": "moderate",
+          "context": {
+            "age_years": { "ge": 18 },
+            "required": ["cond.sepsis", "cond.pregnancy"],
+            "prohibited": []
+          },
+          "source_region_ids": ["region.d.holdout.contra1"]
+        }
+      ]
     }
   ]
 }

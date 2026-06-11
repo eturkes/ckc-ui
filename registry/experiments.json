@@ -19,6 +19,24 @@
       "id": "exp.m2_lift",
       "basis": "exp.m1_spine",
       "routes": ["route.direct_smt", "route.single_ir"],
+      "evaluation_groups": [
+        {
+          "id": "group.m1_conflict",
+          "fixtures": ["fixture.m1_guideline_a", "fixture.m1_guideline_b"],
+          "measurement_role": "locked_m1_conflict"
+        },
+        {
+          "id": "group.m1_null",
+          "fixtures": ["fixture.m1_guideline_a", "fixture.m1_control"],
+          "measurement_role": "locked_m1_null"
+        },
+        {
+          "id": "group.m2_holdout_conflict",
+          "fixtures": ["fixture.m1_guideline_a", "fixture.m2_guideline_d"],
+          "measurement_role": "holdout_mutation_conflict",
+          "mutation_note": "Contraindication source uses a new fixture label and phrasing with 禁忌とする instead of the original 投与しないこと sentence."
+        }
+      ],
       "sample_seeds": [11, 22, 33]
     }
   ]

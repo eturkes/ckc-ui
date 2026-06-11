@@ -23,6 +23,14 @@
       "authority": "source_authority",
       "provenance": "synthetic",
       "role": "age_disjoint_control"
+    },
+    {
+      "id": "fixture.m2_guideline_d",
+      "path": "corpus/fixtures/fixture-m2-holdout-guideline-d.html",
+      "origin": "ai_generated",
+      "authority": "source_authority",
+      "provenance": "synthetic_holdout_mutation",
+      "role": "m2_holdout_contraindication_source"
     }
   ],
   "real_guideline_registry": "corpus/real_guidelines/japanese_guidelines.json",

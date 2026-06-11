@@ -41,7 +41,7 @@ Gate:
 - `node -e "const r=require('./runs/m2-one-shot/report.json'); if (r.real_guideline_intake.scoring_scope !== 'not_in_locked_m1_m2_measurement') process.exit(1); console.log('real-source scope ok')"`
 
 ### R3 Less-Leaky Lift Evaluation
-status: pending
+status: done
 
 Intent: make the M2 lift comparison less dependent on answer-copying and more informative about weak-model translation behavior.
 

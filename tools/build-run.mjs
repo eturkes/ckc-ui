@@ -31,6 +31,7 @@ const modelName = process.env.CKC_MODEL_NAME ?? "Qwen2.5-0.5B-Instruct-Q2_K";
 const modelTimeoutMs = Number(process.env.CKC_MODEL_TIMEOUT_MS ?? "120000");
 
 let fixtureRegistry = [];
+let m1Groups = [];
 let groups = [];
 let routeIds = ["route.direct_smt", "route.single_ir"];
 let sampleSeeds = [11, 22, 33];
@@ -164,21 +165,27 @@ async function loadM1FixtureInputs() {
   if (!m2Experiment) throw new Error("experiment missing: exp.m2_lift");
 
   const goldByGroup = new Map((goldExpectations ?? []).map((entry) => [entry.group_id, entry]));
-  groups = (m1Experiment.fixture_groups ?? []).map((group) => {
+  function loadGroupSpec(group, label) {
     const gold = goldByGroup.get(group.id);
     if (!gold) throw new Error(`gold expectation missing: ${group.id}`);
     for (const fixtureId of group.fixtures ?? []) {
-      if (!corpusFixturesById.has(fixtureId)) throw new Error(`group ${group.id} references unknown fixture: ${fixtureId}`);
+      if (!corpusFixturesById.has(fixtureId)) throw new Error(`${label} ${group.id} references unknown fixture: ${fixtureId}`);
     }
     return {
       id: group.id,
       fixtures: cloneData(group.fixtures),
+      measurementRole: group.measurement_role ?? (group.id.startsWith("group.m2") ? "holdout_mutation" : "locked_m1_fixture"),
+      mutationNote: group.mutation_note ?? null,
       expectedOutcome: gold.expected_outcome,
       expectedConflictKind: gold.expected_conflict_kind ?? null,
       expectedCore: cloneData(gold.expected_core ?? []),
       expectedNullResult: Boolean(gold.expected_null_result)
     };
-  });
+  }
+
+  m1Groups = (m1Experiment.fixture_groups ?? []).map((group) => loadGroupSpec(group, "M1 group"));
+  const m2EvaluationGroups = m2Experiment.evaluation_groups ?? m1Experiment.fixture_groups ?? [];
+  groups = m2EvaluationGroups.map((group) => loadGroupSpec(group, "M2 evaluation group"));
 
   routeIds = cloneData(m2Experiment.routes ?? routeIds);
   sampleSeeds = cloneData(m2Experiment.sample_seeds ?? sampleSeeds);
@@ -1089,6 +1096,30 @@ function sourceCuesForLabel(label) {
   };
 }
 
+function cueGuideLines() {
+  return [
+    "Field mapping guide:",
+    "- direction: source wording containing 推奨する => for; 投与しないこと or 禁忌 => contraindicate; otherwise unknown.",
+    "- action_abx_a: source wording containing 抗菌薬A => present; otherwise absent.",
+    "- age: 成人 or 18歳以上 => adult; 小児 or 18歳未満 => child; otherwise unknown.",
+    "- sepsis: source wording containing 敗血症 => present; otherwise absent.",
+    "- pregnancy: source wording containing 妊娠中 => present; otherwise absent.",
+    "- renal_exception: an exception sentence with 重度腎機能障害 and 除く => yes; otherwise no.",
+    "Use unknown only when the excerpt and exception sentence do not support a listed value."
+  ];
+}
+
+function sourceCueEvidenceLines(groupId) {
+  const modelCase = modelCaseForGroup(groupId);
+  return modelCase.labels.flatMap((label) => {
+    const sourceCase = sourceCaseForLabel(label);
+    return [
+      `source ${label} primary excerpt: ${sourceCase.primary}`,
+      ...(sourceCase.exception ? [`source ${label} exception excerpt: ${sourceCase.exception}`] : [])
+    ];
+  });
+}
+
 const cueFieldSpecs = {
   direction: {
     cueKey: "direction_cue",
@@ -1161,19 +1192,18 @@ function jsonSchemaForRoute(routeId, groupId, sourceLabel = null) {
 
 function promptForSingleIrPair(groupId) {
   const modelCase = modelCaseForGroup(groupId);
-  const rows = Object.fromEntries(modelCase.labels.map((label) => [label, expectedCueFields(label)]));
-  const exactPairJson = JSON.stringify(rows);
+  const schema = JSON.stringify(JSON.parse(jsonSchemaForRoute("route.single_ir", groupId)), null, 2);
   return [
     "You are preparing an import payload for a hospital CDS knowledge-base maintenance queue.",
     "The excerpts are guideline-derived content for rules-engine review, not a patient-specific recommendation.",
-    "A terminology review service has already normalized each source into the allowed field values below.",
-    "Prepare one JSON import payload keyed by source label. Copy the normalized fields exactly.",
-    "Keep labels unchanged. Use only the listed enum tokens and fields. Return the payload only, with no prose.",
+    "Derive the bounded JSON fields from the quoted excerpts and the mapping guide.",
+    "Keep source labels unchanged. Use only the listed enum tokens and fields. Return JSON only, with no prose.",
     `maintenance ticket: ${modelCase.case_id}`,
     `source labels: ${modelCase.labels.join(", ")}`,
-    ...modelCase.labels.map((label) => `normalized fields for ${label}: ${JSON.stringify(rows[label])}`),
-    "Import payload:",
-    exactPairJson
+    ...sourceCueEvidenceLines(groupId),
+    ...cueGuideLines(),
+    "Required output schema:",
+    schema
   ].join("\n");
 }
 
@@ -1192,12 +1222,9 @@ function promptFor(routeId, groupId, seed) {
       `maintenance ticket: ${modelCase.case_id}`,
       ...modelCase.labels.flatMap((label) => {
         const sourceCase = sourceCaseForLabel(label);
-        const cues = sourceCuesForLabel(label);
         return [
           `guideline excerpt ${label}: ${sourceCase.primary}`,
-          ...(sourceCase.exception ? [`exception note ${label}: ${sourceCase.exception}`] : []),
-          `terminology cues ${label}: direction=${cues.direction_cue}; age=${cues.age_cue}; sepsis=${cues.sepsis_cue}; pregnancy=${cues.pregnancy_cue}; renal_exception=${cues.renal_exception_cue}; action_abx_a=${cues.action_abx_a_cue}`,
-          `normalized CDS fields ${label}: ${JSON.stringify(expectedCueFields(label))}`
+          ...(sourceCase.exception ? [`exception note ${label}: ${sourceCase.exception}`] : [])
         ];
       })
     ];
@@ -1206,11 +1233,8 @@ function promptFor(routeId, groupId, seed) {
       "The ticket is guideline-derived content for knowledge-base QA, not patient-specific care advice.",
       "Output one self-contained SMT-LIB 2 program only. No prose, no Markdown, no JSON, no verdict word.",
       "",
-      "Use the terminology cues and normalized CDS fields from this maintenance ticket.",
-      "direction=推奨する means the CDS rule asserts the action positively.",
-      "direction=投与しないこと or direction=禁忌 means the CDS rule asserts the action negatively.",
-      "age=成人_or_18歳以上 means adult age; age=小児_or_18歳未満 means child age.",
-      "sepsis=present, pregnancy=present, and renal_exception=has_exception are rule context constraints.",
+      "Use only source facts supported by the excerpts and this mapping guide.",
+      ...cueGuideLines(),
       "",
       "Allowed SMT symbols for the repository checker:",
       "(declare-const |q.age_years| Real)",
@@ -1232,7 +1256,8 @@ function promptFor(routeId, groupId, seed) {
     `Fill one CDS import JSON object for each source label: ${modelCase.labels.join(", ")}.`,
     "Do not decide whether the excerpts conflict; emit only the import object.",
     "Output only JSON. Do not use Markdown.",
-    "Use only the normalized terminology cues in the ticket; downstream repository checks handle formal consistency."
+    ...cueGuideLines(),
+    "Use only source facts supported by the excerpts; downstream repository checks handle formal consistency."
   ].join("\n");
 }
 
@@ -1362,7 +1387,53 @@ function extractJsonObject(text) {
   return candidates.sort((a, b) => b.text.length - a.text.length).at(0) ?? null;
 }
 
-function classifyDirectSmt(output, expected) {
+const diagnosticCategoryDefinitions = {
+  syntax: ["target_parse_error", "ai_schema_violation"],
+  grounding: ["ai_hallucinated_source", "semantic_slot_missing"],
+  unsupported_schema: ["unsupported_ir_fragment"],
+  wrong_verdict: ["false_positive_conflict", "false_negative_conflict"],
+  process: ["process_crash", "solver_execution_failure"]
+};
+
+function diagnosticCategories(codes) {
+  const codeSet = new Set(codes ?? []);
+  return Object.entries(diagnosticCategoryDefinitions)
+    .filter(([, categoryCodes]) => categoryCodes.some((code) => codeSet.has(code)))
+    .map(([category]) => category);
+}
+
+function directSmtFeatures(text) {
+  return {
+    has_positive_action: /\(assert\s+(?:\(!\s+)?\|?pos[:\w.-]*act\.administer:drug\.abx_a\|?|\(assert\s+(?:\(!\s+)?\|positive_abx_a\|/.test(text),
+    has_negative_action: /\(assert\s+(?:\(!\s+)?\(not\s+\|?pos[:\w.-]*act\.administer:drug\.abx_a\|?\)|\(assert\s+(?:\(!\s+)?\(not\s+\|positive_abx_a\|\)/.test(text),
+    has_adult_age: />=\s+\|q\.age_years\|\s+18|>=\s+18/.test(text),
+    has_child_age: /<\s+\|q\.age_years\|\s+18|<\s+18/.test(text),
+    asserts_sepsis: /\(assert[\s\S]{0,120}\|cond\.sepsis\|/.test(text),
+    asserts_pregnancy: /\(assert[\s\S]{0,120}\|cond\.pregnancy\|/.test(text),
+    asserts_renal_exception: /\(assert[\s\S]{0,160}\(not\s+\|cond\.renal_severe\|\)/.test(text),
+    negates_sepsis: /\(assert\s+\(not\s+\|cond\.sepsis\|\)\)/.test(text),
+    has_named_assertion: /:named/.test(text)
+  };
+}
+
+function directGroundingDiagnostics(features, groupId) {
+  const diagnostics = [];
+  const expectedRows = modelCaseForGroup(groupId).labels.map((label) => expectedCueFields(label));
+  if (features.negates_sepsis) diagnostics.push("ai_hallucinated_source");
+  if (expectedRows.some((row) => row.sepsis === "present") && !features.asserts_sepsis) diagnostics.push("semantic_slot_missing");
+  if (expectedRows.some((row) => row.pregnancy === "present") && !features.asserts_pregnancy) diagnostics.push("semantic_slot_missing");
+  if (expectedRows.some((row) => row.renal_exception === "yes") && !features.asserts_renal_exception) diagnostics.push("semantic_slot_missing");
+  return diagnostics;
+}
+
+function verdictDiagnostics(verdict, expected) {
+  const diagnostics = [];
+  if (verdict === "semantic_contradiction" && expected === "semantic_no_conflict") diagnostics.push("false_positive_conflict");
+  if (verdict === "semantic_no_conflict" && expected === "semantic_contradiction") diagnostics.push("false_negative_conflict");
+  return diagnostics;
+}
+
+function classifyDirectSmt(output, groupId, expected) {
   const text = cleanModelText(output);
   const diagnostics = [];
   const syntax_valid = text.includes("(check-sat)") && balancedParens(text);
@@ -1373,24 +1444,27 @@ function classifyDirectSmt(output, expected) {
   if (hallucinated) diagnostics.push("ai_hallucinated_source");
 
   let verdict = "unknown";
+  const features = directSmtFeatures(text);
   if (syntax_valid) {
-    const hasPositive = /\(assert\s+\|?pos[:\w.-]*act\.administer:drug\.abx_a\|?|\(assert\s+\|positive_abx_a\|/.test(text);
-    const hasNegative = /\(assert\s+\(not\s+\|?pos[:\w.-]*act\.administer:drug\.abx_a\|?\)|\(assert\s+\(not\s+\|positive_abx_a\|\)/.test(text);
-    const hasAgeAdult = />=\s+\|q\.age_years\|\s+18|>=\s+18/.test(text);
-    const hasAgeChild = /<\s+\|q\.age_years\|\s+18|<\s+18/.test(text);
-    if (hasPositive && hasNegative) verdict = "semantic_contradiction";
-    else if (hasAgeAdult && hasAgeChild) verdict = "semantic_no_conflict";
+    if (features.has_positive_action && features.has_negative_action && features.has_adult_age && features.has_child_age) {
+      verdict = "semantic_no_conflict";
+    } else if (features.has_positive_action && features.has_negative_action) {
+      verdict = "semantic_contradiction";
+    } else if (features.has_adult_age && features.has_child_age) {
+      verdict = "semantic_no_conflict";
+    }
+    diagnostics.push(...directGroundingDiagnostics(features, groupId));
   }
 
   if (syntax_valid && verdict === "unknown") diagnostics.push("unsupported_ir_fragment");
-  if (verdict === "semantic_contradiction" && expected === "semantic_no_conflict") diagnostics.push("false_positive_conflict");
-  if (verdict === "semantic_no_conflict" && expected === "semantic_contradiction") diagnostics.push("false_negative_conflict");
+  diagnostics.push(...verdictDiagnostics(verdict, expected));
 
   return {
     syntax_valid,
-    admitted: syntax_valid && verdict !== "unknown" && !hallucinated,
+    admitted: syntax_valid && verdict !== "unknown" && !hallucinated && diagnostics.every((code) => !blocksAdmission(code)),
     verdict: syntax_valid ? verdict : "target_syntax_failure",
-    diagnostics: [...new Set(diagnostics)]
+    diagnostics: [...new Set(diagnostics)],
+    parsed: { evaluator_features: features }
   };
 }
 
@@ -1436,11 +1510,6 @@ function irGroundingDiagnostics(parsed, groupId) {
 }
 
 function ruleFromIrRow(label, row) {
-  const ruleIds = {
-    A: "route.rule.a",
-    B: "route.rule.b",
-    C: "route.rule.c"
-  };
   const required = [];
   if (row.sepsis === "present") required.push("cond.sepsis");
   if (row.pregnancy === "present") required.push("cond.pregnancy");
@@ -1450,7 +1519,7 @@ function ruleFromIrRow(label, row) {
     prohibited: row.renal_exception === "yes" ? ["cond.renal_severe"] : []
   };
   return {
-    rule_id: ruleIds[label],
+    rule_id: `route.rule.${String(label).toLowerCase()}`,
     direction: row.direction,
     action_key: row.action_abx_a === "present" ? "act.administer:drug.abx_a" : "unknown",
     context
@@ -1679,7 +1748,7 @@ function runLiveRoute(routeId, groupId, seed, expected) {
   const subprocess = runLlama(prompt, seed, routeId, groupId);
   const rawOutput = cleanModelText(subprocess.stdout, prompt);
   const output = routeId === "route.direct_smt" ? extractSmtCandidateText(rawOutput) : rawOutput;
-  const classified = classifyDirectSmt(output, expected);
+  const classified = classifyDirectSmt(output, groupId, expected);
   const processDiagnostics = [];
   if (subprocess.exit_status !== 0 || subprocess.signal || subprocess.error) processDiagnostics.push("process_crash");
   return {
@@ -1784,6 +1853,7 @@ function scoreRows() {
         const row = {
           route_id: routeId,
           group_id: group.id,
+          measurement_role: group.measurementRole,
           seed,
           syntax_valid: simulated.syntax_valid,
           target_syntax_valid: simulated.target_syntax_valid ?? simulated.syntax_valid,
@@ -1793,7 +1863,9 @@ function scoreRows() {
           expected,
           verdict_correct,
           candidate_verdict_correct,
-          diagnostics: simulated.diagnostics
+          diagnostics: simulated.diagnostics,
+          diagnostic_categories: diagnosticCategories(simulated.diagnostics),
+          evaluator_id: "source_derived_route_pair_evaluator.v2"
         };
         rawRows.push(row);
         ioRecords.push({
@@ -1861,7 +1933,7 @@ function buildSourceCueLayer() {
     artifact_kind: "SourceCueLayer",
     extractor_id: "lexical_cue_v1",
     scope: "shared_route_input",
-    fairness_note: "Both M2 routes receive the same deterministic source-derived raw cues and resolved cue rows; route.direct_smt composes SMT-LIB directly, while route.single_ir copies both resolved source-row cue objects through one grammar-constrained pair JSON hop into route_rule_ir.v0, then deterministically compiles that IR to SMT-LIB before verifier scoring.",
+    fairness_note: "Both M2 routes are evaluated against the same deterministic source-derived cue rows. R3 prompts no longer include the filled single_ir answer object; route.direct_smt composes SMT-LIB directly from source excerpts, while route.single_ir derives bounded JSON rows under cue definitions before deterministic route_rule_ir.v0 to SMT-LIB compilation.",
     cues: Object.fromEntries(labels.map((label) => [label, {
       ...sourceCuesForLabel(label),
       resolved_fields: expectedCueFields(label)
@@ -1925,6 +1997,39 @@ function buildRouteTargetSummary(ioRecords) {
   };
 }
 
+function buildRouteEvaluation(rawRows) {
+  const evaluationGroups = groups.map((group) => ({
+    group_id: group.id,
+    fixture_ids: group.fixtures,
+    source_labels: modelCaseForGroup(group.id).labels,
+    measurement_role: group.measurementRole,
+    mutation_note: group.mutationNote,
+    expected_outcome: group.expectedOutcome
+  }));
+  const routeCategoryCounts = Object.fromEntries(routeIds.map((routeId) => {
+    const routeRows = rawRows.filter((row) => row.route_id === routeId);
+    return [routeId, Object.fromEntries(Object.keys(diagnosticCategoryDefinitions).map((category) => [
+      category,
+      routeRows.filter((row) => row.diagnostic_categories.includes(category)).length
+    ]))];
+  }));
+  return {
+    artifact_kind: "RouteEvaluationAudit",
+    schema_version: "route_evaluation_audit.v0",
+    evaluator_id: "source_derived_route_pair_evaluator.v2",
+    scope: "Both M2 routes are scored over the same source-derived expected cue rows and group verdicts.",
+    evaluation_strength: "scaffolded_cue_translation_test",
+    evaluation_strength_note: "R3 removes exact filled JSON payloads from route.single_ir prompts and adds a holdout mutation group. The prompt still supplies schema and cue definitions, so this remains a scaffolded cue-translation test rather than raw Japanese guideline understanding.",
+    diagnostic_categories: diagnosticCategoryDefinitions,
+    evaluation_groups: evaluationGroups,
+    holdout_group_ids: evaluationGroups
+      .filter((group) => group.measurement_role.includes("holdout") || group.measurement_role.includes("mutation"))
+      .map((group) => group.group_id),
+    route_category_counts: routeCategoryCounts,
+    raw_row_count: rawRows.length
+  };
+}
+
 function buildRealismAudit({ realGuidelineIntake, sourceCueLayer, promptCatalog }) {
   const surfaces = [
     {
@@ -1947,6 +2052,13 @@ function buildRealismAudit({ realGuidelineIntake, sourceCueLayer, promptCatalog 
       classification: "data_driven",
       evidence_paths: [m1InputRefs.experiments_registry_path],
       note: "M1 fixture group membership is read from the experiment registry."
+    },
+    {
+      surface_id: "m2_evaluation_groups",
+      stage: "m2_route_evaluation",
+      classification: "data_driven",
+      evidence_paths: [m1InputRefs.experiments_registry_path, m1InputRefs.gold_expectations_path],
+      note: "M2 route scoring groups, including holdout mutation roles, are read from the experiment registry and gold artifact."
     },
     {
       surface_id: "expected_outcomes",
@@ -2042,10 +2154,10 @@ function buildRealismAudit({ realGuidelineIntake, sourceCueLayer, promptCatalog 
 }
 
 function promptTemplateId(routeId, granularity) {
-  if (routeId === "route.direct_smt") return "prompt.route_direct_smt.cds_ticket_smt_target.v2";
-  if (routeId === "route.single_ir" && granularity === "source_pair") return "prompt.route_single_ir.cds_ticket_pair_json.v2";
-  if (routeId === "route.single_ir") return "prompt.route_single_ir.cds_ticket_generic_json.v2";
-  return `prompt.${routeId.replaceAll(".", "_")}.${granularity}.v2`;
+  if (routeId === "route.direct_smt") return "prompt.route_direct_smt.cds_ticket_smt_target.v3";
+  if (routeId === "route.single_ir" && granularity === "source_pair") return "prompt.route_single_ir.cds_ticket_pair_json.v3";
+  if (routeId === "route.single_ir") return "prompt.route_single_ir.cds_ticket_generic_json.v3";
+  return `prompt.${routeId.replaceAll(".", "_")}.${granularity}.v3`;
 }
 
 function promptOutputContract(routeId, granularity) {
@@ -2342,7 +2454,9 @@ ${artifactRows}`;
 
 function markdownReport(report) {
   const liftRows = report.metrics.lift_table.map((row) => `| ${row.metric} | ${row.baseline.exact} | ${row.lifted.exact} | ${row.delta.exact} |`).join("\n");
-  const rawRows = report.metrics.raw_rows.map((row) => `| ${row.route_id} | ${row.group_id} | ${row.seed} | ${row.model_output_syntax_valid} | ${row.target_syntax_valid} | ${row.admitted} | ${row.verdict} | ${row.verdict_correct} | ${row.candidate_verdict_correct} |`).join("\n");
+  const rawRows = report.metrics.raw_rows.map((row) => `| ${row.route_id} | ${row.group_id} | ${row.measurement_role} | ${row.seed} | ${row.model_output_syntax_valid} | ${row.target_syntax_valid} | ${row.admitted} | ${row.verdict} | ${row.verdict_correct} | ${row.candidate_verdict_correct} | ${row.diagnostic_categories.join(", ") || "none"} |`).join("\n");
+  const groupRows = report.m2_evaluation.evaluation_groups.map((group) => `| \`${group.group_id}\` | ${group.measurement_role} | ${group.source_labels.join(", ")} | ${group.expected_outcome} | ${group.mutation_note ?? "none"} |`).join("\n");
+  const diagnosticCategoryRows = Object.entries(report.m2_evaluation.diagnostic_categories).map(([category, codes]) => `| ${category} | ${codes.map((code) => `\`${code}\``).join(", ")} |`).join("\n");
   const diagnostics = Object.entries(report.diagnostics_summary).map(([code, count]) => `- ${code}: ${count}`).join("\n") || "- none: 0";
   const directMetric = report.metrics.route_metrics.find((entry) => entry.route_id === "route.direct_smt");
   const irMetric = report.metrics.route_metrics.find((entry) => entry.route_id === "route.single_ir");
@@ -2388,7 +2502,13 @@ ${realismAuditMarkdown(report.realism_audit)}
 
 ## M2 lift table
 
-Shared route input: \`${report.source_cue_layer.extractor_id}\` / cue hash \`${report.source_cue_layer.cue_hash}\`. Both routes finish at SMT-LIB: direct SMT asks the model for target text, while single IR copies both source-row cue objects through one grammar-constrained pair JSON hop into \`route_rule_ir.v0\`, then compiles that IR deterministically to SMT-LIB before verifier scoring.
+Shared route input: \`${report.source_cue_layer.extractor_id}\` / cue hash \`${report.source_cue_layer.cue_hash}\`. Both routes finish at SMT-LIB: direct SMT asks the model for target text, while single IR asks the model to derive bounded JSON rows from source excerpts under cue definitions, then compiles \`route_rule_ir.v0\` deterministically to SMT-LIB before verifier scoring.
+
+Evaluation strength: \`${report.m2_evaluation.evaluation_strength}\`. ${report.m2_evaluation.evaluation_strength_note}
+
+| Group | Role | Source labels | Expected | Note |
+| --- | --- | --- | --- | --- |
+${groupRows}
 
 | Metric | direct_smt | single_ir | delta |
 | --- | ---: | ---: | ---: |
@@ -2411,9 +2531,17 @@ ${promptCatalogMarkdown(report.prompt_catalog)}
 
 ## Raw route rows
 
-| Route | Group | Seed | Model syntax valid | Target syntax valid | Admitted | Verdict | Admitted correct | Candidate correct |
-| --- | --- | ---: | --- | --- | --- | --- | --- | --- |
+| Route | Group | Role | Seed | Model syntax valid | Target syntax valid | Admitted | Verdict | Admitted correct | Candidate correct | Diagnostic categories |
+| --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |
 ${rawRows}
+
+## Route evaluator diagnostics
+
+Evaluator: \`${report.m2_evaluation.evaluator_id}\`.
+
+| Category | Codes |
+| --- | --- |
+${diagnosticCategoryRows}
 
 ## Failure taxonomy
 
@@ -2429,6 +2557,7 @@ ${diagnostics}
 
 function japaneseReport(report) {
   const liftRows = report.metrics.lift_table.map((row) => `| ${row.metric} | ${row.baseline.exact} | ${row.lifted.exact} | ${row.delta.exact} |`).join("\n");
+  const groupRows = report.m2_evaluation.evaluation_groups.map((group) => `| \`${group.group_id}\` | ${group.measurement_role} | ${group.source_labels.join(", ")} | ${group.expected_outcome} | ${group.mutation_note ?? "none"} |`).join("\n");
   const directMetric = report.metrics.route_metrics.find((entry) => entry.route_id === "route.direct_smt");
   const irMetric = report.metrics.route_metrics.find((entry) => entry.route_id === "route.single_ir");
   const irConclusion = irMetric.admission_rate.numerator > 0
@@ -2471,7 +2600,13 @@ ${realismAuditJapaneseMarkdown(report.realism_audit)}
 
 ## M2 lift table
 
-shared route input: \`${report.source_cue_layer.extractor_id}\` / cue hash \`${report.source_cue_layer.cue_hash}\`。両 route は SMT-LIB を final target とする。direct SMT は model が target text を直接構成し、single IR は両 source-row cue object を 1 回の grammar-constrained pair JSON hop で \`route_rule_ir.v0\` に写してから deterministic compiler で SMT-LIB に変換し、verifier で score する。
+shared route input: \`${report.source_cue_layer.extractor_id}\` / cue hash \`${report.source_cue_layer.cue_hash}\`。両 route は SMT-LIB を final target とする。direct SMT は model が target text を直接構成し、single IR は source excerpt と cue definition から bounded JSON row を導出し、\`route_rule_ir.v0\` から deterministic compiler で SMT-LIB に変換して verifier で score する。
+
+evaluation strength: \`${report.m2_evaluation.evaluation_strength}\`。${report.m2_evaluation.evaluation_strength_note}
+
+| group | role | source labels | expected | note |
+| --- | --- | --- | --- | --- |
+${groupRows}
 
 | metric | direct_smt | single_ir | delta |
 | --- | ---: | ---: | ---: |
@@ -2676,6 +2811,19 @@ function renderBasicUi(data) {
             <td>${escapeHtml(row.lifted.exact)}</td>
             <td>${escapeHtml(row.delta.exact)}</td>
           </tr>`).join("");
+  const evaluationGroupRows = data.route_evaluation.evaluation_groups.map((group) => `
+          <tr>
+            <td><code>${escapeHtml(group.group_id)}</code></td>
+            <td>${escapeHtml(group.measurement_role)}</td>
+            <td>${escapeHtml(group.source_labels.join(", "))}</td>
+            <td><code>${escapeHtml(group.expected_outcome)}</code></td>
+            <td>${escapeHtml(group.mutation_note ?? "none")}</td>
+          </tr>`).join("");
+  const diagnosticCategoryRows = Object.entries(data.route_evaluation.diagnostic_categories).map(([category, codes]) => `
+          <tr>
+            <td>${escapeHtml(category)}</td>
+            <td>${codes.map((code) => `<code>${escapeHtml(code)}</code>`).join(", ")}</td>
+          </tr>`).join("");
   const cueRows = Object.entries(data.source_cue_layer.cues).map(([label, cue]) => `
           <tr>
             <td><code>${escapeHtml(label)}</code></td>
@@ -2786,7 +2934,7 @@ function renderBasicUi(data) {
     ],
     [
       "source_cue_layer -> model JSON",
-      "The single-IR prompt includes the resolved source-row fields and a JSON schema; the model copies one bounded object keyed by source label.",
+      "The single-IR prompt includes source excerpts, cue definitions, and a JSON schema; the model derives one bounded object keyed by source label.",
       "Schema diagnostics reject missing keys, extra fields, invalid enum tokens, or JSON parse failure."
     ],
     [
@@ -2874,7 +3022,7 @@ function renderBasicUi(data) {
             <td><code>${escapeHtml(compactJson(rule.context))}</code></td>
           </tr>`).join("");
   const routeBurdenRows = [
-    ["Model input", "same source cues", "same source cues"],
+    ["Model input", "source excerpts and cue definitions", "source excerpts, cue definitions, and JSON schema"],
     ["Model output", "SMT-LIB text", "bounded pair JSON object"],
     ["End of route in this harness", "candidate SMT-LIB admission check", "route_rule_ir.v0 -> deterministic SMT-LIB compile -> verifier check"],
     ["Per-route SMT artifact", "model output itself", irConflictTarget?.smt_files?.[0]?.file ?? "route_targets/route.single_ir/..."],
@@ -3059,11 +3207,11 @@ function renderBasicUi(data) {
         <strong>Short version</strong>
         <p>Both M2 routes now finish at SMT-LIB. Direct asks the model to write SMT-LIB; IR asks the model for one bounded pair JSON object, bridges those rows into <code>route_rule_ir.v0</code>, then compiles that IR deterministically to SMT-LIB.</p>
       </div>
-      <p>Both routes use the same deterministic source-cue layer. The current lift measurement is about moving formal-target burden away from the weak model while keeping the final target comparable.</p>
+      <p>Both routes are scored by the same source-derived evaluator. This R3 run removes the filled JSON answer from <code>route.single_ir</code> prompts and adds a holdout mutation group, but it remains a scaffolded cue-translation test because the prompt still supplies cue definitions and schema.</p>
       <div class="flow">
         <div class="flow-step">
           <strong>1. Same input</strong>
-          <span>Japanese fixture spans become shared source cues before either route runs.</span>
+          <span>Japanese fixture spans and cue definitions are the model-facing inputs; source-derived cues are retained for evaluator grounding.</span>
         </div>
         <div class="flow-step warn">
           <strong>2. Direct route</strong>
@@ -3071,12 +3219,12 @@ function renderBasicUi(data) {
         </div>
         <div class="flow-step ok">
           <strong>3. IR route</strong>
-          <span><code>route.single_ir</code> asks for one pair JSON object; this harness emits a per-row SMT-LIB target from the admitted route IR.</span>
+          <span><code>route.single_ir</code> asks for one pair JSON object derived from excerpts; this harness emits a per-row SMT-LIB target from the admitted route IR.</span>
         </div>
       </div>
       <h3>Transformation rules</h3>
       <div class="mechanics">
-        <div class="mechanics-note">There is no hidden semantic hop after the pair JSON. The model emits bounded fields; every later step is a deterministic table lookup, rule construction, compiler emission, and verifier check.</div>
+        <div class="mechanics-note">There is no hidden semantic hop after the pair JSON. The model emits bounded fields from source excerpts; every later step is a deterministic table lookup, rule construction, compiler emission, and verifier check.</div>
         <div class="table-wrap">
           <table class="wide">
             <thead><tr><th>Boundary</th><th>Transform</th><th>Guard</th></tr></thead>
@@ -3153,6 +3301,23 @@ ${transformationStepsHtml}
         <table>
           <thead><tr><th>Metric</th><th>direct_smt</th><th>single_ir</th><th>delta</th></tr></thead>
           <tbody>${liftRows}
+          </tbody>
+        </table>
+      </div>
+      <h3>M2 evaluation groups</h3>
+      <p>Evaluation strength: <code>${escapeHtml(data.route_evaluation.evaluation_strength)}</code>. ${escapeHtml(data.route_evaluation.evaluation_strength_note)}</p>
+      <div class="table-wrap">
+        <table class="wide">
+          <thead><tr><th>Group</th><th>Role</th><th>Source labels</th><th>Expected</th><th>Note</th></tr></thead>
+          <tbody>${evaluationGroupRows}
+          </tbody>
+        </table>
+      </div>
+      <h3>Route evaluator diagnostics</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Category</th><th>Codes</th></tr></thead>
+          <tbody>${diagnosticCategoryRows}
           </tbody>
         </table>
       </div>
@@ -3381,7 +3546,7 @@ async function main() {
   }
 
   const groupResults = [];
-  for (const group of groups) {
+  for (const group of m1Groups) {
     const result = compileGroup(group, artifactsByDoc);
     groupResults.push(result);
     await writeJson(`groups/${group.id}/compiled.json`, result.compiled);
@@ -3416,6 +3581,7 @@ async function main() {
   const sourceCueLayer = buildSourceCueLayer();
   const directSmtAudit = buildDirectSmtAudit(metrics.ioRecords);
   const routeTargetSummary = buildRouteTargetSummary(metrics.ioRecords);
+  const routeEvaluation = buildRouteEvaluation(metrics.rawRows);
   const promptCatalog = buildPromptCatalog(metrics.ioRecords);
   const realismAudit = buildRealismAudit({ realGuidelineIntake, sourceCueLayer, promptCatalog });
   const realismAuditHash = sha256(realismAudit);
@@ -3436,6 +3602,7 @@ async function main() {
   await writeJson("metrics/direct_smt_audit.json", directSmtAudit);
   await writeJson("metrics/source_cues.json", sourceCueLayer);
   await writeJson("metrics/route_targets.json", routeTargetSummary);
+  await writeJson("metrics/route_evaluation.json", routeEvaluation);
   await writeJson("metrics/realism_audit.json", realismAudit);
 
   const diagnosticsSummary = {};
@@ -3475,6 +3642,7 @@ async function main() {
     },
     direct_smt_audit: directSmtAudit,
     route_target_summary: routeTargetSummary,
+    route_evaluation: routeEvaluation,
     prompt_catalog: {
       artifact_kind: promptCatalog.artifact_kind,
       schema_version: promptCatalog.schema_version,
@@ -3491,6 +3659,14 @@ async function main() {
       scope: sourceCueLayer.scope,
       fairness_note: sourceCueLayer.fairness_note,
       cue_hash: sha256(sourceCueLayer)
+    },
+    m2_evaluation: {
+      evaluator_id: routeEvaluation.evaluator_id,
+      evaluation_strength: routeEvaluation.evaluation_strength,
+      evaluation_strength_note: routeEvaluation.evaluation_strength_note,
+      evaluation_groups: routeEvaluation.evaluation_groups,
+      holdout_group_ids: routeEvaluation.holdout_group_ids,
+      diagnostic_categories: routeEvaluation.diagnostic_categories
     },
     realism_audit: {
       ...realismAudit,
@@ -3588,6 +3764,7 @@ async function main() {
     real_guideline_intake_hash: sha256(realGuidelineIntake),
     source_cue_layer_hash: sha256(sourceCueLayer),
     route_target_summary_hash: sha256(routeTargetSummary),
+    route_evaluation_hash: sha256(routeEvaluation),
     realism_audit_hash: realismAuditHash,
     prompt_catalog_hash: sha256(promptCatalog),
     prompt_template_hashes: Object.fromEntries(promptCatalog.entries.map((entry) => [entry.prompt_id, entry.prompt_hash])),
@@ -3649,6 +3826,7 @@ async function main() {
     route_target_summary: routeTargetSummary,
     prompt_catalog: promptCatalog,
     source_cue_layer: sourceCueLayer,
+    route_evaluation: routeEvaluation,
     realism_audit: realismAudit,
     real_guideline_intake: realGuidelineIntake,
     model_io: metrics.ioRecords,
@@ -3680,6 +3858,7 @@ async function main() {
       "metrics/direct_smt_audit.json",
       "metrics/source_cues.json",
       "metrics/route_targets.json",
+      "metrics/route_evaluation.json",
       "metrics/realism_audit.json",
       "prompts/catalog.json",
       ...promptCatalog.entries.map((entry) => entry.prompt_path),
@@ -3689,10 +3868,16 @@ async function main() {
     const commonAssertions = [
       finding?.conflict_kind === "deontic_direction_conflict",
       nullResult?.classification === "documented_null_result",
-      direct.samples === 6,
-      single.samples === 6,
-      metrics.rawRows.length === 12,
-      metrics.ioRecords.length === 12,
+      direct.samples === groups.length * sampleSeeds.length,
+      single.samples === groups.length * sampleSeeds.length,
+      metrics.rawRows.length === routeIds.length * groups.length * sampleSeeds.length,
+      metrics.ioRecords.length === metrics.rawRows.length,
+      routeEvaluation.raw_row_count === metrics.rawRows.length,
+      routeEvaluation.holdout_group_ids.includes("group.m2_holdout_conflict"),
+      routeEvaluation.evaluation_groups.some((group) => group.group_id === "group.m2_holdout_conflict" && group.measurement_role === "holdout_mutation_conflict"),
+      metrics.rawRows.some((row) => row.group_id === "group.m2_holdout_conflict"),
+      metrics.rawRows.every((row) => row.evaluator_id === routeEvaluation.evaluator_id),
+      metrics.rawRows.every((row) => Array.isArray(row.diagnostic_categories)),
       realGuidelineIntake.source_count >= 2,
       realGuidelineIntake.candidate_span_count >= 6,
       realGuidelineIntake.admitted_candidate_rule_count >= 4,
@@ -3705,9 +3890,13 @@ async function main() {
       report.real_guideline_intake.admitted_candidate_rule_count === realGuidelineIntake.admitted_candidate_rule_count,
       report.real_guideline_intake.rejected_residuals.length === realGuidelineIntake.blocking_residual_count,
       report.real_guideline_intake.scoring_scope === "not_in_locked_m1_m2_measurement",
-      promptCatalog.prompt_count === 4,
+      promptCatalog.prompt_count === routeIds.length * groups.length,
       promptCatalog.call_count === metrics.ioRecords.length,
+      promptCatalog.entries.every((entry) => !/Import payload:\n\{/.test(entry.prompt_text)),
+      promptCatalog.entries.every((entry) => !/normalized fields for /.test(entry.prompt_text)),
       report.prompt_catalog.catalog_hash === sha256(promptCatalog),
+      report.m2_evaluation.evaluation_strength === "scaffolded_cue_translation_test",
+      report.m2_evaluation.holdout_group_ids.includes("group.m2_holdout_conflict"),
       report.realism_audit.audit_hash === realismAuditHash,
       realismAudit.surfaces.some((surface) => surface.surface_id === "fixture_regions" && surface.classification === "data_driven"),
       realismAudit.surfaces.some((surface) => surface.surface_id === "context_overlap_and_smt_encoding" && surface.classification === "hardcoded"),
@@ -3716,6 +3905,9 @@ async function main() {
       metrics.ioRecords.every((record) => !record.route_call || record.route_call.prompt_hash === sha256Text(record.route_call.prompt)),
       existsSync(webDataPath),
       renderedUi.includes("Transformation rules"),
+      renderedUi.includes("M2 evaluation groups"),
+      renderedUi.includes("Route evaluator diagnostics"),
+      renderedUi.includes("scaffolded cue-translation test"),
       renderedUi.includes("Realism audit"),
       renderedUi.includes("Real guideline candidate intake"),
       renderedUi.includes("Candidate rules"),
@@ -3728,37 +3920,32 @@ async function main() {
       ? [
           report.model_mode === "live_local_llama_cpp",
           report.live_model_calls === metrics.liveCalls,
-          report.live_model_calls === 12,
+          report.live_model_calls === routeIds.length * groups.length * sampleSeeds.length,
           report.model_identity.startsWith("Qwen2.5-0.5B-Instruct-Q2_K:"),
           report.source_cue_layer.extractor_id === "lexical_cue_v1",
-          report.route_target_summary.compiled_row_count === 6,
-          report.route_target_summary.smt_file_count === 9,
+          report.route_target_summary.compiled_row_count === metrics.ioRecords.filter((record) => record.route_id === "route.single_ir" && record.compiled_target).length,
+          report.route_target_summary.smt_file_count === metrics.ioRecords
+            .filter((record) => record.route_id === "route.single_ir")
+            .flatMap((record) => record.compiled_target?.smt_files ?? []).length,
           metrics.ioRecords.filter((record) => record.route_id === "route.single_ir").every((record) => record.compiled_target?.target_profile === "smt-lib-2"),
           metrics.ioRecords.every((record) => record.subprocess?.exit_status === 0),
           metrics.ioRecords.every((record) => record.response_hash && record.response_hash.length === 64),
-          direct.target_syntax_validity.exact === "6/6",
-          direct.admission_rate.exact === "0/6",
-          direct.admitted_verdict_accuracy.exact === "0/6",
-          direct.candidate_verdict_accuracy.exact === "0/6",
-          direct.k_sample_stability.exact === "0/2",
-          report.direct_smt_audit.exact_template_match_rate.exact === "0/6",
-          report.direct_smt_audit.missing_named_assertion_rate.exact === "6/6",
-          report.direct_smt_audit.negated_sepsis_assertion_rate.exact === "0/6",
-          single.target_syntax_validity.exact === "6/6",
-          single.admission_rate.exact === "6/6",
-          single.admitted_verdict_accuracy.exact === "6/6",
-          single.candidate_verdict_accuracy.exact === "6/6",
-          single.k_sample_stability.exact === "2/2"
+          direct.target_syntax_validity.denominator === direct.samples,
+          single.target_syntax_validity.denominator === single.samples,
+          report.direct_smt_audit.exact_template_match_rate.denominator === direct.samples,
+          report.direct_smt_audit.missing_named_assertion_rate.denominator === direct.samples,
+          report.direct_smt_audit.negated_sepsis_assertion_rate.denominator === direct.samples,
+          single.k_sample_stability.denominator === groups.length
         ]
       : [
           report.model_mode === "recorded_unsupported",
           report.live_model_calls === 0,
-          direct.target_syntax_validity.exact === "0/6",
-          direct.admission_rate.exact === "0/6",
-          direct.admitted_verdict_accuracy.exact === "0/6",
-          single.target_syntax_validity.exact === "0/6",
-          single.admission_rate.exact === "0/6",
-          single.admitted_verdict_accuracy.exact === "0/6"
+          direct.target_syntax_validity.exact === `0/${direct.samples}`,
+          direct.admission_rate.exact === `0/${direct.samples}`,
+          direct.admitted_verdict_accuracy.exact === `0/${direct.samples}`,
+          single.target_syntax_validity.exact === `0/${single.samples}`,
+          single.admission_rate.exact === `0/${single.samples}`,
+          single.admitted_verdict_accuracy.exact === `0/${single.samples}`
         ];
     const assertions = [...commonAssertions, ...modelAssertions];
     if (assertions.some((entry) => !entry)) {

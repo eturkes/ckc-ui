@@ -9,5 +9,11 @@
     "group_id": "group.m1_null",
     "expected_outcome": "semantic_no_conflict",
     "expected_null_result": true
+  },
+  {
+    "group_id": "group.m2_holdout_conflict",
+    "expected_outcome": "semantic_contradiction",
+    "expected_conflict_kind": "deontic_direction_conflict",
+    "expected_core": ["assert.rule.a.cq1.r1.pos", "assert.rule.d.mutation1.neg"]
   }
 ]
