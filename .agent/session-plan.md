@@ -11,7 +11,7 @@ Selection protocol:
 ## Queue
 
 ### R1 Data-Driven Fixture Spine
-status: pending
+status: done
 
 Intent: remove the most brittle fixture-specific semantics from `tools/build-run.mjs` without changing the current visible result.
 

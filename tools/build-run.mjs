@@ -16,6 +16,10 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const runId = "m2-one-shot";
 const runDir = path.join(root, "runs", runId);
 const webDataPath = path.join(root, "index.html");
+const corporaRegistryPath = path.join(root, "registry", "corpora.json");
+const experimentsRegistryPath = path.join(root, "registry", "experiments.json");
+const fixtureSemanticsPath = path.join(root, "corpus", "fixtures", "m1_fixture_semantics.json");
+const goldExpectationsPath = path.join(root, "corpus", "gold", "m1_expected.json");
 const realGuidelineRegistryPath = path.join(root, "corpus", "real_guidelines", "japanese_guidelines.json");
 const realGuidelineRawManifestPath = path.join(root, "corpus", "raw", "real-guidelines", "manifest.json");
 const verifyMode = process.argv.includes("--verify");
@@ -26,65 +30,11 @@ const modelPath = process.env.CKC_MODEL_PATH ?? path.join(root, ".local", "model
 const modelName = process.env.CKC_MODEL_NAME ?? "Qwen2.5-0.5B-Instruct-Q2_K";
 const modelTimeoutMs = Number(process.env.CKC_MODEL_TIMEOUT_MS ?? "120000");
 
-const fixtureRegistry = [
-  {
-    id: "fixture.m1_guideline_a",
-    key: "a",
-    title: "合成敗血症診療ガイドライン A",
-    path: "corpus/fixtures/fixture-m1-guideline-a.html",
-    regions: [
-      {
-        id: "region.a.cq1.rec",
-        role: "recommendation",
-        quote: "成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。"
-      },
-      {
-        id: "region.a.cq1.exc",
-        role: "exception",
-        quote: "ただし、重度腎機能障害のある患者を除く。"
-      }
-    ]
-  },
-  {
-    id: "fixture.m1_guideline_b",
-    key: "b",
-    title: "合成敗血症診療ガイドライン B",
-    path: "corpus/fixtures/fixture-m1-guideline-b.html",
-    regions: [
-      {
-        id: "region.b.contra1",
-        role: "contraindication",
-        quote: "成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。"
-      }
-    ]
-  },
-  {
-    id: "fixture.m1_control",
-    key: "control",
-    title: "合成敗血症対照文書",
-    path: "corpus/fixtures/fixture-m1-control.html",
-    regions: [
-      {
-        id: "region.control.child.contra1",
-        role: "contraindication",
-        quote: "小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。"
-      }
-    ]
-  }
-];
-
-const groups = [
-  {
-    id: "group.m1_conflict",
-    fixtures: ["fixture.m1_guideline_a", "fixture.m1_guideline_b"],
-    expectedOutcome: "semantic_contradiction"
-  },
-  {
-    id: "group.m1_null",
-    fixtures: ["fixture.m1_guideline_a", "fixture.m1_control"],
-    expectedOutcome: "semantic_no_conflict"
-  }
-];
+let fixtureRegistry = [];
+let groups = [];
+let routeIds = ["route.direct_smt", "route.single_ir"];
+let sampleSeeds = [11, 22, 33];
+let m1InputRefs = null;
 
 function stable(value) {
   if (Array.isArray(value)) return value.map(stable);
@@ -157,6 +107,91 @@ async function writeText(relativePath, value) {
 async function readOptionalJson(absolutePath) {
   if (!existsSync(absolutePath)) return null;
   return JSON.parse(await readFile(absolutePath, "utf8"));
+}
+
+function cloneData(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+async function readJsonArtifact(absolutePath) {
+  return JSON.parse(await readFile(absolutePath, "utf8"));
+}
+
+function expectUniqueById(entries, label) {
+  const byId = new Map();
+  for (const entry of entries ?? []) {
+    if (!entry?.id) throw new Error(`${label} entry missing id`);
+    if (byId.has(entry.id)) throw new Error(`${label} duplicate id: ${entry.id}`);
+    byId.set(entry.id, entry);
+  }
+  return byId;
+}
+
+async function loadM1FixtureInputs() {
+  const corporaRegistry = await readJsonArtifact(corporaRegistryPath);
+  const fixtureSemantics = await readJsonArtifact(fixtureSemanticsPath);
+  const experimentsRegistry = await readJsonArtifact(experimentsRegistryPath);
+  const goldExpectations = await readJsonArtifact(goldExpectationsPath);
+  const corpusFixturesById = expectUniqueById(corporaRegistry.fixtures, "corpus fixture");
+  const semanticsById = expectUniqueById(fixtureSemantics.fixtures, "fixture semantics");
+
+  fixtureRegistry = (corporaRegistry.fixtures ?? []).map((corpusFixture) => {
+    const semantics = semanticsById.get(corpusFixture.id);
+    if (!semantics) throw new Error(`fixture semantics missing: ${corpusFixture.id}`);
+    return {
+      ...cloneData(corpusFixture),
+      key: semantics.key,
+      source_label: semantics.source_label,
+      title: semantics.title,
+      report_primary_region_ids: cloneData(semantics.report_primary_region_ids ?? []),
+      regions: cloneData(semantics.regions ?? []),
+      terminology_bindings: cloneData(semantics.terminology_bindings ?? []),
+      clinical_statements: cloneData(semantics.clinical_statements ?? []),
+      rules: cloneData(semantics.rules ?? [])
+    };
+  });
+
+  for (const semanticFixture of fixtureSemantics.fixtures ?? []) {
+    if (!corpusFixturesById.has(semanticFixture.id)) {
+      throw new Error(`fixture semantics references unknown corpus fixture: ${semanticFixture.id}`);
+    }
+  }
+
+  const experimentsById = expectUniqueById(experimentsRegistry.experiments, "experiment");
+  const m1Experiment = experimentsById.get("exp.m1_spine");
+  const m2Experiment = experimentsById.get("exp.m2_lift");
+  if (!m1Experiment) throw new Error("experiment missing: exp.m1_spine");
+  if (!m2Experiment) throw new Error("experiment missing: exp.m2_lift");
+
+  const goldByGroup = new Map((goldExpectations ?? []).map((entry) => [entry.group_id, entry]));
+  groups = (m1Experiment.fixture_groups ?? []).map((group) => {
+    const gold = goldByGroup.get(group.id);
+    if (!gold) throw new Error(`gold expectation missing: ${group.id}`);
+    for (const fixtureId of group.fixtures ?? []) {
+      if (!corpusFixturesById.has(fixtureId)) throw new Error(`group ${group.id} references unknown fixture: ${fixtureId}`);
+    }
+    return {
+      id: group.id,
+      fixtures: cloneData(group.fixtures),
+      expectedOutcome: gold.expected_outcome,
+      expectedConflictKind: gold.expected_conflict_kind ?? null,
+      expectedCore: cloneData(gold.expected_core ?? []),
+      expectedNullResult: Boolean(gold.expected_null_result)
+    };
+  });
+
+  routeIds = cloneData(m2Experiment.routes ?? routeIds);
+  sampleSeeds = cloneData(m2Experiment.sample_seeds ?? sampleSeeds);
+  m1InputRefs = {
+    corpora_registry_path: path.relative(root, corporaRegistryPath),
+    corpora_registry_hash: sha256(corporaRegistry),
+    fixture_semantics_path: path.relative(root, fixtureSemanticsPath),
+    fixture_semantics_hash: sha256(fixtureSemantics),
+    experiments_registry_path: path.relative(root, experimentsRegistryPath),
+    experiments_registry_hash: sha256(experimentsRegistry),
+    gold_expectations_path: path.relative(root, goldExpectationsPath),
+    gold_expectations_hash: sha256(goldExpectations)
+  };
 }
 
 function stableRawManifest(rawManifest) {
@@ -263,88 +298,19 @@ function sourceRegion(html, fixture, region) {
   };
 }
 
-function makeBindings(docKey) {
-  const common = [
-    { mention: "敗血症", system: "ckc.lex", code: "cond.sepsis", status: "exact" },
-    { mention: "抗菌薬A", system: "ckc.lex", code: "drug.abx_a", status: "exact" }
-  ];
-  if (docKey === "a") {
-    return [
-      { mention: "成人", system: "ckc.lex", code: "pop.adult", status: "exact" },
-      ...common,
-      { mention: "重度腎機能障害", system: "ckc.lex", code: "cond.renal_severe", status: "exact" }
-    ];
-  }
-  if (docKey === "b") {
-    return [
-      { mention: "成人", system: "ckc.lex", code: "pop.adult", status: "exact" },
-      ...common,
-      { mention: "妊娠中", system: "ckc.lex", code: "cond.pregnancy", status: "exact" }
-    ];
-  }
-  return [
-    { mention: "小児", system: "ckc.lex", code: "pop.child", status: "exact" },
-    ...common
-  ];
-}
-
 function makeRule(fixture) {
-  if (fixture.key === "a") {
-    return {
-      rule_id: "rule.a.cq1.r1",
-      direction: "for",
-      action_key: "act.administer:drug.abx_a",
-      strength: "strong",
-      certainty: "moderate",
-      context: {
-        age_years: { ge: 18 },
-        required: ["cond.sepsis"],
-        prohibited: ["cond.renal_severe"]
-      },
-      source_region_ids: ["region.a.cq1.rec", "region.a.cq1.exc"]
-    };
-  }
-  if (fixture.key === "b") {
-    return {
-      rule_id: "rule.b.contra1",
-      direction: "contraindicate",
-      action_key: "act.administer:drug.abx_a",
-      strength: "strong",
-      certainty: "moderate",
-      context: {
-        age_years: { ge: 18 },
-        required: ["cond.sepsis", "cond.pregnancy"],
-        prohibited: []
-      },
-      source_region_ids: ["region.b.contra1"]
-    };
-  }
-  return {
-    rule_id: "rule.control.child.contra1",
-    direction: "contraindicate",
-    action_key: "act.administer:drug.abx_a",
-    strength: "strong",
-    certainty: "moderate",
-    context: {
-      age_years: { lt: 18 },
-      required: ["cond.sepsis"],
-      prohibited: []
-    },
-    source_region_ids: ["region.control.child.contra1"]
-  };
+  if ((fixture.rules ?? []).length !== 1) throw new Error(`expected one rule for ${fixture.id}`);
+  return cloneData(fixture.rules[0]);
 }
 
 function makeStatement(fixture, rule) {
-  return {
-    statement_id: `statement.${fixture.key}.1`,
-    population: rule.context.age_years.lt === 18 ? "pop.child" : "pop.adult",
-    condition: "cond.sepsis",
-    action: rule.action_key,
-    modality: rule.direction,
-    strength: rule.strength,
-    certainty: rule.certainty,
-    source_region_ids: rule.source_region_ids
-  };
+  const statement = (fixture.clinical_statements ?? [])[0];
+  if (!statement) throw new Error(`clinical statement missing for ${fixture.id}`);
+  return cloneData(statement);
+}
+
+function makeBindings(fixture) {
+  return cloneData(fixture.terminology_bindings ?? []);
 }
 
 function makeAssertions(rule) {
@@ -460,6 +426,7 @@ function makeSmt(groupId, left, right, overlap) {
 
 function compileGroup(group, artifactsByDoc) {
   const [leftDoc, rightDoc] = group.fixtures.map((fixtureId) => artifactsByDoc.get(fixtureId));
+  if (!leftDoc || !rightDoc) throw new Error(`group requires two known fixtures: ${group.id}`);
   const [left] = leftDoc.normalization.rules;
   const [right] = rightDoc.normalization.rules;
   const overlap = contextsOverlap(left.context, right.context);
@@ -509,31 +476,34 @@ function compileGroup(group, artifactsByDoc) {
     expected_outcome: group.expectedOutcome,
     expected_match: (conflict ? "semantic_contradiction" : "semantic_no_conflict") === group.expectedOutcome
   };
-  return { compiled, verifier, smt, left, right, overlap, conflict };
+  return { group, compiled, verifier, smt, left, right, leftDoc, rightDoc, overlap, conflict };
 }
 
 function sourceQuote(docArtifacts, regionId) {
   return docArtifacts.source_graph.regions.find((region) => region.region_id === regionId)?.quote ?? "";
 }
 
+function sourceQuoteAcrossDocs(artifactsByDoc, regionId) {
+  for (const docArtifacts of artifactsByDoc.values()) {
+    const quote = sourceQuote(docArtifacts, regionId);
+    if (quote) return quote;
+  }
+  return "";
+}
+
 function buildFinding(groupResult, artifactsByDoc) {
   if (!groupResult.conflict) return null;
-  const leftDoc = artifactsByDoc.get("fixture.m1_guideline_a");
-  const rightDoc = artifactsByDoc.get("fixture.m1_guideline_b");
   const assertionCore = groupResult.verifier.results.find((entry) => entry.unsat_core)?.unsat_core ?? [];
+  const regionIds = [...new Set([...groupResult.left.source_region_ids, ...groupResult.right.source_region_ids])];
   return {
-    finding_id: "finding.group.m1_conflict.1",
-    group_id: "group.m1_conflict",
+    finding_id: `finding.${groupResult.compiled.group_id}.1`,
+    group_id: groupResult.compiled.group_id,
     classification: "candidate",
-    conflict_kind: "deontic_direction_conflict",
+    conflict_kind: groupResult.group.expectedConflictKind ?? "deontic_direction_conflict",
     claim_tier: "s1_admitted",
     rules: [groupResult.left.rule_id, groupResult.right.rule_id],
-    region_ids: ["region.a.cq1.rec", "region.a.cq1.exc", "region.b.contra1"],
-    quoted_spans: [
-      { region_id: "region.a.cq1.rec", text: sourceQuote(leftDoc, "region.a.cq1.rec") },
-      { region_id: "region.a.cq1.exc", text: sourceQuote(leftDoc, "region.a.cq1.exc") },
-      { region_id: "region.b.contra1", text: sourceQuote(rightDoc, "region.b.contra1") }
-    ],
+    region_ids: regionIds,
+    quoted_spans: regionIds.map((regionId) => ({ region_id: regionId, text: sourceQuoteAcrossDocs(artifactsByDoc, regionId) })),
     assertion_core: assertionCore,
     verifier_status: "semantic_contradiction",
     wording_scope: "synthetic fixture measurement"
@@ -541,20 +511,20 @@ function buildFinding(groupResult, artifactsByDoc) {
 }
 
 function buildNullResult(groupResult, artifactsByDoc) {
-  const leftDoc = artifactsByDoc.get("fixture.m1_guideline_a");
-  const controlDoc = artifactsByDoc.get("fixture.m1_control");
+  const regionIds = groupResult.compiled.fixture_ids.flatMap((fixtureId) => (
+    artifactsByDoc.get(fixtureId)?.fixture.report_primary_region_ids ?? []
+  ));
   return {
-    null_result_id: "null.group.m1_null.1",
-    group_id: "group.m1_null",
+    null_result_id: `null.${groupResult.compiled.group_id}.1`,
+    group_id: groupResult.compiled.group_id,
     classification: "documented_null_result",
     claim_tier: "s1_admitted",
     rules: [groupResult.left.rule_id, groupResult.right.rule_id],
-    reason: "age_intervals_disjoint",
-    region_ids: ["region.a.cq1.rec", "region.control.child.contra1"],
-    quoted_spans: [
-      { region_id: "region.a.cq1.rec", text: sourceQuote(leftDoc, "region.a.cq1.rec") },
-      { region_id: "region.control.child.contra1", text: sourceQuote(controlDoc, "region.control.child.contra1") }
-    ],
+    reason: groupResult.overlap.reasons.find((entry) => entry.endsWith("_disjoint") || entry.endsWith("_incompatible"))
+      ?? groupResult.overlap.reasons[0]
+      ?? "semantic_no_conflict",
+    region_ids: regionIds,
+    quoted_spans: regionIds.map((regionId) => ({ region_id: regionId, text: sourceQuoteAcrossDocs(artifactsByDoc, regionId) })),
     verifier_status: "semantic_no_conflict",
     wording_scope: "synthetic fixture measurement"
   };
@@ -576,40 +546,42 @@ function simulateRoute(routeId, groupId, seed) {
 }
 
 function modelCaseForGroup(groupId) {
-  if (groupId === "group.m1_conflict") {
-    return {
-      case_id: "pair.ab",
-      labels: ["A", "B"],
-      lines: [
-        "source A:",
-        "成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。",
-        "A exception:",
-        "ただし、重度腎機能障害のある患者を除く。",
-        "source B:",
-        "成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。"
-      ]
-    };
-  }
+  const group = groups.find((entry) => entry.id === groupId);
+  if (!group) throw new Error(`unknown group: ${groupId}`);
+  const fixtures = group.fixtures.map((fixtureId) => {
+    const fixture = fixtureRegistry.find((entry) => entry.id === fixtureId);
+    if (!fixture) throw new Error(`unknown fixture in group ${groupId}: ${fixtureId}`);
+    return fixture;
+  });
+  const labels = fixtures.map((fixture) => fixture.source_label);
+  const lines = fixtures.flatMap((fixture) => {
+    const primary = primaryRegion(fixture);
+    const exception = fixture.regions.find((region) => region.role === "exception");
+    return [
+      `source ${fixture.source_label}:`,
+      primary.quote,
+      ...(exception ? [`${fixture.source_label} exception:`, exception.quote] : [])
+    ];
+  });
   return {
-    case_id: "pair.ac",
-    labels: ["A", "C"],
-    lines: [
-      "source A:",
-      "成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。",
-      "A exception:",
-      "ただし、重度腎機能障害のある患者を除く。",
-      "source C:",
-      "小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。"
-    ]
+    case_id: `pair.${labels.join("").toLowerCase()}`,
+    labels,
+    lines
   };
 }
 
+function primaryRegion(fixture) {
+  const primaryRegionIds = fixture.report_primary_region_ids ?? [];
+  const region = fixture.regions.find((entry) => primaryRegionIds.includes(entry.id))
+    ?? fixture.regions.find((entry) => entry.role === "recommendation" || entry.role === "contraindication");
+  if (!region) throw new Error(`primary source region missing for fixture: ${fixture.id}`);
+  return region;
+}
+
 function sourceCaseForLabel(label) {
-  const fixtureKey = label === "C" ? "control" : label.toLowerCase();
-  const fixture = fixtureRegistry.find((entry) => entry.key === fixtureKey);
+  const fixture = fixtureRegistry.find((entry) => entry.source_label === label);
   if (!fixture) throw new Error(`unknown source label: ${label}`);
-  const primary = fixture.regions.find((region) => region.role === "recommendation" || region.role === "contraindication")?.quote;
-  if (!primary) throw new Error(`primary source region missing for label: ${label}`);
+  const primary = primaryRegion(fixture).quote;
   return {
     primary,
     exception: fixture.regions.find((region) => region.role === "exception")?.quote ?? null
@@ -1321,8 +1293,8 @@ function runLiveSingleIrRoute(groupId, seed, expected) {
 }
 
 function scoreRows() {
-  const routes = ["route.direct_smt", "route.single_ir"];
-  const seeds = [11, 22, 33];
+  const routes = routeIds;
+  const seeds = sampleSeeds;
   const rawRows = [];
   const ioRecords = [];
   let liveCalls = 0;
@@ -1478,6 +1450,118 @@ function buildRouteTargetSummary(ioRecords) {
     compiled_row_count: targetRecords.length,
     smt_file_count: smtFiles.length,
     smt_files: smtFiles
+  };
+}
+
+function buildRealismAudit({ realGuidelineIntake, sourceCueLayer, promptCatalog }) {
+  const surfaces = [
+    {
+      surface_id: "fixture_html_sources",
+      stage: "input",
+      classification: "fixture_authored",
+      evidence_paths: fixtureRegistry.map((fixture) => fixture.path),
+      note: "Synthetic Japanese HTML fixtures remain authored PoC inputs."
+    },
+    {
+      surface_id: "fixture_regions",
+      stage: "extract",
+      classification: "data_driven",
+      evidence_paths: [m1InputRefs.fixture_semantics_path],
+      note: "Region IDs, roles, and exact quoted spans are read from committed fixture semantics JSON."
+    },
+    {
+      surface_id: "fixture_groups",
+      stage: "experiment",
+      classification: "data_driven",
+      evidence_paths: [m1InputRefs.experiments_registry_path],
+      note: "M1 fixture group membership is read from the experiment registry."
+    },
+    {
+      surface_id: "expected_outcomes",
+      stage: "evaluation",
+      classification: "data_driven",
+      evidence_paths: [m1InputRefs.gold_expectations_path],
+      note: "Expected group outcomes and expected cores are read from the gold artifact."
+    },
+    {
+      surface_id: "terminology_bindings",
+      stage: "normalize",
+      classification: "data_driven",
+      evidence_paths: [m1InputRefs.fixture_semantics_path],
+      note: "Terminology binding rows are loaded per fixture instead of constructed from fixture keys."
+    },
+    {
+      surface_id: "norm_rule_specs",
+      stage: "normalize",
+      classification: "data_driven",
+      evidence_paths: [m1InputRefs.fixture_semantics_path],
+      note: "NormRule-like direction, action, context, and source-region fields are loaded per fixture."
+    },
+    {
+      surface_id: "segment_generation",
+      stage: "segment",
+      classification: "data_driven",
+      evidence_paths: [m1InputRefs.fixture_semantics_path],
+      note: "Segments are generated from loaded region rows and source offsets."
+    },
+    {
+      surface_id: "context_overlap_and_smt_encoding",
+      stage: "compile",
+      classification: "hardcoded",
+      evidence_paths: ["tools/build-run.mjs"],
+      note: "The toy interval/concept overlap logic and SMT-LIB emitter are still one-shot harness code."
+    },
+    {
+      surface_id: "symbolic_verifier",
+      stage: "verify",
+      classification: "hardcoded",
+      evidence_paths: ["tools/build-run.mjs"],
+      note: "The one-shot symbolic verifier simulates the M1 solver result for fixture-scale evidence."
+    },
+    {
+      surface_id: "source_cue_layer",
+      stage: "m2_route_input",
+      classification: "prompt_scaffolded",
+      evidence_paths: ["metrics/source_cues.json"],
+      note: `Shared cue layer ${sourceCueLayer.extractor_id} is deterministic, but exists to scaffold M2 route prompts.`
+    },
+    {
+      surface_id: "llm_prompt_templates",
+      stage: "m2_route_prompt",
+      classification: "prompt_scaffolded",
+      evidence_paths: ["prompts/catalog.json", ...promptCatalog.entries.map((entry) => entry.prompt_path)],
+      note: "Prompt templates are explicit experiment scaffolding and are cataloged byte-for-byte."
+    },
+    {
+      surface_id: "real_guideline_intake",
+      stage: "source_intake",
+      classification: "data_driven",
+      evidence_paths: [realGuidelineIntake.registry_path, realGuidelineIntake.raw_manifest_path],
+      note: "Real guideline source metadata and candidate spans are registry-driven and remain outside locked M1/M2 scoring."
+    },
+    {
+      surface_id: "report_and_ui_renderer",
+      stage: "report",
+      classification: "hardcoded",
+      evidence_paths: ["tools/build-run.mjs", "index.html"],
+      note: "Report and UI layout are deterministic renderer code over canonical run artifacts."
+    }
+  ];
+  const summary = Object.fromEntries(["data_driven", "fixture_authored", "prompt_scaffolded", "hardcoded"].map((classification) => [
+    classification,
+    surfaces.filter((surface) => surface.classification === classification).length
+  ]));
+  return {
+    artifact_kind: "RealismAudit",
+    schema_version: "realism_audit.v1",
+    run_id: runId,
+    scope: "Fixture-scale realism audit for the one-shot M1-M2 research harness.",
+    clinical_claim_scope: "none",
+    classification_values: ["data_driven", "fixture_authored", "prompt_scaffolded", "hardcoded"],
+    input_artifacts: m1InputRefs,
+    summary,
+    surface_count: surfaces.length,
+    surfaces
   };
 }
 
@@ -1696,6 +1780,30 @@ ${promptRows}
 ${promptBlocks}`;
 }
 
+function realismAuditMarkdown(realismAudit) {
+  const summary = Object.entries(realismAudit.summary).map(([classification, count]) => `${classification}: ${count}`).join("; ");
+  const rows = realismAudit.surfaces.map((surface) => `| \`${surface.surface_id}\` | ${surface.stage} | ${surface.classification} | ${surface.evidence_paths.map((entry) => `\`${entry}\``).join("<br>")} | ${surface.note} |`).join("\n");
+  return `## Realism audit
+
+Scope: one-shot fixture realism audit; no clinical, patient-care, deployment, or regulatory claim. Summary: ${summary}.
+
+| Surface | Stage | Classification | Evidence | Note |
+| --- | --- | --- | --- | --- |
+${rows}`;
+}
+
+function realismAuditJapaneseMarkdown(realismAudit) {
+  const summary = Object.entries(realismAudit.summary).map(([classification, count]) => `${classification}: ${count}`).join("; ");
+  const rows = realismAudit.surfaces.map((surface) => `| \`${surface.surface_id}\` | ${surface.stage} | ${surface.classification} | ${surface.evidence_paths.map((entry) => `\`${entry}\``).join("<br>")} | ${surface.note} |`).join("\n");
+  return `## Realism audit
+
+範囲: one-shot fixture realism audit。臨床、患者ケア、導入、規制上の主張はしない。summary: ${summary}.
+
+| surface | stage | classification | evidence | note |
+| --- | --- | --- | --- | --- |
+${rows}`;
+}
+
 function markdownReport(report) {
   const liftRows = report.metrics.lift_table.map((row) => `| ${row.metric} | ${row.baseline.exact} | ${row.lifted.exact} | ${row.delta.exact} |`).join("\n");
   const rawRows = report.metrics.raw_rows.map((row) => `| ${row.route_id} | ${row.group_id} | ${row.seed} | ${row.model_output_syntax_valid} | ${row.target_syntax_valid} | ${row.admitted} | ${row.verdict} | ${row.verdict_correct} | ${row.candidate_verdict_correct} |`).join("\n");
@@ -1737,6 +1845,8 @@ Scope: source-intake candidate evidence only. These real Japanese guideline sour
 | Source | License | Raw cache | Candidate spans | Relation |
 | --- | --- | --- | ---: | --- |
 ${realGuidelineRows}
+
+${realismAuditMarkdown(report.realism_audit)}
 
 ## M2 lift table
 
@@ -1816,6 +1926,8 @@ ${report.findings[0].quoted_spans.map((span) => `- \`${span.region_id}\`: ${span
 | source | license | raw cache | candidate spans |
 | --- | --- | --- | ---: |
 ${realGuidelineRows}
+
+${realismAuditJapaneseMarkdown(report.realism_audit)}
 
 ## M2 lift table
 
@@ -2006,6 +2118,11 @@ function renderBasicUi(data) {
   const direct = data.route_metrics.find((entry) => entry.route_id === "route.direct_smt");
   const single = data.route_metrics.find((entry) => entry.route_id === "route.single_ir");
   const displayModel = humanModelIdentity(report.model_identity);
+  const conflictGroupId = report.findings[0]?.group_id ?? data.groups.find((entry) => entry.conflict)?.group_id;
+  const nullGroupId = report.null_results[0]?.group_id ?? data.groups.find((entry) => !entry.conflict)?.group_id;
+  const representativeSeed = data.raw_rows.find((row) => row.route_id === "route.single_ir" && row.group_id === conflictGroupId)?.seed
+    ?? sampleSeeds[0]
+    ?? 11;
   const metricLabels = {
     target_syntax_validity: "Target syntax valid",
     admission_rate: "Rows admitted",
@@ -2030,9 +2147,9 @@ function renderBasicUi(data) {
             <td>${escapeHtml(cue.renal_exception_cue)}</td>
             <td><code>${escapeHtml(compactJson(cue.resolved_fields))}</code></td>
           </tr>`).join("");
-  const directExample = routeRecord(data, "route.direct_smt", "group.m1_conflict", 11);
-  const irConflictExample = routeRecord(data, "route.single_ir", "group.m1_conflict", 11);
-  const irNullExample = routeRecord(data, "route.single_ir", "group.m1_null", 11);
+  const directExample = routeRecord(data, "route.direct_smt", conflictGroupId, representativeSeed);
+  const irConflictExample = routeRecord(data, "route.single_ir", conflictGroupId, representativeSeed);
+  const irNullExample = routeRecord(data, "route.single_ir", nullGroupId, representativeSeed);
   const directDiagnostics = diagnosticSummary(directExample?.row?.diagnostics);
   const irConflictBridge = irConflictExample?.parsed_response?.deterministic_bridge ?? null;
   const irConflictCandidate = irConflictExample?.parsed_response?.candidate ?? null;
@@ -2040,7 +2157,7 @@ function renderBasicUi(data) {
   const irConflictPairCallCount = irConflictExample?.route_call ? 1 : 0;
   const routeIrRulesByLabel = new Map((irConflictExample?.parsed_response?.route_ir?.rules ?? [])
     .map((entry) => [entry.source_label, entry.rule]));
-  const irTraceLabels = modelCaseForGroup("group.m1_conflict").labels;
+  const irTraceLabels = modelCaseForGroup(conflictGroupId).labels;
   const traceSourceText = irTraceLabels.map(sourceTraceText).join("\n\n");
   const traceCueText = irTraceLabels
     .map((label) => cueTraceText(label, data.source_cue_layer.cues[label]))
@@ -2230,6 +2347,18 @@ function renderBasicUi(data) {
             <td>${escapeHtml(directValue)}</td>
             <td>${escapeHtml(irValue)}</td>
           </tr>`).join("");
+  const realismAudit = data.realism_audit;
+  const realismSummary = Object.entries(realismAudit.summary)
+    .map(([classification, count]) => `${classification}: ${count}`)
+    .join("; ");
+  const realismRows = realismAudit.surfaces.map((surface) => `
+          <tr>
+            <td><code>${escapeHtml(surface.surface_id)}</code></td>
+            <td>${escapeHtml(surface.stage)}</td>
+            <td><span class="class-badge ${escapeHtml(surface.classification)}">${escapeHtml(surface.classification)}</span></td>
+            <td>${escapeHtml(surface.evidence_paths.join(", "))}</td>
+            <td>${escapeHtml(surface.note)}</td>
+          </tr>`).join("");
 
   return `<!doctype html>
 <html lang="en">
@@ -2282,6 +2411,11 @@ function renderBasicUi(data) {
     .use-badge { display: inline-flex; align-items: center; min-height: 22px; border-radius: 999px; padding: 2px 7px; border: 1px solid var(--line); font-size: .7rem; font-weight: 700; white-space: nowrap; }
     .use-badge.llm { color: var(--warn); background: #fff1cf; border-color: #e7cf91; }
     .use-badge.det { color: var(--ok); background: #e4f2ec; border-color: #b9ddcf; }
+    .class-badge { display: inline-flex; align-items: center; min-height: 22px; border-radius: 999px; padding: 2px 7px; border: 1px solid var(--line); font-size: .7rem; font-weight: 700; white-space: nowrap; }
+    .class-badge.data_driven { color: var(--ok); background: #e4f2ec; border-color: #b9ddcf; }
+    .class-badge.fixture_authored { color: #315c87; background: #e8f1fb; border-color: #bdd4eb; }
+    .class-badge.prompt_scaffolded { color: var(--warn); background: #fff1cf; border-color: #e7cf91; }
+    .class-badge.hardcoded { color: #8b3434; background: #fde9e7; border-color: #efbeb8; }
     .trace-step pre { max-height: 240px; margin-top: 8px; font-size: .72rem; line-height: 1.35; }
     .mechanics { margin-top: 12px; display: grid; gap: 10px; }
     .mechanics-note { border-left: 3px solid var(--line); padding: 2px 0 2px 10px; color: var(--muted); font-size: .82rem; line-height: 1.4; }
@@ -2373,7 +2507,7 @@ function renderBasicUi(data) {
         </div>
       </div>
       <h3>Text to SMT trace</h3>
-      <p>Representative admitted row: <code>route.single_ir</code> / <code>group.m1_conflict</code> / seed 11. Each step is a recorded artifact or deterministic transform used for the scored route row.</p>
+      <p>Representative admitted row: <code>route.single_ir</code> / <code>${escapeHtml(conflictGroupId)}</code> / seed ${escapeHtml(representativeSeed)}. Each step is a recorded artifact or deterministic transform used for the scored route row.</p>
       <div class="trace-viz">
 ${transformationStepsHtml}
       </div>
@@ -2426,6 +2560,15 @@ ${transformationStepsHtml}
         <table>
           <thead><tr><th>Metric</th><th>direct_smt</th><th>single_ir</th><th>delta</th></tr></thead>
           <tbody>${liftRows}
+          </tbody>
+        </table>
+      </div>
+      <h3>Realism audit</h3>
+      <p>Fixture-scale audit only; this does not add any clinical, patient-care, deployment, or regulatory claim. Summary: ${escapeHtml(realismSummary)}.</p>
+      <div class="table-wrap">
+        <table class="extra-wide">
+          <thead><tr><th>Surface</th><th>Stage</th><th>Classification</th><th>Evidence</th><th>Note</th></tr></thead>
+          <tbody>${realismRows}
           </tbody>
         </table>
       </div>
@@ -2539,6 +2682,7 @@ async function modelMetadata(liveCalls) {
 
 async function main() {
   if (liveModel) requireLiveModelReady();
+  await loadM1FixtureInputs();
   await rm(runDir, { recursive: true, force: true });
   await mkdir(runDir, { recursive: true });
 
@@ -2570,7 +2714,7 @@ async function main() {
       artifact_id: `artifact.${fixture.key}.normalization`,
       artifact_kind: "Normalization",
       doc_id: fixture.id,
-      terminology_bindings: makeBindings(fixture.key),
+      terminology_bindings: makeBindings(fixture),
       clinical_statements: [makeStatement(fixture, rule)],
       rules: [rule]
     };
@@ -2614,8 +2758,12 @@ async function main() {
   const realGuidelineIntake = await buildRealGuidelineIntake();
   await writeJson("real_guidelines/source_intake.json", realGuidelineIntake);
 
-  const finding = buildFinding(groupResults.find((entry) => entry.compiled.group_id === "group.m1_conflict"), artifactsByDoc);
-  const nullResult = buildNullResult(groupResults.find((entry) => entry.compiled.group_id === "group.m1_null"), artifactsByDoc);
+  const conflictGroupResult = groupResults.find((entry) => entry.conflict);
+  const nullGroupResult = groupResults.find((entry) => entry.group.expectedNullResult || entry.verifier.outcome === "semantic_no_conflict");
+  if (!conflictGroupResult) throw new Error("expected conflict group missing");
+  if (!nullGroupResult) throw new Error("expected null-result group missing");
+  const finding = buildFinding(conflictGroupResult, artifactsByDoc);
+  const nullResult = buildNullResult(nullGroupResult, artifactsByDoc);
   const traceBundle = buildTrace(artifactsByDoc, groupResults, finding, nullResult, realGuidelineIntake);
   const lineageIndex = {
     artifact_kind: "LineageIndex",
@@ -2633,6 +2781,8 @@ async function main() {
   const directSmtAudit = buildDirectSmtAudit(metrics.ioRecords);
   const routeTargetSummary = buildRouteTargetSummary(metrics.ioRecords);
   const promptCatalog = buildPromptCatalog(metrics.ioRecords);
+  const realismAudit = buildRealismAudit({ realGuidelineIntake, sourceCueLayer, promptCatalog });
+  const realismAuditHash = sha256(realismAudit);
   const modelMeta = await modelMetadata(metrics.liveCalls);
   for (const record of metrics.ioRecords) {
     await writeJson(`model_io/${record.route_id}/${record.group_id}/seed-${record.seed}.json`, record);
@@ -2650,6 +2800,7 @@ async function main() {
   await writeJson("metrics/direct_smt_audit.json", directSmtAudit);
   await writeJson("metrics/source_cues.json", sourceCueLayer);
   await writeJson("metrics/route_targets.json", routeTargetSummary);
+  await writeJson("metrics/realism_audit.json", realismAudit);
 
   const diagnosticsSummary = {};
   for (const row of metrics.rawRows) {
@@ -2663,9 +2814,14 @@ async function main() {
     experiments: ["exp.m1_spine", "exp.m2_lift"],
     corpus_hash: sha256({
       synthetic_fixtures: fixtureRegistry.map((fixture) => ({ id: fixture.id, path: fixture.path })),
+      fixture_semantics: m1InputRefs.fixture_semantics_hash,
+      experiment_registry: m1InputRefs.experiments_registry_hash,
+      gold_expectations: m1InputRefs.gold_expectations_hash,
       real_guidelines: realGuidelineIntake.registry_hash
     }),
-    lexicon_hash: sha256(["pop.adult", "pop.child", "cond.sepsis", "cond.renal_severe", "cond.pregnancy", "drug.abx_a"]),
+    lexicon_hash: sha256([...new Set(fixtureRegistry.flatMap((fixture) => (
+      fixture.terminology_bindings ?? []
+    ).map((binding) => binding.code)))].sort()),
     solver_identity: "one-shot-js-symbolic-verifier",
     model_identity: modelMeta.model_identity,
     model_runtime: modelMeta.model_runtime,
@@ -2699,6 +2855,10 @@ async function main() {
       scope: sourceCueLayer.scope,
       fairness_note: sourceCueLayer.fairness_note,
       cue_hash: sha256(sourceCueLayer)
+    },
+    realism_audit: {
+      ...realismAudit,
+      audit_hash: realismAuditHash
     },
     real_guideline_intake: {
       artifact_id: realGuidelineIntake.artifact_id,
@@ -2767,9 +2927,10 @@ async function main() {
     real_guideline_intake_hash: sha256(realGuidelineIntake),
     source_cue_layer_hash: sha256(sourceCueLayer),
     route_target_summary_hash: sha256(routeTargetSummary),
+    realism_audit_hash: realismAuditHash,
     prompt_catalog_hash: sha256(promptCatalog),
     prompt_template_hashes: Object.fromEntries(promptCatalog.entries.map((entry) => [entry.prompt_id, entry.prompt_hash])),
-    route_ids: ["route.direct_smt", "route.single_ir"],
+    route_ids: routeIds,
     report_hash: sha256(report)
   };
   await writeJson("manifest.json", manifest);
@@ -2807,6 +2968,7 @@ async function main() {
     route_target_summary: routeTargetSummary,
     prompt_catalog: promptCatalog,
     source_cue_layer: sourceCueLayer,
+    realism_audit: realismAudit,
     real_guideline_intake: realGuidelineIntake,
     model_io: metrics.ioRecords,
     artifacts: replayManifest.files,
@@ -2836,10 +2998,11 @@ async function main() {
       "metrics/direct_smt_audit.json",
       "metrics/source_cues.json",
       "metrics/route_targets.json",
+      "metrics/realism_audit.json",
       "prompts/catalog.json",
       ...promptCatalog.entries.map((entry) => entry.prompt_path),
-      ...(liveModel ? ["route_targets/route.single_ir/group.m1_conflict/seed-11/smt/q.overlap.smt2"] : []),
-      "model_io/route.direct_smt/group.m1_conflict/seed-11.json"
+      ...(liveModel ? [`route_targets/route.single_ir/${conflictGroupResult.compiled.group_id}/seed-${sampleSeeds[0]}/smt/q.overlap.smt2`] : []),
+      `model_io/route.direct_smt/${conflictGroupResult.compiled.group_id}/seed-${sampleSeeds[0]}.json`
     ];
     const commonAssertions = [
       finding?.conflict_kind === "deontic_direction_conflict",
@@ -2854,10 +3017,15 @@ async function main() {
       promptCatalog.prompt_count === 4,
       promptCatalog.call_count === metrics.ioRecords.length,
       report.prompt_catalog.catalog_hash === sha256(promptCatalog),
+      report.realism_audit.audit_hash === realismAuditHash,
+      realismAudit.surfaces.some((surface) => surface.surface_id === "fixture_regions" && surface.classification === "data_driven"),
+      realismAudit.surfaces.some((surface) => surface.surface_id === "context_overlap_and_smt_encoding" && surface.classification === "hardcoded"),
+      realismAudit.surfaces.some((surface) => surface.surface_id === "llm_prompt_templates" && surface.classification === "prompt_scaffolded"),
       metrics.ioRecords.every((record) => record.prompt_hash === sha256Text(record.prompt)),
       metrics.ioRecords.every((record) => !record.route_call || record.route_call.prompt_hash === sha256Text(record.route_call.prompt)),
       existsSync(webDataPath),
       renderedUi.includes("Transformation rules"),
+      renderedUi.includes("Realism audit"),
       renderedUi.includes("Model JSON field"),
       renderedUi.includes("same_action &amp;&amp; opposed_directions &amp;&amp; context_overlap"),
       ...requiredFiles.map((relative) => existsSync(path.join(runDir, relative)))
