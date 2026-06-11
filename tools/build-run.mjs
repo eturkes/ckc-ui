@@ -50,12 +50,14 @@ const modelTimeoutMs = Number(process.env.CKC_MODEL_TIMEOUT_MS ?? "120000");
 let fixtureRegistry = [];
 let routeRegistry = [];
 let m1Groups = [];
+let allEvaluationGroups = [];
 let groups = [];
 let routeIds = ["route.direct_smt", "route.single_ir"];
 let sampleSeeds = [11, 22, 33];
 let m1InputRefs = null;
 let selectedExperiment = null;
 let experimentKind = "route_comparison";
+let trialSelection = null;
 let unimplementedRouteIds = [];
 let pipelineIds = [];
 const baselineRouteId = "route.direct_smt";
@@ -95,6 +97,48 @@ function routeImplemented(routeId) {
 
 function routeRegistryEntry(routeId) {
   return routeRegistry.find((entry) => entry.id === routeId) ?? null;
+}
+
+function selectRouteTrialGroups(candidateGroups, configuredExperiment) {
+  const configuredTrialGroupIds = configuredExperiment.trial_group_ids ?? null;
+  if (!configuredTrialGroupIds) {
+    return {
+      groups: candidateGroups,
+      selection: {
+        strategy: "all_evaluation_groups",
+        configured_trial_group_ids: null,
+        evaluation_group_ids: candidateGroups.map((group) => group.id),
+        trial_group_ids: candidateGroups.map((group) => group.id),
+        evaluation_group_count: candidateGroups.length,
+        trial_group_count: candidateGroups.length
+      }
+    };
+  }
+  if (!Array.isArray(configuredTrialGroupIds) || configuredTrialGroupIds.length === 0) {
+    throw new Error(`${configuredExperiment.id} trial_group_ids must be a non-empty array when present`);
+  }
+  const duplicateTrialGroupIds = configuredTrialGroupIds
+    .filter((groupId, index) => configuredTrialGroupIds.indexOf(groupId) !== index);
+  if (duplicateTrialGroupIds.length > 0) {
+    throw new Error(`${configuredExperiment.id} trial_group_ids contains duplicates: ${[...new Set(duplicateTrialGroupIds)].join(", ")}`);
+  }
+  const groupsById = new Map(candidateGroups.map((group) => [group.id, group]));
+  const selectedGroups = configuredTrialGroupIds.map((groupId) => {
+    const group = groupsById.get(groupId);
+    if (!group) throw new Error(`${configuredExperiment.id} trial_group_ids references unknown evaluation group: ${groupId}`);
+    return group;
+  });
+  return {
+    groups: selectedGroups,
+    selection: {
+      strategy: "explicit_trial_group_ids",
+      configured_trial_group_ids: [...configuredTrialGroupIds],
+      evaluation_group_ids: candidateGroups.map((group) => group.id),
+      trial_group_ids: selectedGroups.map((group) => group.id),
+      evaluation_group_count: candidateGroups.length,
+      trial_group_count: selectedGroups.length
+    }
+  };
 }
 
 function stable(value) {
@@ -337,8 +381,9 @@ async function loadM1FixtureInputs() {
   }
 
   m1Groups = (m1Experiment.fixture_groups ?? []).map((group) => loadGroupSpec(group, "M1 group"));
-  const evaluationGroups = configuredExperiment.evaluation_groups ?? m1Experiment.fixture_groups ?? [];
-  groups = evaluationGroups.map((group) => loadGroupSpec(group, `${selectedExperimentId} evaluation group`));
+  const configuredEvaluationGroups = configuredExperiment.evaluation_groups ?? m1Experiment.fixture_groups ?? [];
+  allEvaluationGroups = configuredEvaluationGroups.map((group) => loadGroupSpec(group, `${selectedExperimentId} evaluation group`));
+  groups = allEvaluationGroups;
 
   if (experimentKind === "route_comparison") {
     routeIds = cloneData(configuredExperiment.routes ?? routeIds);
@@ -358,7 +403,11 @@ async function loadM1FixtureInputs() {
       );
     }
     sampleSeeds = cloneData(configuredExperiment.sample_seeds ?? sampleSeeds);
+    const selectedTrialGroups = selectRouteTrialGroups(allEvaluationGroups, configuredExperiment);
+    groups = selectedTrialGroups.groups;
+    trialSelection = selectedTrialGroups.selection;
   } else {
+    trialSelection = null;
     pipelineIds = cloneData(configuredExperiment.pipelines);
     if (!Array.isArray(pipelineIds) || pipelineIds.length === 0) throw new Error(`${selectedExperimentId} pipelines must contain at least one pipeline`);
     if (new Set(pipelineIds).size !== pipelineIds.length) throw new Error(`${selectedExperimentId} pipelines must be unique`);
@@ -2094,6 +2143,14 @@ function modelCaseForGroup(groupId) {
     labels,
     lines
   };
+}
+
+function groupSourceLabels(group) {
+  return group.fixtures.map((fixtureId) => {
+    const fixture = fixtureRegistry.find((entry) => entry.id === fixtureId);
+    if (!fixture) throw new Error(`unknown fixture in group ${group.id}: ${fixtureId}`);
+    return fixture.source_label;
+  });
 }
 
 function primaryRegion(fixture) {
@@ -5079,7 +5136,7 @@ function buildRouteMatrix(routeMetrics) {
     baseline_route_id: baselineRouteId,
     route_ids: [...routeIds],
     metrics: comparisonMetricIds,
-    comparison_scope: "Exact route metric values and per-route deltas against the direct SMT baseline over identical groups and seeds.",
+    comparison_scope: "Exact route metric values and per-route deltas against the direct SMT baseline over identical selected trial groups and seeds.",
     migration_note: "C1 replaced the fixed direct_smt-versus-single_ir lift table with this route-matrix artifact; report and manifest hashes can change from artifact shape even when raw row measurements are unchanged.",
     rows,
     cells: rows.flatMap((row) => comparisonMetricIds.map((metric) => ({
@@ -5425,8 +5482,9 @@ function groupSetForMeasurementRole(measurementRole) {
   return "route_evaluation_group";
 }
 
-function buildGroupAudit() {
-  const rows = groups.map((group) => {
+function buildGroupAudit(auditGroups = groups) {
+  const trialGroupIds = new Set(groups.map((group) => group.id));
+  const rows = auditGroups.map((group) => {
     const fixtures = group.fixtures.map((fixtureId) => fixtureRegistry.find((entry) => entry.id === fixtureId));
     const evidenceRegionIds = group.expectedEvidenceRegionIds.length > 0
       ? group.expectedEvidenceRegionIds
@@ -5457,6 +5515,7 @@ function buildGroupAudit() {
     const evidenceRegionsPresent = evidenceQuotes.every((entry) => entry.quote);
     return {
       group_id: group.id,
+      trial_selected: trialGroupIds.has(group.id),
       group_set: groupSetForMeasurementRole(group.measurementRole),
       measurement_role: group.measurementRole,
       fixture_ids: group.fixtures,
@@ -5481,8 +5540,10 @@ function buildGroupAudit() {
     artifact_kind: "M3RouteGroupAudit",
     schema_version: "m3_route_group_audit.v0",
     experiment_id: selectedExperimentId,
-    scope: "Audit that each selected route-evaluation group resolves to gold expectations, fixture semantics, source paths, and quoted evidence regions.",
+    scope: "Audit that each configured route-evaluation group resolves to gold expectations, fixture semantics, source paths, and quoted evidence regions; trial_selected marks groups measured in this run.",
     group_count: rows.length,
+    trial_group_count: rows.filter((row) => row.trial_selected).length,
+    trial_group_ids: groups.map((group) => group.id),
     group_set_counts: groupSetCounts,
     all_groups_have_gold_fixture_semantics_and_source_paths: rows.every((row) => row.audit_pass),
     rows
@@ -5490,11 +5551,14 @@ function buildGroupAudit() {
 }
 
 function buildRouteEvaluation(rawRows) {
-  const evaluationGroups = groups.map((group) => ({
+  const trialGroupIds = new Set(groups.map((group) => group.id));
+  const configuredGroups = allEvaluationGroups.length > 0 ? allEvaluationGroups : groups;
+  const evaluationGroups = configuredGroups.map((group) => ({
     group_id: group.id,
+    trial_selected: trialGroupIds.has(group.id),
     group_set: groupSetForMeasurementRole(group.measurementRole),
     fixture_ids: group.fixtures,
-    source_labels: modelCaseForGroup(group.id).labels,
+    source_labels: groupSourceLabels(group),
     measurement_role: group.measurementRole,
     mutation_note: group.mutationNote,
     expected_outcome: group.expectedOutcome,
@@ -5527,6 +5591,10 @@ function buildRouteEvaluation(rawRows) {
     unimplemented_route_ids: [...unimplementedRouteIds],
     scaffolded_route_ids: scaffoldedRouteIds,
     diagnostic_categories: diagnosticCategoryDefinitions,
+    trial_selection: trialSelection,
+    trial_group_ids: groups.map((group) => group.id),
+    trial_row_count_per_route: groups.length * sampleSeeds.length,
+    sample_seeds: [...sampleSeeds],
     evaluation_groups: evaluationGroups,
     holdout_group_ids: evaluationGroups
       .filter((group) => group.measurement_role.includes("holdout") || group.measurement_role.includes("mutation"))
@@ -6121,7 +6189,7 @@ ${rows}`;
 
 function markdownReport(report) {
   const rawRows = report.metrics.raw_rows.map((row) => `| ${row.route_id} | ${row.group_id} | ${row.measurement_role} | ${row.measurement_status} | ${row.model_call_recorded} | ${row.live_call_count ?? 0} | ${row.seed} | ${row.model_output_syntax_valid} | ${row.target_syntax_valid} | ${row.admitted} | ${row.verdict} | ${row.verdict_correct} | ${row.candidate_verdict_correct} | ${row.diagnostic_categories.join(", ") || "none"} |`).join("\n");
-  const groupRows = report.m2_evaluation.evaluation_groups.map((group) => `| \`${group.group_id}\` | ${group.group_set} | ${group.measurement_role} | ${group.source_labels.join(", ")} | ${group.expected_outcome} | ${group.expected_conflict_kind ?? "none"} | ${group.mutation_note ?? "none"} |`).join("\n");
+  const groupRows = report.m2_evaluation.evaluation_groups.map((group) => `| \`${group.group_id}\` | ${group.trial_selected} | ${group.group_set} | ${group.measurement_role} | ${group.source_labels.join(", ")} | ${group.expected_outcome} | ${group.expected_conflict_kind ?? "none"} | ${group.mutation_note ?? "none"} |`).join("\n");
   const diagnosticCategoryRows = Object.entries(report.m2_evaluation.diagnostic_categories).map(([category, codes]) => `| ${category} | ${codes.map((code) => `\`${code}\``).join(", ")} |`).join("\n");
   const diagnostics = Object.entries(report.diagnostics_summary).map(([code, count]) => `- ${code}: ${count}`).join("\n") || "- none: 0";
   const comparisonConclusion = routeMatrixConclusion(report);
@@ -6169,11 +6237,11 @@ Evaluation strength: \`${report.m2_evaluation.evaluation_strength}\`. ${report.m
 
 Harness note: ${report.m2_evaluation.harness_change_note}
 
-| Group | Set | Role | Source labels | Expected | Conflict kind | Note |
-| --- | --- | --- | --- | --- | --- | --- |
+| Group | Trial selected | Set | Role | Source labels | Expected | Conflict kind | Note |
+| --- | --- | --- | --- | --- | --- | --- | --- |
 ${groupRows}
 
-Group audit: \`${report.m3_group_audit.artifact_kind}\` checked ${report.m3_group_audit.group_count} groups; pass = ${report.m3_group_audit.all_groups_have_gold_fixture_semantics_and_source_paths}. Group sets: ${Object.entries(report.m3_group_audit.group_set_counts).map(([groupSet, count]) => `${groupSet}=${count}`).join(", ")}.
+Group audit: \`${report.m3_group_audit.artifact_kind}\` checked ${report.m3_group_audit.group_count} configured groups; pass = ${report.m3_group_audit.all_groups_have_gold_fixture_semantics_and_source_paths}. Selected trial groups: ${report.m2_evaluation.trial_group_ids.map((groupId) => `\`${groupId}\``).join(", ")}; rows per route = ${report.m2_evaluation.trial_row_count_per_route}. Group sets: ${Object.entries(report.m3_group_audit.group_set_counts).map(([groupSet, count]) => `${groupSet}=${count}`).join(", ")}.
 
 ### Exact route values
 
@@ -6222,7 +6290,7 @@ ${diagnostics}
 }
 
 function japaneseReport(report) {
-  const groupRows = report.m2_evaluation.evaluation_groups.map((group) => `| \`${group.group_id}\` | ${group.group_set} | ${group.measurement_role} | ${group.source_labels.join(", ")} | ${group.expected_outcome} | ${group.expected_conflict_kind ?? "none"} | ${group.mutation_note ?? "none"} |`).join("\n");
+  const groupRows = report.m2_evaluation.evaluation_groups.map((group) => `| \`${group.group_id}\` | ${group.trial_selected} | ${group.group_set} | ${group.measurement_role} | ${group.source_labels.join(", ")} | ${group.expected_outcome} | ${group.expected_conflict_kind ?? "none"} | ${group.mutation_note ?? "none"} |`).join("\n");
   const comparisonConclusion = routeMatrixConclusion(report, "ja");
   const directAudit = report.direct_smt_audit;
   const directAuditConclusion = `Direct SMT residual audit: exact template match ${directAudit.exact_template_match_rate.exact}、named assertion なし ${directAudit.missing_named_assertion_rate.exact}、negated sepsis assertion ${directAudit.negated_sepsis_assertion_rate.exact}。これは admission 判定外の監査情報であり、shared cue layer 下で direct target composition が malformed になることを記録する。`;
@@ -6266,11 +6334,11 @@ evaluation strength: \`${report.m2_evaluation.evaluation_strength}\`。${report.
 
 harness note: ${report.m2_evaluation.harness_change_note}
 
-| group | set | role | source labels | expected | conflict kind | note |
-| --- | --- | --- | --- | --- | --- | --- |
+| group | trial selected | set | role | source labels | expected | conflict kind | note |
+| --- | --- | --- | --- | --- | --- | --- | --- |
 ${groupRows}
 
-group audit: \`${report.m3_group_audit.artifact_kind}\` は ${report.m3_group_audit.group_count} groups を確認。pass = ${report.m3_group_audit.all_groups_have_gold_fixture_semantics_and_source_paths}。group sets: ${Object.entries(report.m3_group_audit.group_set_counts).map(([groupSet, count]) => `${groupSet}=${count}`).join(", ")}.
+group audit: \`${report.m3_group_audit.artifact_kind}\` は configured ${report.m3_group_audit.group_count} groups を確認。pass = ${report.m3_group_audit.all_groups_have_gold_fixture_semantics_and_source_paths}。selected trial groups: ${report.m2_evaluation.trial_group_ids.map((groupId) => `\`${groupId}\``).join(", ")}; rows per route = ${report.m2_evaluation.trial_row_count_per_route}。group sets: ${Object.entries(report.m3_group_audit.group_set_counts).map(([groupSet, count]) => `${groupSet}=${count}`).join(", ")}.
 
 ### Exact route values
 
@@ -6503,7 +6571,7 @@ async function writePipelineComparisonRun({ artifactsByDoc, directArtifactsByDoc
     componentReuseGraph,
     compactnessFront
   });
-  const groupAudit = buildGroupAudit();
+  const groupAudit = buildGroupAudit(allEvaluationGroups);
   const modelMeta = await modelMetadata(0);
 
   await writeJson("candidate_diff.json", candidateDiff);
@@ -6534,7 +6602,7 @@ async function writePipelineComparisonRun({ artifactsByDoc, directArtifactsByDoc
         group_id: group.id,
         group_set: groupSetForMeasurementRole(group.measurementRole),
         fixture_ids: group.fixtures,
-        source_labels: modelCaseForGroup(group.id).labels,
+        source_labels: groupSourceLabels(group),
         measurement_role: group.measurementRole,
         expected_outcome: group.expectedOutcome,
         expected_conflict_kind: group.expectedConflictKind,
@@ -6789,7 +6857,10 @@ function buildRunConfigSummary() {
       };
     }),
     unimplemented_route_ids: [...unimplementedRouteIds],
-    evaluation_group_ids: groups.map((group) => group.id),
+    evaluation_group_ids: allEvaluationGroups.map((group) => group.id),
+    trial_group_ids: groups.map((group) => group.id),
+    trial_row_count_per_route: groups.length * sampleSeeds.length,
+    trial_selection: trialSelection,
     sample_seeds: [...sampleSeeds]
   };
 }
@@ -6912,7 +6983,7 @@ async function main() {
   const directSmtAudit = buildDirectSmtAudit(metrics.ioRecords);
   const routeTargetSummary = buildRouteTargetSummary(metrics.ioRecords);
   const routeEvaluation = buildRouteEvaluation(metrics.rawRows);
-  const groupAudit = buildGroupAudit();
+  const groupAudit = buildGroupAudit(allEvaluationGroups);
   const promptCatalog = buildPromptCatalog(metrics.ioRecords);
   const realismAudit = buildRealismAudit({ realGuidelineIntake, sourceCueLayer, promptCatalog });
   const realismAuditHash = sha256(realismAudit);
@@ -6958,6 +7029,10 @@ async function main() {
       experiment_id: selectedExperimentId,
       basis: selectedExperiment?.basis ?? null,
       route_ids: [...routeIds],
+      evaluation_group_ids: allEvaluationGroups.map((group) => group.id),
+      trial_group_ids: groups.map((group) => group.id),
+      trial_row_count_per_route: groups.length * sampleSeeds.length,
+      trial_selection: trialSelection,
       sample_seeds: [...sampleSeeds],
       scaffold_mode: scaffoldRoutes,
       unimplemented_route_ids: [...unimplementedRouteIds]
@@ -7018,6 +7093,10 @@ async function main() {
       scaffold_mode: routeEvaluation.scaffold_mode,
       unimplemented_route_ids: routeEvaluation.unimplemented_route_ids,
       scaffolded_route_ids: routeEvaluation.scaffolded_route_ids,
+      trial_selection: routeEvaluation.trial_selection,
+      trial_group_ids: routeEvaluation.trial_group_ids,
+      trial_row_count_per_route: routeEvaluation.trial_row_count_per_route,
+      sample_seeds: routeEvaluation.sample_seeds,
       evaluation_groups: routeEvaluation.evaluation_groups,
       holdout_group_ids: routeEvaluation.holdout_group_ids,
       expanded_group_ids: routeEvaluation.expanded_group_ids,
@@ -7130,6 +7209,9 @@ async function main() {
     prompt_catalog_hash: sha256(promptCatalog),
     prompt_template_hashes: Object.fromEntries(promptCatalog.entries.map((entry) => [entry.prompt_id, entry.prompt_hash])),
     route_ids: routeIds,
+    evaluation_group_ids: allEvaluationGroups.map((group) => group.id),
+    trial_group_ids: groups.map((group) => group.id),
+    trial_row_count_per_route: groups.length * sampleSeeds.length,
     scaffold_mode: scaffoldRoutes,
     unimplemented_route_ids: [...unimplementedRouteIds],
     report_hash: sha256(report)
@@ -7224,6 +7306,9 @@ async function main() {
       report.route_experiment.experiment_id === selectedExperimentId,
       report.route_experiment.scaffold_mode === scaffoldRoutes,
       report.route_experiment.unimplemented_route_ids.join("\u0000") === unimplementedRouteIds.join("\u0000"),
+      report.route_experiment.evaluation_group_ids.join("\u0000") === allEvaluationGroups.map((group) => group.id).join("\u0000"),
+      report.route_experiment.trial_group_ids.join("\u0000") === groups.map((group) => group.id).join("\u0000"),
+      report.route_experiment.trial_row_count_per_route === groups.length * sampleSeeds.length,
       finding?.conflict_kind === "deontic_direction_conflict",
       nullResult?.classification === "documented_null_result",
       direct.samples === groups.length * sampleSeeds.length,
@@ -7256,7 +7341,9 @@ async function main() {
       metrics.rawRows.some((row) => row.group_id === "group.m2_holdout_conflict"),
       metrics.rawRows.every((row) => row.evaluator_id === routeEvaluation.evaluator_id),
       metrics.rawRows.every((row) => Array.isArray(row.diagnostic_categories)),
-      groupAudit.group_count === groups.length,
+      groupAudit.group_count === allEvaluationGroups.length,
+      groupAudit.trial_group_count === groups.length,
+      groupAudit.trial_group_ids.join("\u0000") === groups.map((group) => group.id).join("\u0000"),
       groupAudit.all_groups_have_gold_fixture_semantics_and_source_paths,
       groupAudit.rows.every((row) => row.audit_pass && row.evidence_quotes.every((quote) => quote.quote_hash?.length === 64)),
       report.m3_group_audit.all_groups_have_gold_fixture_semantics_and_source_paths,
@@ -7286,6 +7373,9 @@ async function main() {
       report.m2_evaluation.scaffold_mode === scaffoldRoutes,
       report.m2_evaluation.unimplemented_route_ids.join("\u0000") === unimplementedRouteIds.join("\u0000"),
       report.m2_evaluation.scaffolded_route_ids.join("\u0000") === (scaffoldRoutes ? unimplementedRouteIds.join("\u0000") : ""),
+      report.m2_evaluation.trial_group_ids.join("\u0000") === groups.map((group) => group.id).join("\u0000"),
+      report.m2_evaluation.trial_row_count_per_route === groups.length * sampleSeeds.length,
+      selectedExperimentId !== "exp.m3_routes" || report.m2_evaluation.trial_row_count_per_route === 4,
       report.m2_evaluation.holdout_group_ids.includes("group.m2_holdout_conflict"),
       report.realism_audit.audit_hash === realismAuditHash,
       realismAudit.surfaces.some((surface) => surface.surface_id === "fixture_regions" && surface.classification === "data_driven"),

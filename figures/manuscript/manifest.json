@@ -1,7 +1,7 @@
 {
   "artifact_kind": "ManuscriptFigureManifest",
   "bundle_pdf_export": "deterministic_pdf_writer_v0",
-  "bundle_pdf_hash": "f8bff477d20e9e454138e029c0d37987156ee24f7a2af7aa78a826c929eb93fa",
+  "bundle_pdf_hash": "531a7549d48bd8a3f2bb4404dcb14205848ffff28e8f75c6f1d1ecbef6594473",
   "bundle_pdf_page_count": 5,
   "bundle_pdf_path": "manuscript_figures.pdf",
   "figure_count": 5,
@@ -11,7 +11,7 @@
       "figure_id": "fig01_route_mechanics",
       "pdf_export": "deterministic_pdf_writer_v0",
       "pdf_path": "fig01_route_mechanics.pdf",
-      "svg_hash": "edf51d00565069cc4a5133c0a236a770f2b89251101a55f94f363bd2ab46a232",
+      "svg_hash": "ca14ef3b3e8d835127f58a1822b731f895b014a50901ea880478275c71be967c",
       "svg_path": "fig01_route_mechanics.svg",
       "title": "Route mechanics and evidence boundaries"
     },
@@ -20,7 +20,7 @@
       "figure_id": "fig02_route_metrics",
       "pdf_export": "deterministic_pdf_writer_v0",
       "pdf_path": "fig02_route_metrics.pdf",
-      "svg_hash": "027373f9d48f81ae8e8438cb7821ea788d8ae74444434b1630bb8a29b244bf8d",
+      "svg_hash": "926617752a384c150b9f2df3b2cb79868dd8653c957dd761b0ab5eb67240c2a8",
       "svg_path": "fig02_route_metrics.svg",
       "title": "Route matrix metrics"
     },
@@ -29,7 +29,7 @@
       "figure_id": "fig03_failure_taxonomy",
       "pdf_export": "deterministic_pdf_writer_v0",
       "pdf_path": "fig03_failure_taxonomy.pdf",
-      "svg_hash": "813e6b7a371a962751614d9df15099c57247530b406d7e43d6c20da7cc0fcc47",
+      "svg_hash": "9c0e426ac4627c728b6904d04a961aeec2e5a0f2ad35c1e56255b0a4d312e071",
       "svg_path": "fig03_failure_taxonomy.svg",
       "title": "Failure taxonomy by route"
     },
@@ -55,19 +55,19 @@
   "generated_by": "tools/build-figures.mjs",
   "output_dir": "figures/manuscript",
   "schema_version": "manuscript_figures.v0",
-  "source_report_hash": "c4d949c27a5faff06ea0416fde4bd30cdca78737ccc8e8b8ad8afc9bfcc0cf63",
+  "source_report_hash": "0ea0812370b9d59335b536dc98e6b2b567f706614c33404d598a8e99b396e2ed",
   "source_report_path": "runs/m3-routes/report.json",
   "source_reports": [
     {
       "artifact_kind": "Report",
-      "hash": "c4d949c27a5faff06ea0416fde4bd30cdca78737ccc8e8b8ad8afc9bfcc0cf63",
+      "hash": "0ea0812370b9d59335b536dc98e6b2b567f706614c33404d598a8e99b396e2ed",
       "path": "runs/m3-routes/report.json",
       "role": "route_report",
       "run_id": "m3-routes"
     },
     {
       "artifact_kind": "DeterministicPipelineComparisonReport",
-      "hash": "9878ce77b450f0e7a13080be003470a9555c93b6354713e74d5dffcabe6179d3",
+      "hash": "90ca1e40c295c0b54ecf72c85ac7e8a76a0af0f81f2dec0ffaeb950d9db4e26f",
       "path": "runs/m3-compare/report.json",
       "role": "pipeline_report",
       "run_id": "m3-compare"

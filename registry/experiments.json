@@ -99,7 +99,13 @@
           "mutation_note": "Toy-schema terminology pressure: the shared mention 妊娠中 maps to incompatible concept identifiers across the pair."
         }
       ],
-      "sample_seeds": [11, 22, 33]
+      "trial_group_ids": [
+        "group.m1_conflict",
+        "group.m1_null",
+        "group.m2_holdout_conflict",
+        "group.m3_threshold_conflict"
+      ],
+      "sample_seeds": [11]
     },
     {
       "id": "exp.m3_compare",
