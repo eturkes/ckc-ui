@@ -59,8 +59,8 @@
       <div class="chips">
         <span class="chip ok">run m2-one-shot</span>
         <span class="chip ok">live_local_llama_cpp</span>
-        <span class="chip warn">live model calls: 12</span>
-        <span class="chip">Qwen2.5-0.5B-Instruct-Q2_K:9ee36184e616dfc7</span>
+        <span class="chip warn">live model calls: 18</span>
+        <span class="chip">Qwen2.5-1.5B-Instruct-Q4_K_M:6a1a2eb6d15622bf</span>
       </div>
     </header>
 
@@ -69,9 +69,9 @@
       <div class="grid">
         <div class="metric"><strong>1</strong><span>finding: deontic_direction_conflict</span></div>
         <div class="metric"><strong>1</strong><span>null result: age_intervals_disjoint</span></div>
-        <div class="metric"><strong>0/6 -&gt; 0/6</strong><span>admitted verdict accuracy</span></div>
+        <div class="metric"><strong>0/6 -&gt; 6/6</strong><span>admitted verdict accuracy</span></div>
       </div>
-      <p>IR route produced no admitted rows; rejected candidate verdicts are audit data only.</p>
+      <p>IR route admitted 6/6; admitted accuracy 6/6.</p>
     </section>
 
     <section>
@@ -98,10 +98,10 @@
           <tr>
             <td><code>route.single_ir</code></td>
             <td>6/6</td>
-            <td>0/6</td>
-            <td>0/6</td>
-            <td>3/6</td>
-            <td>0/2</td>
+            <td>6/6</td>
+            <td>6/6</td>
+            <td>6/6</td>
+            <td>2/2</td>
           </tr>
           </tbody>
         </table>
@@ -185,66 +185,66 @@
             <td><code>group.m1_conflict</code></td>
             <td>11</td>
             <td>yes</td>
-            <td>no</td>
-            <td>semantic_no_conflict</td>
-            <td>no</td>
-            <td>no</td>
-            <td>ai_hallucinated_source, false_negative_conflict</td>
+            <td>yes</td>
+            <td>semantic_contradiction</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>none</td>
           </tr>
           <tr>
             <td><code>route.single_ir</code></td>
             <td><code>group.m1_null</code></td>
             <td>11</td>
             <td>yes</td>
-            <td>no</td>
-            <td>semantic_no_conflict</td>
-            <td>no</td>
             <td>yes</td>
-            <td>ai_hallucinated_source</td>
+            <td>semantic_no_conflict</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>none</td>
           </tr>
           <tr>
             <td><code>route.single_ir</code></td>
             <td><code>group.m1_conflict</code></td>
             <td>22</td>
             <td>yes</td>
-            <td>no</td>
-            <td>semantic_no_conflict</td>
-            <td>no</td>
-            <td>no</td>
-            <td>ai_hallucinated_source, false_negative_conflict</td>
+            <td>yes</td>
+            <td>semantic_contradiction</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>none</td>
           </tr>
           <tr>
             <td><code>route.single_ir</code></td>
             <td><code>group.m1_null</code></td>
             <td>22</td>
             <td>yes</td>
-            <td>no</td>
-            <td>semantic_no_conflict</td>
-            <td>no</td>
             <td>yes</td>
-            <td>ai_hallucinated_source</td>
+            <td>semantic_no_conflict</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>none</td>
           </tr>
           <tr>
             <td><code>route.single_ir</code></td>
             <td><code>group.m1_conflict</code></td>
             <td>33</td>
             <td>yes</td>
-            <td>no</td>
-            <td>semantic_no_conflict</td>
-            <td>no</td>
-            <td>no</td>
-            <td>ai_hallucinated_source, false_negative_conflict</td>
+            <td>yes</td>
+            <td>semantic_contradiction</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>none</td>
           </tr>
           <tr>
             <td><code>route.single_ir</code></td>
             <td><code>group.m1_null</code></td>
             <td>33</td>
             <td>yes</td>
-            <td>no</td>
-            <td>semantic_no_conflict</td>
-            <td>no</td>
             <td>yes</td>
-            <td>ai_hallucinated_source</td>
+            <td>semantic_no_conflict</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>none</td>
           </tr>
           </tbody>
         </table>
@@ -253,8 +253,7 @@
 
     <section>
       <h2>Model I/O</h2>
-      
-        <details>
+              <details>
           <summary><code>route.direct_smt</code> / <code>group.m1_conflict</code> / seed 11 / not admitted</summary>
           <h3>Prompt</h3>
           <pre>You are a weak local model inside a research harness.
@@ -273,7 +272,40 @@ Output only SMT-LIB text. Do not use Markdown.
 Use only these symbols: |q.age_years|, |cond.sepsis|, |cond.renal_severe|, |cond.pregnancy|, |pos:act.administer:drug.abx_a|.
 End with (check-sat).</pre>
           <h3>Response</h3>
-          <pre>|q.age_years|: 18歳以上, |cond.sepsis|: 1, |cond.renal_severe|: 1, |cond.pregnancy|: 0, |pos:act.administer:drug.abx_a|: 0, |q.status|: check-sat, |q.status|: check-sat, |q.status|: check-sat, |q.status|: check-sat, |q.status|: check-sat, |q.status|: check-sat, |q.status|: check-sat, |q.status|: check-sat, |q.status|: check-sat, |q.status|: check-sat, |q.status|: check-sat, |q.status|: check-sat, |q.status|: check-sat, |q.status|</pre>
+          <pre>Loading model...
+
+
+▄▄ ▄▄
+██ ██
+██ ██  ▀▀█▄ ███▄███▄  ▀▀█▄    ▄████ ████▄ ████▄
+██ ██ ▄█▀██ ██ ██ ██ ▄█▀██    ██    ██ ██ ██ ██
+██ ██ ▀█▄██ ██ ██ ██ ▀█▄██ ██ ▀████ ████▀ ████▀
+                                    ██    ██
+                                    ▀▀    ▀▀
+
+build      : b9592-ac4cddeb0
+model      : qwen2.5-1.5b-instruct-q4_k_m.gguf
+modalities : text
+
+available commands:
+  /exit or Ctrl+C     stop or exit
+  /regen              regenerate the last response
+  /clear              clear the chat history
+  /read &lt;file&gt;        add a text file
+  /glob &lt;pattern&gt;     add text files using globbing pattern
+You are a weak local model inside a research harness.
+Translate only the provided synthetic Japanese fixture spans.
+No clinical, patient-care, deployment, or regulatory claim.
+case: pair.ab
+source spans:
+source A:
+成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
+A exception:
+ただし、重度腎機能障害のある患者を除く。
+source B:
+成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと( ... (truncated)
+
+(q.age_years &gt;= 18) |q.cond.sepsis| |q.cond.renal_severe| |q.cond.pregnancy| |pos:act.administer:drug.abx_a| |cond.pregnancy| |pos:act.administer:drug.abx_a| |cond.sepsis| |pos:act.administer:drug.abx_a| |cond.renal_severe| |pos:act.administer:drug.abx_a| |cond.pregnancy| |pos:act.administer:drug.abx_a| |cond.sepsis| |pos:act.administer:drug.abx_a| |cond.renal_severe| |pos:act.administer:drug.abx_a| |cond.pregnancy| |pos:act.administer:drug.abx_a| |cond.sepsis| |pos:act</pre>
           <h3>Scored row</h3>
           <pre>{
   &quot;admitted&quot;: false,
@@ -290,8 +322,7 @@ End with (check-sat).</pre>
   &quot;verdict&quot;: &quot;target_syntax_failure&quot;,
   &quot;verdict_correct&quot;: false
 }</pre>
-        </details>
-        <details>
+        </details>        <details>
           <summary><code>route.direct_smt</code> / <code>group.m1_null</code> / seed 11 / not admitted</summary>
           <h3>Prompt</h3>
           <pre>You are a weak local model inside a research harness.
@@ -310,11 +341,41 @@ Output only SMT-LIB text. Do not use Markdown.
 Use only these symbols: |q.age_years|, |cond.sepsis|, |cond.renal_severe|, |cond.pregnancy|, |pos:act.administer:drug.abx_a|.
 End with (check-sat).</pre>
           <h3>Response</h3>
-          <pre>|q.age_years|18
-|cond.sepsis|敗血症
-|cond.renal_severe|敗血症
-|cond.pregnancy|なし
-|pos:act.administer:drug.abx_a|抗菌薬A (強推奨)</pre>
+          <pre>Loading model...
+
+
+▄▄ ▄▄
+██ ██
+██ ██  ▀▀█▄ ███▄███▄  ▀▀█▄    ▄████ ████▄ ████▄
+██ ██ ▄█▀██ ██ ██ ██ ▄█▀██    ██    ██ ██ ██ ██
+██ ██ ▀█▄██ ██ ██ ██ ▀█▄██ ██ ▀████ ████▀ ████▀
+                                    ██    ██
+                                    ▀▀    ▀▀
+
+build      : b9592-ac4cddeb0
+model      : qwen2.5-1.5b-instruct-q4_k_m.gguf
+modalities : text
+
+available commands:
+  /exit or Ctrl+C     stop or exit
+  /regen              regenerate the last response
+  /clear              clear the chat history
+  /read &lt;file&gt;        add a text file
+  /glob &lt;pattern&gt;     add text files using globbing pattern
+You are a weak local model inside a research harness.
+Translate only the provided synthetic Japanese fixture spans.
+No clinical, patient-care, deployment, or regulatory claim.
+case: pair.ac
+source spans:
+source A:
+成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
+A exception:
+ただし、重度腎機能障害のある患者を除く。
+source C:
+小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。
+route: route.direct_ ... (truncated)
+
+(q.age_years &gt;= 18) | (cond.sepsis AND NOT (cond.renal_severe AND NOT (cond.pregnancy AND NOT pos:act.administer:drug.abx_a))) | (cond.sepsis AND NOT pos:act.administer:drug.abx_a)</pre>
           <h3>Scored row</h3>
           <pre>{
   &quot;admitted&quot;: false,
@@ -331,8 +392,7 @@ End with (check-sat).</pre>
   &quot;verdict&quot;: &quot;target_syntax_failure&quot;,
   &quot;verdict_correct&quot;: false
 }</pre>
-        </details>
-        <details>
+        </details>        <details>
           <summary><code>route.direct_smt</code> / <code>group.m1_conflict</code> / seed 22 / not admitted</summary>
           <h3>Prompt</h3>
           <pre>You are a weak local model inside a research harness.
@@ -351,7 +411,40 @@ Output only SMT-LIB text. Do not use Markdown.
 Use only these symbols: |q.age_years|, |cond.sepsis|, |cond.renal_severe|, |cond.pregnancy|, |pos:act.administer:drug.abx_a|.
 End with (check-sat).</pre>
           <h3>Response</h3>
-          <pre>|q.age_years|: 18歳以上, |cond.sepsis|: 0, |cond.renal_severe|: 0, |cond.pregnancy|: 0, |pos:act.administer:drug.abx_a|: 0, |q.status|: check-sat, |q.status|: check-sat, |q.status|: check-sat, |q.status|: check-sat, |q.status|: check-sat, |q.status|: check-sat, |q.status|: check-sat, |q.status|: check-sat, |q.status|: check-sat, |q.status|: check-sat, |q.status|: check-sat, |q.status|: check-sat, |q.status|: check-sat, |q.status|</pre>
+          <pre>Loading model...
+
+
+▄▄ ▄▄
+██ ██
+██ ██  ▀▀█▄ ███▄███▄  ▀▀█▄    ▄████ ████▄ ████▄
+██ ██ ▄█▀██ ██ ██ ██ ▄█▀██    ██    ██ ██ ██ ██
+██ ██ ▀█▄██ ██ ██ ██ ▀█▄██ ██ ▀████ ████▀ ████▀
+                                    ██    ██
+                                    ▀▀    ▀▀
+
+build      : b9592-ac4cddeb0
+model      : qwen2.5-1.5b-instruct-q4_k_m.gguf
+modalities : text
+
+available commands:
+  /exit or Ctrl+C     stop or exit
+  /regen              regenerate the last response
+  /clear              clear the chat history
+  /read &lt;file&gt;        add a text file
+  /glob &lt;pattern&gt;     add text files using globbing pattern
+You are a weak local model inside a research harness.
+Translate only the provided synthetic Japanese fixture spans.
+No clinical, patient-care, deployment, or regulatory claim.
+case: pair.ab
+source spans:
+source A:
+成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
+A exception:
+ただし、重度腎機能障害のある患者を除く。
+source B:
+成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと( ... (truncated)
+
+(q.age_years &gt;= 18) | (cond.renal_severe = 0) | (cond.pregnancy = 0)</pre>
           <h3>Scored row</h3>
           <pre>{
   &quot;admitted&quot;: false,
@@ -368,8 +461,7 @@ End with (check-sat).</pre>
   &quot;verdict&quot;: &quot;target_syntax_failure&quot;,
   &quot;verdict_correct&quot;: false
 }</pre>
-        </details>
-        <details>
+        </details>        <details>
           <summary><code>route.direct_smt</code> / <code>group.m1_null</code> / seed 22 / not admitted</summary>
           <h3>Prompt</h3>
           <pre>You are a weak local model inside a research harness.
@@ -388,11 +480,41 @@ Output only SMT-LIB text. Do not use Markdown.
 Use only these symbols: |q.age_years|, |cond.sepsis|, |cond.renal_severe|, |cond.pregnancy|, |pos:act.administer:drug.abx_a|.
 End with (check-sat).</pre>
           <h3>Response</h3>
-          <pre>|q.age_years| 18
-|cond.sepsis| 18歳未満
-|cond.renal_severe| 败血症
-|cond.pregnancy| 未満
-|pos</pre>
+          <pre>Loading model...
+
+
+▄▄ ▄▄
+██ ██
+██ ██  ▀▀█▄ ███▄███▄  ▀▀█▄    ▄████ ████▄ ████▄
+██ ██ ▄█▀██ ██ ██ ██ ▄█▀██    ██    ██ ██ ██ ██
+██ ██ ▀█▄██ ██ ██ ██ ▀█▄██ ██ ▀████ ████▀ ████▀
+                                    ██    ██
+                                    ▀▀    ▀▀
+
+build      : b9592-ac4cddeb0
+model      : qwen2.5-1.5b-instruct-q4_k_m.gguf
+modalities : text
+
+available commands:
+  /exit or Ctrl+C     stop or exit
+  /regen              regenerate the last response
+  /clear              clear the chat history
+  /read &lt;file&gt;        add a text file
+  /glob &lt;pattern&gt;     add text files using globbing pattern
+You are a weak local model inside a research harness.
+Translate only the provided synthetic Japanese fixture spans.
+No clinical, patient-care, deployment, or regulatory claim.
+case: pair.ac
+source spans:
+source A:
+成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
+A exception:
+ただし、重度腎機能障害のある患者を除く。
+source C:
+小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。
+route: route.direct_ ... (truncated)
+
+(q.age_years &gt;= 18) | (cond.renal_severe = 0) | (cond.pregnancy = 0)</pre>
           <h3>Scored row</h3>
           <pre>{
   &quot;admitted&quot;: false,
@@ -409,8 +531,7 @@ End with (check-sat).</pre>
   &quot;verdict&quot;: &quot;target_syntax_failure&quot;,
   &quot;verdict_correct&quot;: false
 }</pre>
-        </details>
-        <details>
+        </details>        <details>
           <summary><code>route.direct_smt</code> / <code>group.m1_conflict</code> / seed 33 / not admitted</summary>
           <h3>Prompt</h3>
           <pre>You are a weak local model inside a research harness.
@@ -429,7 +550,40 @@ Output only SMT-LIB text. Do not use Markdown.
 Use only these symbols: |q.age_years|, |cond.sepsis|, |cond.renal_severe|, |cond.pregnancy|, |pos:act.administer:drug.abx_a|.
 End with (check-sat).</pre>
           <h3>Response</h3>
-          <pre>|q.age_years|: 18歳以上, |cond.sepsis|: 1, |cond.renal_severe|: 1, |cond.pregnancy|: 0, |pos:act.administer:drug.abx_a|: 0.</pre>
+          <pre>Loading model...
+
+
+▄▄ ▄▄
+██ ██
+██ ██  ▀▀█▄ ███▄███▄  ▀▀█▄    ▄████ ████▄ ████▄
+██ ██ ▄█▀██ ██ ██ ██ ▄█▀██    ██    ██ ██ ██ ██
+██ ██ ▀█▄██ ██ ██ ██ ▀█▄██ ██ ▀████ ████▀ ████▀
+                                    ██    ██
+                                    ▀▀    ▀▀
+
+build      : b9592-ac4cddeb0
+model      : qwen2.5-1.5b-instruct-q4_k_m.gguf
+modalities : text
+
+available commands:
+  /exit or Ctrl+C     stop or exit
+  /regen              regenerate the last response
+  /clear              clear the chat history
+  /read &lt;file&gt;        add a text file
+  /glob &lt;pattern&gt;     add text files using globbing pattern
+You are a weak local model inside a research harness.
+Translate only the provided synthetic Japanese fixture spans.
+No clinical, patient-care, deployment, or regulatory claim.
+case: pair.ab
+source spans:
+source A:
+成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
+A exception:
+ただし、重度腎機能障害のある患者を除く。
+source B:
+成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと( ... (truncated)
+
+(q.age_years &gt;= 18) | (cond.sepsis AND NOT (cond.renal_severe AND cond.pregnancy)) | (pos:act.administer:drug.abx_a)</pre>
           <h3>Scored row</h3>
           <pre>{
   &quot;admitted&quot;: false,
@@ -446,8 +600,7 @@ End with (check-sat).</pre>
   &quot;verdict&quot;: &quot;target_syntax_failure&quot;,
   &quot;verdict_correct&quot;: false
 }</pre>
-        </details>
-        <details>
+        </details>        <details>
           <summary><code>route.direct_smt</code> / <code>group.m1_null</code> / seed 33 / not admitted</summary>
           <h3>Prompt</h3>
           <pre>You are a weak local model inside a research harness.
@@ -466,7 +619,7 @@ Output only SMT-LIB text. Do not use Markdown.
 Use only these symbols: |q.age_years|, |cond.sepsis|, |cond.renal_severe|, |cond.pregnancy|, |pos:act.administer:drug.abx_a|.
 End with (check-sat).</pre>
           <h3>Response</h3>
-          <pre>|q.age_years|: 18, |cond.sepsis|: 18, |cond.renal_severe|: 18, |cond.pregnancy|: 0, |pos:act.administer:drug.abx_a|: 18,</pre>
+          <pre>|q.age_years| |cond.sepsis| |pos:act.administer:drug.abx_a| |cond.renal_severe| |cond.pregnancy| |q.route| |q.route| |q.route|</pre>
           <h3>Scored row</h3>
           <pre>{
   &quot;admitted&quot;: false,
@@ -483,402 +636,419 @@ End with (check-sat).</pre>
   &quot;verdict&quot;: &quot;target_syntax_failure&quot;,
   &quot;verdict_correct&quot;: false
 }</pre>
-        </details>
-        <details>
-          <summary><code>route.single_ir</code> / <code>group.m1_conflict</code> / seed 11 / not admitted</summary>
+        </details>        <details>
+          <summary><code>route.single_ir</code> / <code>group.m1_conflict</code> / seed 11 / admitted</summary>
           <h3>Prompt</h3>
-          <pre>You are a weak local model inside a research harness.
-Translate only the provided synthetic Japanese fixture spans.
-No clinical, patient-care, deployment, or regulatory claim.
-case: pair.ab
-source spans:
-source A:
-成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
-A exception:
-ただし、重度腎機能障害のある患者を除く。
-source B:
-成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。
-route: route.single_ir
-Fill one JSON object for each source label: A, B.
-Do not decide whether the pair conflicts; emit only extracted rule fields.
-Output only JSON. Do not use Markdown.
-Field meanings:
-推奨する =&gt; direction for.
-投与しないこと or 禁忌 =&gt; direction contraindicate.
-成人 or 18歳以上 =&gt; age adult. 小児 or 18歳未満 =&gt; age child.
-敗血症 =&gt; sepsis true. 妊娠中 =&gt; pregnancy true.
-重度腎機能障害 in an exception sentence =&gt; renal_severe_exception true.
-A recommendation about 抗菌薬A administration =&gt; action_abx_a true, even when the direction forbids administration.</pre>
-          <h3>Response</h3>
+          <pre># source A
+Task: convert evidence flags into one CKC IR JSON row.
+Output only JSON. Do not infer any field not shown by the evidence flags.
+source label: A
+primary sentence: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
+exception sentence: ただし、重度腎機能障害のある患者を除く。
+evidence flags: has_recommend=true; has_contra=false; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=false; has_renal_exception=true; has_abx_a=true
+Use these exact conversions:
+has_recommend=true means direction &quot;for&quot;. has_contra=true means direction &quot;contraindicate&quot;. If both are false, direction &quot;unknown&quot;. The exception sentence never changes direction.
+has_adult=true means age &quot;adult&quot;. has_child=true means age &quot;child&quot;. If both are false, age &quot;unknown&quot;.
+action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.
+
+# source B
+Task: convert evidence flags into one CKC IR JSON row.
+Output only JSON. Do not infer any field not shown by the evidence flags.
+source label: B
+primary sentence: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。
+exception sentence: none
+evidence flags: has_recommend=false; has_contra=true; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=true; has_renal_exception=false; has_abx_a=true
+Use these exact conversions:
+has_recommend=true means direction &quot;for&quot;. has_contra=true means direction &quot;contraindicate&quot;. If both are false, direction &quot;unknown&quot;. The exception sentence never changes direction.
+has_adult=true means age &quot;adult&quot;. has_child=true means age &quot;child&quot;. If both are false, age &quot;unknown&quot;.
+action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.</pre>
+          <h3>Source-local calls</h3>
           <pre>{
-    &quot;A&quot;: {
-        &quot;direction&quot;: &quot;contraindicate&quot;,
-        &quot;action_abx_a&quot;: true
-      ,
-    &quot;age&quot;: &quot;adult&quot;,
-    &quot;sepsis&quot;: true,
-    &quot;pregnancy&quot;: true,
-    &quot;renal_severe_exception&quot;: true
-    }
-    ,
-    &quot;B&quot;: {
-        &quot;direction&quot;: &quot;contraindicate&quot;,
-        &quot;action_abx_a&quot;: true
-      ,
-    &quot;age&quot;: &quot;adult&quot;,
-    &quot;sepsis&quot;: true,
-    &quot;pregnancy&quot;: true,
-    &quot;renal_severe_exception&quot;: true
-    }
+  &quot;label&quot;: &quot;A&quot;,
+  &quot;prompt&quot;: &quot;Task: convert evidence flags into one CKC IR JSON row.\nOutput only JSON. Do not infer any field not shown by the evidence flags.\nsource label: A\nprimary sentence: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nexception sentence: ただし、重度腎機能障害のある患者を除く。\nevidence flags: has_recommend=true; has_contra=false; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=false; has_renal_exception=true; has_abx_a=true\nUse these exact conversions:\nhas_recommend=true means direction \&quot;for\&quot;. has_contra=true means direction \&quot;contraindicate\&quot;. If both are false, direction \&quot;unknown\&quot;. The exception sentence never changes direction.\nhas_adult=true means age \&quot;adult\&quot;. has_child=true means age \&quot;child\&quot;. If both are false, age \&quot;unknown\&quot;.\naction_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.&quot;,
+  &quot;response&quot;: &quot;{\n  \&quot;direction\&quot;: \&quot;for\&quot;,\n  \&quot;action_abx_a\&quot;: true,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;sepsis\&quot;: true,\n  \&quot;pregnancy\&quot;: false,\n  \&quot;renal_severe_exception\&quot;: true\n}&quot;
 }</pre>
-          <h3>Scored row</h3>
           <pre>{
-  &quot;admitted&quot;: false,
-  &quot;candidate_verdict_correct&quot;: false,
-  &quot;diagnostics&quot;: [
-    &quot;ai_hallucinated_source&quot;,
-    &quot;false_negative_conflict&quot;
-  ],
-  &quot;expected&quot;: &quot;semantic_contradiction&quot;,
-  &quot;group_id&quot;: &quot;group.m1_conflict&quot;,
-  &quot;route_id&quot;: &quot;route.single_ir&quot;,
-  &quot;seed&quot;: 11,
-  &quot;syntax_valid&quot;: true,
-  &quot;verdict&quot;: &quot;semantic_no_conflict&quot;,
-  &quot;verdict_correct&quot;: false
+  &quot;label&quot;: &quot;B&quot;,
+  &quot;prompt&quot;: &quot;Task: convert evidence flags into one CKC IR JSON row.\nOutput only JSON. Do not infer any field not shown by the evidence flags.\nsource label: B\nprimary sentence: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。\nexception sentence: none\nevidence flags: has_recommend=false; has_contra=true; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=true; has_renal_exception=false; has_abx_a=true\nUse these exact conversions:\nhas_recommend=true means direction \&quot;for\&quot;. has_contra=true means direction \&quot;contraindicate\&quot;. If both are false, direction \&quot;unknown\&quot;. The exception sentence never changes direction.\nhas_adult=true means age \&quot;adult\&quot;. has_child=true means age \&quot;child\&quot;. If both are false, age \&quot;unknown\&quot;.\naction_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.&quot;,
+  &quot;response&quot;: &quot;{\n  \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n  \&quot;action_abx_a\&quot;: true,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;sepsis\&quot;: true,\n  \&quot;pregnancy\&quot;: true,\n  \&quot;renal_severe_exception\&quot;: false\n}&quot;
 }</pre>
-        </details>
-        <details>
-          <summary><code>route.single_ir</code> / <code>group.m1_null</code> / seed 11 / not admitted</summary>
-          <h3>Prompt</h3>
-          <pre>You are a weak local model inside a research harness.
-Translate only the provided synthetic Japanese fixture spans.
-No clinical, patient-care, deployment, or regulatory claim.
-case: pair.ac
-source spans:
-source A:
-成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
-A exception:
-ただし、重度腎機能障害のある患者を除く。
-source C:
-小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。
-route: route.single_ir
-Fill one JSON object for each source label: A, C.
-Do not decide whether the pair conflicts; emit only extracted rule fields.
-Output only JSON. Do not use Markdown.
-Field meanings:
-推奨する =&gt; direction for.
-投与しないこと or 禁忌 =&gt; direction contraindicate.
-成人 or 18歳以上 =&gt; age adult. 小児 or 18歳未満 =&gt; age child.
-敗血症 =&gt; sepsis true. 妊娠中 =&gt; pregnancy true.
-重度腎機能障害 in an exception sentence =&gt; renal_severe_exception true.
-A recommendation about 抗菌薬A administration =&gt; action_abx_a true, even when the direction forbids administration.</pre>
-          <h3>Response</h3>
-          <pre>{
-    &quot;A&quot;: {
-        &quot;direction&quot;: &quot;contraindicate&quot;,
-        &quot;action_abx_a&quot;: true
-      ,
-    &quot;age&quot;: &quot;adult&quot;,
-    &quot;sepsis&quot;: true,
-    &quot;pregnancy&quot;: true
-      ,
-    &quot;renal_severe_exception&quot;: true
-    }
-    ,
-    &quot;C&quot;: {
-        &quot;direction&quot;: &quot;contraindicate&quot;,
-        &quot;action_abx_a&quot;: true
-      ,
-    &quot;age&quot;: &quot;child&quot;,
-    &quot;sepsis&quot;: true,
-    &quot;pregnancy&quot;: true
-      ,
-    &quot;renal_severe_exception&quot;: true
-    }
-}</pre>
-          <h3>Scored row</h3>
-          <pre>{
-  &quot;admitted&quot;: false,
-  &quot;candidate_verdict_correct&quot;: true,
-  &quot;diagnostics&quot;: [
-    &quot;ai_hallucinated_source&quot;
-  ],
-  &quot;expected&quot;: &quot;semantic_no_conflict&quot;,
-  &quot;group_id&quot;: &quot;group.m1_null&quot;,
-  &quot;route_id&quot;: &quot;route.single_ir&quot;,
-  &quot;seed&quot;: 11,
-  &quot;syntax_valid&quot;: true,
-  &quot;verdict&quot;: &quot;semantic_no_conflict&quot;,
-  &quot;verdict_correct&quot;: false
-}</pre>
-        </details>
-        <details>
-          <summary><code>route.single_ir</code> / <code>group.m1_conflict</code> / seed 22 / not admitted</summary>
-          <h3>Prompt</h3>
-          <pre>You are a weak local model inside a research harness.
-Translate only the provided synthetic Japanese fixture spans.
-No clinical, patient-care, deployment, or regulatory claim.
-case: pair.ab
-source spans:
-source A:
-成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
-A exception:
-ただし、重度腎機能障害のある患者を除く。
-source B:
-成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。
-route: route.single_ir
-Fill one JSON object for each source label: A, B.
-Do not decide whether the pair conflicts; emit only extracted rule fields.
-Output only JSON. Do not use Markdown.
-Field meanings:
-推奨する =&gt; direction for.
-投与しないこと or 禁忌 =&gt; direction contraindicate.
-成人 or 18歳以上 =&gt; age adult. 小児 or 18歳未満 =&gt; age child.
-敗血症 =&gt; sepsis true. 妊娠中 =&gt; pregnancy true.
-重度腎機能障害 in an exception sentence =&gt; renal_severe_exception true.
-A recommendation about 抗菌薬A administration =&gt; action_abx_a true, even when the direction forbids administration.</pre>
-          <h3>Response</h3>
-          <pre>{
-    &quot;A&quot;: {
-        &quot;direction&quot;: &quot;contraindicate&quot;,
-        &quot;action_abx_a&quot;: true
-      ,
-    &quot;age&quot;: &quot;adult&quot;,
-    &quot;sepsis&quot;: true,
-    &quot;pregnancy&quot;: true,
-    &quot;renal_severe_exception&quot;: true
-    }
-    ,
-    &quot;B&quot;: {
-        &quot;direction&quot;: &quot;contraindicate&quot;,
-        &quot;action_abx_a&quot;: true
-      ,
-    &quot;age&quot;: &quot;adult&quot;,
-    &quot;sepsis&quot;: true,
-    &quot;pregnancy&quot;: true,
-    &quot;renal_severe_exception&quot;: true
-    }
-}</pre>
-          <h3>Scored row</h3>
-          <pre>{
-  &quot;admitted&quot;: false,
-  &quot;candidate_verdict_correct&quot;: false,
-  &quot;diagnostics&quot;: [
-    &quot;ai_hallucinated_source&quot;,
-    &quot;false_negative_conflict&quot;
-  ],
-  &quot;expected&quot;: &quot;semantic_contradiction&quot;,
-  &quot;group_id&quot;: &quot;group.m1_conflict&quot;,
-  &quot;route_id&quot;: &quot;route.single_ir&quot;,
-  &quot;seed&quot;: 22,
-  &quot;syntax_valid&quot;: true,
-  &quot;verdict&quot;: &quot;semantic_no_conflict&quot;,
-  &quot;verdict_correct&quot;: false
-}</pre>
-        </details>
-        <details>
-          <summary><code>route.single_ir</code> / <code>group.m1_null</code> / seed 22 / not admitted</summary>
-          <h3>Prompt</h3>
-          <pre>You are a weak local model inside a research harness.
-Translate only the provided synthetic Japanese fixture spans.
-No clinical, patient-care, deployment, or regulatory claim.
-case: pair.ac
-source spans:
-source A:
-成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
-A exception:
-ただし、重度腎機能障害のある患者を除く。
-source C:
-小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。
-route: route.single_ir
-Fill one JSON object for each source label: A, C.
-Do not decide whether the pair conflicts; emit only extracted rule fields.
-Output only JSON. Do not use Markdown.
-Field meanings:
-推奨する =&gt; direction for.
-投与しないこと or 禁忌 =&gt; direction contraindicate.
-成人 or 18歳以上 =&gt; age adult. 小児 or 18歳未満 =&gt; age child.
-敗血症 =&gt; sepsis true. 妊娠中 =&gt; pregnancy true.
-重度腎機能障害 in an exception sentence =&gt; renal_severe_exception true.
-A recommendation about 抗菌薬A administration =&gt; action_abx_a true, even when the direction forbids administration.</pre>
-          <h3>Response</h3>
-          <pre>{
-    &quot;A&quot;: {
-        &quot;direction&quot;: &quot;contraindicate&quot;,
-        &quot;action_abx_a&quot;: true
-      ,
-    &quot;age&quot;: &quot;adult&quot;,
-    &quot;sepsis&quot;: true,
-    &quot;pregnancy&quot;: true
-    ,
-    &quot;renal_severe_exception&quot;: true
-    }
-    ,
-    &quot;C&quot;: {
-        &quot;direction&quot;: &quot;contraindicate&quot;,
-        &quot;action_abx_a&quot;: true
-      ,
-    &quot;age&quot;: &quot;child&quot;,
-    &quot;sepsis&quot;: true,
-    &quot;pregnancy&quot;: true
-    ,
-    &quot;renal_severe_exception&quot;: true
-    }
-}</pre>
-          <h3>Scored row</h3>
-          <pre>{
-  &quot;admitted&quot;: false,
-  &quot;candidate_verdict_correct&quot;: true,
-  &quot;diagnostics&quot;: [
-    &quot;ai_hallucinated_source&quot;
-  ],
-  &quot;expected&quot;: &quot;semantic_no_conflict&quot;,
-  &quot;group_id&quot;: &quot;group.m1_null&quot;,
-  &quot;route_id&quot;: &quot;route.single_ir&quot;,
-  &quot;seed&quot;: 22,
-  &quot;syntax_valid&quot;: true,
-  &quot;verdict&quot;: &quot;semantic_no_conflict&quot;,
-  &quot;verdict_correct&quot;: false
-}</pre>
-        </details>
-        <details>
-          <summary><code>route.single_ir</code> / <code>group.m1_conflict</code> / seed 33 / not admitted</summary>
-          <h3>Prompt</h3>
-          <pre>You are a weak local model inside a research harness.
-Translate only the provided synthetic Japanese fixture spans.
-No clinical, patient-care, deployment, or regulatory claim.
-case: pair.ab
-source spans:
-source A:
-成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
-A exception:
-ただし、重度腎機能障害のある患者を除く。
-source B:
-成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。
-route: route.single_ir
-Fill one JSON object for each source label: A, B.
-Do not decide whether the pair conflicts; emit only extracted rule fields.
-Output only JSON. Do not use Markdown.
-Field meanings:
-推奨する =&gt; direction for.
-投与しないこと or 禁忌 =&gt; direction contraindicate.
-成人 or 18歳以上 =&gt; age adult. 小児 or 18歳未満 =&gt; age child.
-敗血症 =&gt; sepsis true. 妊娠中 =&gt; pregnancy true.
-重度腎機能障害 in an exception sentence =&gt; renal_severe_exception true.
-A recommendation about 抗菌薬A administration =&gt; action_abx_a true, even when the direction forbids administration.</pre>
           <h3>Response</h3>
           <pre>{
   &quot;A&quot;: {
-    &quot;direction&quot;: &quot;contraindicate&quot;,
-    &quot;action_abx_a&quot;: true
-    ,
-  &quot;age&quot;: &quot;adult&quot;
-    ,
-  &quot;sepsis&quot;: true
-    ,
-  &quot;pregnancy&quot;: true
-    ,
-  &quot;renal_severe_exception&quot;: true
-    }
-  ,
+    &quot;action_abx_a&quot;: true,
+    &quot;age&quot;: &quot;adult&quot;,
+    &quot;direction&quot;: &quot;for&quot;,
+    &quot;pregnancy&quot;: false,
+    &quot;renal_severe_exception&quot;: true,
+    &quot;sepsis&quot;: true
+  },
   &quot;B&quot;: {
+    &quot;action_abx_a&quot;: true,
+    &quot;age&quot;: &quot;adult&quot;,
     &quot;direction&quot;: &quot;contraindicate&quot;,
-    &quot;action_abx_a&quot;: true
-    ,
-  &quot;age&quot;: &quot;adult&quot;
-    ,
-  &quot;sepsis&quot;: true
-    ,
-  &quot;pregnancy&quot;: true
-    ,
-  &quot;renal_severe_exception&quot;: true
-    }
+    &quot;pregnancy&quot;: true,
+    &quot;renal_severe_exception&quot;: false,
+    &quot;sepsis&quot;: true
+  }
 }</pre>
           <h3>Scored row</h3>
           <pre>{
-  &quot;admitted&quot;: false,
-  &quot;candidate_verdict_correct&quot;: false,
-  &quot;diagnostics&quot;: [
-    &quot;ai_hallucinated_source&quot;,
-    &quot;false_negative_conflict&quot;
-  ],
+  &quot;admitted&quot;: true,
+  &quot;candidate_verdict_correct&quot;: true,
+  &quot;diagnostics&quot;: [],
+  &quot;expected&quot;: &quot;semantic_contradiction&quot;,
+  &quot;group_id&quot;: &quot;group.m1_conflict&quot;,
+  &quot;route_id&quot;: &quot;route.single_ir&quot;,
+  &quot;seed&quot;: 11,
+  &quot;syntax_valid&quot;: true,
+  &quot;verdict&quot;: &quot;semantic_contradiction&quot;,
+  &quot;verdict_correct&quot;: true
+}</pre>
+        </details>        <details>
+          <summary><code>route.single_ir</code> / <code>group.m1_null</code> / seed 11 / admitted</summary>
+          <h3>Prompt</h3>
+          <pre># source A
+Task: convert evidence flags into one CKC IR JSON row.
+Output only JSON. Do not infer any field not shown by the evidence flags.
+source label: A
+primary sentence: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
+exception sentence: ただし、重度腎機能障害のある患者を除く。
+evidence flags: has_recommend=true; has_contra=false; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=false; has_renal_exception=true; has_abx_a=true
+Use these exact conversions:
+has_recommend=true means direction &quot;for&quot;. has_contra=true means direction &quot;contraindicate&quot;. If both are false, direction &quot;unknown&quot;. The exception sentence never changes direction.
+has_adult=true means age &quot;adult&quot;. has_child=true means age &quot;child&quot;. If both are false, age &quot;unknown&quot;.
+action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.
+
+# source C
+Task: convert evidence flags into one CKC IR JSON row.
+Output only JSON. Do not infer any field not shown by the evidence flags.
+source label: C
+primary sentence: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。
+exception sentence: none
+evidence flags: has_recommend=false; has_contra=true; has_adult=false; has_child=true; has_sepsis=true; has_pregnancy=false; has_renal_exception=false; has_abx_a=true
+Use these exact conversions:
+has_recommend=true means direction &quot;for&quot;. has_contra=true means direction &quot;contraindicate&quot;. If both are false, direction &quot;unknown&quot;. The exception sentence never changes direction.
+has_adult=true means age &quot;adult&quot;. has_child=true means age &quot;child&quot;. If both are false, age &quot;unknown&quot;.
+action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.</pre>
+          <h3>Source-local calls</h3>
+          <pre>{
+  &quot;label&quot;: &quot;A&quot;,
+  &quot;prompt&quot;: &quot;Task: convert evidence flags into one CKC IR JSON row.\nOutput only JSON. Do not infer any field not shown by the evidence flags.\nsource label: A\nprimary sentence: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nexception sentence: ただし、重度腎機能障害のある患者を除く。\nevidence flags: has_recommend=true; has_contra=false; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=false; has_renal_exception=true; has_abx_a=true\nUse these exact conversions:\nhas_recommend=true means direction \&quot;for\&quot;. has_contra=true means direction \&quot;contraindicate\&quot;. If both are false, direction \&quot;unknown\&quot;. The exception sentence never changes direction.\nhas_adult=true means age \&quot;adult\&quot;. has_child=true means age \&quot;child\&quot;. If both are false, age \&quot;unknown\&quot;.\naction_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.&quot;,
+  &quot;response&quot;: &quot;{\n  \&quot;direction\&quot;: \&quot;for\&quot;,\n  \&quot;action_abx_a\&quot;: true,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;sepsis\&quot;: true,\n  \&quot;pregnancy\&quot;: false,\n  \&quot;renal_severe_exception\&quot;: true\n}&quot;
+}</pre>
+          <pre>{
+  &quot;label&quot;: &quot;C&quot;,
+  &quot;prompt&quot;: &quot;Task: convert evidence flags into one CKC IR JSON row.\nOutput only JSON. Do not infer any field not shown by the evidence flags.\nsource label: C\nprimary sentence: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。\nexception sentence: none\nevidence flags: has_recommend=false; has_contra=true; has_adult=false; has_child=true; has_sepsis=true; has_pregnancy=false; has_renal_exception=false; has_abx_a=true\nUse these exact conversions:\nhas_recommend=true means direction \&quot;for\&quot;. has_contra=true means direction \&quot;contraindicate\&quot;. If both are false, direction \&quot;unknown\&quot;. The exception sentence never changes direction.\nhas_adult=true means age \&quot;adult\&quot;. has_child=true means age \&quot;child\&quot;. If both are false, age \&quot;unknown\&quot;.\naction_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.&quot;,
+  &quot;response&quot;: &quot;{\n  \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n  \&quot;action_abx_a\&quot;: true,\n  \&quot;age\&quot;: \&quot;child\&quot;,\n  \&quot;sepsis\&quot;: true,\n  \&quot;pregnancy\&quot;: false,\n  \&quot;renal_severe_exception\&quot;: false\n}&quot;
+}</pre>
+          <h3>Response</h3>
+          <pre>{
+  &quot;A&quot;: {
+    &quot;action_abx_a&quot;: true,
+    &quot;age&quot;: &quot;adult&quot;,
+    &quot;direction&quot;: &quot;for&quot;,
+    &quot;pregnancy&quot;: false,
+    &quot;renal_severe_exception&quot;: true,
+    &quot;sepsis&quot;: true
+  },
+  &quot;C&quot;: {
+    &quot;action_abx_a&quot;: true,
+    &quot;age&quot;: &quot;child&quot;,
+    &quot;direction&quot;: &quot;contraindicate&quot;,
+    &quot;pregnancy&quot;: false,
+    &quot;renal_severe_exception&quot;: false,
+    &quot;sepsis&quot;: true
+  }
+}</pre>
+          <h3>Scored row</h3>
+          <pre>{
+  &quot;admitted&quot;: true,
+  &quot;candidate_verdict_correct&quot;: true,
+  &quot;diagnostics&quot;: [],
+  &quot;expected&quot;: &quot;semantic_no_conflict&quot;,
+  &quot;group_id&quot;: &quot;group.m1_null&quot;,
+  &quot;route_id&quot;: &quot;route.single_ir&quot;,
+  &quot;seed&quot;: 11,
+  &quot;syntax_valid&quot;: true,
+  &quot;verdict&quot;: &quot;semantic_no_conflict&quot;,
+  &quot;verdict_correct&quot;: true
+}</pre>
+        </details>        <details>
+          <summary><code>route.single_ir</code> / <code>group.m1_conflict</code> / seed 22 / admitted</summary>
+          <h3>Prompt</h3>
+          <pre># source A
+Task: convert evidence flags into one CKC IR JSON row.
+Output only JSON. Do not infer any field not shown by the evidence flags.
+source label: A
+primary sentence: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
+exception sentence: ただし、重度腎機能障害のある患者を除く。
+evidence flags: has_recommend=true; has_contra=false; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=false; has_renal_exception=true; has_abx_a=true
+Use these exact conversions:
+has_recommend=true means direction &quot;for&quot;. has_contra=true means direction &quot;contraindicate&quot;. If both are false, direction &quot;unknown&quot;. The exception sentence never changes direction.
+has_adult=true means age &quot;adult&quot;. has_child=true means age &quot;child&quot;. If both are false, age &quot;unknown&quot;.
+action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.
+
+# source B
+Task: convert evidence flags into one CKC IR JSON row.
+Output only JSON. Do not infer any field not shown by the evidence flags.
+source label: B
+primary sentence: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。
+exception sentence: none
+evidence flags: has_recommend=false; has_contra=true; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=true; has_renal_exception=false; has_abx_a=true
+Use these exact conversions:
+has_recommend=true means direction &quot;for&quot;. has_contra=true means direction &quot;contraindicate&quot;. If both are false, direction &quot;unknown&quot;. The exception sentence never changes direction.
+has_adult=true means age &quot;adult&quot;. has_child=true means age &quot;child&quot;. If both are false, age &quot;unknown&quot;.
+action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.</pre>
+          <h3>Source-local calls</h3>
+          <pre>{
+  &quot;label&quot;: &quot;A&quot;,
+  &quot;prompt&quot;: &quot;Task: convert evidence flags into one CKC IR JSON row.\nOutput only JSON. Do not infer any field not shown by the evidence flags.\nsource label: A\nprimary sentence: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nexception sentence: ただし、重度腎機能障害のある患者を除く。\nevidence flags: has_recommend=true; has_contra=false; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=false; has_renal_exception=true; has_abx_a=true\nUse these exact conversions:\nhas_recommend=true means direction \&quot;for\&quot;. has_contra=true means direction \&quot;contraindicate\&quot;. If both are false, direction \&quot;unknown\&quot;. The exception sentence never changes direction.\nhas_adult=true means age \&quot;adult\&quot;. has_child=true means age \&quot;child\&quot;. If both are false, age \&quot;unknown\&quot;.\naction_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.&quot;,
+  &quot;response&quot;: &quot;{\n  \&quot;direction\&quot;: \&quot;for\&quot;,\n  \&quot;action_abx_a\&quot;: true,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;sepsis\&quot;: true,\n  \&quot;pregnancy\&quot;: false,\n  \&quot;renal_severe_exception\&quot;: true\n}&quot;
+}</pre>
+          <pre>{
+  &quot;label&quot;: &quot;B&quot;,
+  &quot;prompt&quot;: &quot;Task: convert evidence flags into one CKC IR JSON row.\nOutput only JSON. Do not infer any field not shown by the evidence flags.\nsource label: B\nprimary sentence: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。\nexception sentence: none\nevidence flags: has_recommend=false; has_contra=true; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=true; has_renal_exception=false; has_abx_a=true\nUse these exact conversions:\nhas_recommend=true means direction \&quot;for\&quot;. has_contra=true means direction \&quot;contraindicate\&quot;. If both are false, direction \&quot;unknown\&quot;. The exception sentence never changes direction.\nhas_adult=true means age \&quot;adult\&quot;. has_child=true means age \&quot;child\&quot;. If both are false, age \&quot;unknown\&quot;.\naction_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.&quot;,
+  &quot;response&quot;: &quot;{\n  \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n  \&quot;action_abx_a\&quot;: true,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;sepsis\&quot;: true,\n  \&quot;pregnancy\&quot;: true,\n  \&quot;renal_severe_exception\&quot;: false\n}&quot;
+}</pre>
+          <h3>Response</h3>
+          <pre>{
+  &quot;A&quot;: {
+    &quot;action_abx_a&quot;: true,
+    &quot;age&quot;: &quot;adult&quot;,
+    &quot;direction&quot;: &quot;for&quot;,
+    &quot;pregnancy&quot;: false,
+    &quot;renal_severe_exception&quot;: true,
+    &quot;sepsis&quot;: true
+  },
+  &quot;B&quot;: {
+    &quot;action_abx_a&quot;: true,
+    &quot;age&quot;: &quot;adult&quot;,
+    &quot;direction&quot;: &quot;contraindicate&quot;,
+    &quot;pregnancy&quot;: true,
+    &quot;renal_severe_exception&quot;: false,
+    &quot;sepsis&quot;: true
+  }
+}</pre>
+          <h3>Scored row</h3>
+          <pre>{
+  &quot;admitted&quot;: true,
+  &quot;candidate_verdict_correct&quot;: true,
+  &quot;diagnostics&quot;: [],
+  &quot;expected&quot;: &quot;semantic_contradiction&quot;,
+  &quot;group_id&quot;: &quot;group.m1_conflict&quot;,
+  &quot;route_id&quot;: &quot;route.single_ir&quot;,
+  &quot;seed&quot;: 22,
+  &quot;syntax_valid&quot;: true,
+  &quot;verdict&quot;: &quot;semantic_contradiction&quot;,
+  &quot;verdict_correct&quot;: true
+}</pre>
+        </details>        <details>
+          <summary><code>route.single_ir</code> / <code>group.m1_null</code> / seed 22 / admitted</summary>
+          <h3>Prompt</h3>
+          <pre># source A
+Task: convert evidence flags into one CKC IR JSON row.
+Output only JSON. Do not infer any field not shown by the evidence flags.
+source label: A
+primary sentence: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
+exception sentence: ただし、重度腎機能障害のある患者を除く。
+evidence flags: has_recommend=true; has_contra=false; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=false; has_renal_exception=true; has_abx_a=true
+Use these exact conversions:
+has_recommend=true means direction &quot;for&quot;. has_contra=true means direction &quot;contraindicate&quot;. If both are false, direction &quot;unknown&quot;. The exception sentence never changes direction.
+has_adult=true means age &quot;adult&quot;. has_child=true means age &quot;child&quot;. If both are false, age &quot;unknown&quot;.
+action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.
+
+# source C
+Task: convert evidence flags into one CKC IR JSON row.
+Output only JSON. Do not infer any field not shown by the evidence flags.
+source label: C
+primary sentence: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。
+exception sentence: none
+evidence flags: has_recommend=false; has_contra=true; has_adult=false; has_child=true; has_sepsis=true; has_pregnancy=false; has_renal_exception=false; has_abx_a=true
+Use these exact conversions:
+has_recommend=true means direction &quot;for&quot;. has_contra=true means direction &quot;contraindicate&quot;. If both are false, direction &quot;unknown&quot;. The exception sentence never changes direction.
+has_adult=true means age &quot;adult&quot;. has_child=true means age &quot;child&quot;. If both are false, age &quot;unknown&quot;.
+action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.</pre>
+          <h3>Source-local calls</h3>
+          <pre>{
+  &quot;label&quot;: &quot;A&quot;,
+  &quot;prompt&quot;: &quot;Task: convert evidence flags into one CKC IR JSON row.\nOutput only JSON. Do not infer any field not shown by the evidence flags.\nsource label: A\nprimary sentence: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nexception sentence: ただし、重度腎機能障害のある患者を除く。\nevidence flags: has_recommend=true; has_contra=false; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=false; has_renal_exception=true; has_abx_a=true\nUse these exact conversions:\nhas_recommend=true means direction \&quot;for\&quot;. has_contra=true means direction \&quot;contraindicate\&quot;. If both are false, direction \&quot;unknown\&quot;. The exception sentence never changes direction.\nhas_adult=true means age \&quot;adult\&quot;. has_child=true means age \&quot;child\&quot;. If both are false, age \&quot;unknown\&quot;.\naction_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.&quot;,
+  &quot;response&quot;: &quot;{\n  \&quot;direction\&quot;: \&quot;for\&quot;,\n  \&quot;action_abx_a\&quot;: true,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;sepsis\&quot;: true,\n  \&quot;pregnancy\&quot;: false,\n  \&quot;renal_severe_exception\&quot;: true\n}&quot;
+}</pre>
+          <pre>{
+  &quot;label&quot;: &quot;C&quot;,
+  &quot;prompt&quot;: &quot;Task: convert evidence flags into one CKC IR JSON row.\nOutput only JSON. Do not infer any field not shown by the evidence flags.\nsource label: C\nprimary sentence: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。\nexception sentence: none\nevidence flags: has_recommend=false; has_contra=true; has_adult=false; has_child=true; has_sepsis=true; has_pregnancy=false; has_renal_exception=false; has_abx_a=true\nUse these exact conversions:\nhas_recommend=true means direction \&quot;for\&quot;. has_contra=true means direction \&quot;contraindicate\&quot;. If both are false, direction \&quot;unknown\&quot;. The exception sentence never changes direction.\nhas_adult=true means age \&quot;adult\&quot;. has_child=true means age \&quot;child\&quot;. If both are false, age \&quot;unknown\&quot;.\naction_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.&quot;,
+  &quot;response&quot;: &quot;{\n  \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n  \&quot;action_abx_a\&quot;: true,\n  \&quot;age\&quot;: \&quot;child\&quot;,\n  \&quot;sepsis\&quot;: true,\n  \&quot;pregnancy\&quot;: false,\n  \&quot;renal_severe_exception\&quot;: false\n}&quot;
+}</pre>
+          <h3>Response</h3>
+          <pre>{
+  &quot;A&quot;: {
+    &quot;action_abx_a&quot;: true,
+    &quot;age&quot;: &quot;adult&quot;,
+    &quot;direction&quot;: &quot;for&quot;,
+    &quot;pregnancy&quot;: false,
+    &quot;renal_severe_exception&quot;: true,
+    &quot;sepsis&quot;: true
+  },
+  &quot;C&quot;: {
+    &quot;action_abx_a&quot;: true,
+    &quot;age&quot;: &quot;child&quot;,
+    &quot;direction&quot;: &quot;contraindicate&quot;,
+    &quot;pregnancy&quot;: false,
+    &quot;renal_severe_exception&quot;: false,
+    &quot;sepsis&quot;: true
+  }
+}</pre>
+          <h3>Scored row</h3>
+          <pre>{
+  &quot;admitted&quot;: true,
+  &quot;candidate_verdict_correct&quot;: true,
+  &quot;diagnostics&quot;: [],
+  &quot;expected&quot;: &quot;semantic_no_conflict&quot;,
+  &quot;group_id&quot;: &quot;group.m1_null&quot;,
+  &quot;route_id&quot;: &quot;route.single_ir&quot;,
+  &quot;seed&quot;: 22,
+  &quot;syntax_valid&quot;: true,
+  &quot;verdict&quot;: &quot;semantic_no_conflict&quot;,
+  &quot;verdict_correct&quot;: true
+}</pre>
+        </details>        <details>
+          <summary><code>route.single_ir</code> / <code>group.m1_conflict</code> / seed 33 / admitted</summary>
+          <h3>Prompt</h3>
+          <pre># source A
+Task: convert evidence flags into one CKC IR JSON row.
+Output only JSON. Do not infer any field not shown by the evidence flags.
+source label: A
+primary sentence: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
+exception sentence: ただし、重度腎機能障害のある患者を除く。
+evidence flags: has_recommend=true; has_contra=false; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=false; has_renal_exception=true; has_abx_a=true
+Use these exact conversions:
+has_recommend=true means direction &quot;for&quot;. has_contra=true means direction &quot;contraindicate&quot;. If both are false, direction &quot;unknown&quot;. The exception sentence never changes direction.
+has_adult=true means age &quot;adult&quot;. has_child=true means age &quot;child&quot;. If both are false, age &quot;unknown&quot;.
+action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.
+
+# source B
+Task: convert evidence flags into one CKC IR JSON row.
+Output only JSON. Do not infer any field not shown by the evidence flags.
+source label: B
+primary sentence: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。
+exception sentence: none
+evidence flags: has_recommend=false; has_contra=true; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=true; has_renal_exception=false; has_abx_a=true
+Use these exact conversions:
+has_recommend=true means direction &quot;for&quot;. has_contra=true means direction &quot;contraindicate&quot;. If both are false, direction &quot;unknown&quot;. The exception sentence never changes direction.
+has_adult=true means age &quot;adult&quot;. has_child=true means age &quot;child&quot;. If both are false, age &quot;unknown&quot;.
+action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.</pre>
+          <h3>Source-local calls</h3>
+          <pre>{
+  &quot;label&quot;: &quot;A&quot;,
+  &quot;prompt&quot;: &quot;Task: convert evidence flags into one CKC IR JSON row.\nOutput only JSON. Do not infer any field not shown by the evidence flags.\nsource label: A\nprimary sentence: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nexception sentence: ただし、重度腎機能障害のある患者を除く。\nevidence flags: has_recommend=true; has_contra=false; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=false; has_renal_exception=true; has_abx_a=true\nUse these exact conversions:\nhas_recommend=true means direction \&quot;for\&quot;. has_contra=true means direction \&quot;contraindicate\&quot;. If both are false, direction \&quot;unknown\&quot;. The exception sentence never changes direction.\nhas_adult=true means age \&quot;adult\&quot;. has_child=true means age \&quot;child\&quot;. If both are false, age \&quot;unknown\&quot;.\naction_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.&quot;,
+  &quot;response&quot;: &quot;{\n  \&quot;direction\&quot;: \&quot;for\&quot;,\n  \&quot;action_abx_a\&quot;: true,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;sepsis\&quot;: true,\n  \&quot;pregnancy\&quot;: false,\n  \&quot;renal_severe_exception\&quot;: true\n}&quot;
+}</pre>
+          <pre>{
+  &quot;label&quot;: &quot;B&quot;,
+  &quot;prompt&quot;: &quot;Task: convert evidence flags into one CKC IR JSON row.\nOutput only JSON. Do not infer any field not shown by the evidence flags.\nsource label: B\nprimary sentence: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。\nexception sentence: none\nevidence flags: has_recommend=false; has_contra=true; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=true; has_renal_exception=false; has_abx_a=true\nUse these exact conversions:\nhas_recommend=true means direction \&quot;for\&quot;. has_contra=true means direction \&quot;contraindicate\&quot;. If both are false, direction \&quot;unknown\&quot;. The exception sentence never changes direction.\nhas_adult=true means age \&quot;adult\&quot;. has_child=true means age \&quot;child\&quot;. If both are false, age \&quot;unknown\&quot;.\naction_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.&quot;,
+  &quot;response&quot;: &quot;{\n  \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n  \&quot;action_abx_a\&quot;: true,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;sepsis\&quot;: true,\n  \&quot;pregnancy\&quot;: true,\n  \&quot;renal_severe_exception\&quot;: false\n}&quot;
+}</pre>
+          <h3>Response</h3>
+          <pre>{
+  &quot;A&quot;: {
+    &quot;action_abx_a&quot;: true,
+    &quot;age&quot;: &quot;adult&quot;,
+    &quot;direction&quot;: &quot;for&quot;,
+    &quot;pregnancy&quot;: false,
+    &quot;renal_severe_exception&quot;: true,
+    &quot;sepsis&quot;: true
+  },
+  &quot;B&quot;: {
+    &quot;action_abx_a&quot;: true,
+    &quot;age&quot;: &quot;adult&quot;,
+    &quot;direction&quot;: &quot;contraindicate&quot;,
+    &quot;pregnancy&quot;: true,
+    &quot;renal_severe_exception&quot;: false,
+    &quot;sepsis&quot;: true
+  }
+}</pre>
+          <h3>Scored row</h3>
+          <pre>{
+  &quot;admitted&quot;: true,
+  &quot;candidate_verdict_correct&quot;: true,
+  &quot;diagnostics&quot;: [],
   &quot;expected&quot;: &quot;semantic_contradiction&quot;,
   &quot;group_id&quot;: &quot;group.m1_conflict&quot;,
   &quot;route_id&quot;: &quot;route.single_ir&quot;,
   &quot;seed&quot;: 33,
   &quot;syntax_valid&quot;: true,
-  &quot;verdict&quot;: &quot;semantic_no_conflict&quot;,
-  &quot;verdict_correct&quot;: false
+  &quot;verdict&quot;: &quot;semantic_contradiction&quot;,
+  &quot;verdict_correct&quot;: true
 }</pre>
-        </details>
-        <details>
-          <summary><code>route.single_ir</code> / <code>group.m1_null</code> / seed 33 / not admitted</summary>
+        </details>        <details>
+          <summary><code>route.single_ir</code> / <code>group.m1_null</code> / seed 33 / admitted</summary>
           <h3>Prompt</h3>
-          <pre>You are a weak local model inside a research harness.
-Translate only the provided synthetic Japanese fixture spans.
-No clinical, patient-care, deployment, or regulatory claim.
-case: pair.ac
-source spans:
-source A:
-成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
-A exception:
-ただし、重度腎機能障害のある患者を除く。
-source C:
-小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。
-route: route.single_ir
-Fill one JSON object for each source label: A, C.
-Do not decide whether the pair conflicts; emit only extracted rule fields.
-Output only JSON. Do not use Markdown.
-Field meanings:
-推奨する =&gt; direction for.
-投与しないこと or 禁忌 =&gt; direction contraindicate.
-成人 or 18歳以上 =&gt; age adult. 小児 or 18歳未満 =&gt; age child.
-敗血症 =&gt; sepsis true. 妊娠中 =&gt; pregnancy true.
-重度腎機能障害 in an exception sentence =&gt; renal_severe_exception true.
-A recommendation about 抗菌薬A administration =&gt; action_abx_a true, even when the direction forbids administration.</pre>
+          <pre># source A
+Task: convert evidence flags into one CKC IR JSON row.
+Output only JSON. Do not infer any field not shown by the evidence flags.
+source label: A
+primary sentence: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
+exception sentence: ただし、重度腎機能障害のある患者を除く。
+evidence flags: has_recommend=true; has_contra=false; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=false; has_renal_exception=true; has_abx_a=true
+Use these exact conversions:
+has_recommend=true means direction &quot;for&quot;. has_contra=true means direction &quot;contraindicate&quot;. If both are false, direction &quot;unknown&quot;. The exception sentence never changes direction.
+has_adult=true means age &quot;adult&quot;. has_child=true means age &quot;child&quot;. If both are false, age &quot;unknown&quot;.
+action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.
+
+# source C
+Task: convert evidence flags into one CKC IR JSON row.
+Output only JSON. Do not infer any field not shown by the evidence flags.
+source label: C
+primary sentence: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。
+exception sentence: none
+evidence flags: has_recommend=false; has_contra=true; has_adult=false; has_child=true; has_sepsis=true; has_pregnancy=false; has_renal_exception=false; has_abx_a=true
+Use these exact conversions:
+has_recommend=true means direction &quot;for&quot;. has_contra=true means direction &quot;contraindicate&quot;. If both are false, direction &quot;unknown&quot;. The exception sentence never changes direction.
+has_adult=true means age &quot;adult&quot;. has_child=true means age &quot;child&quot;. If both are false, age &quot;unknown&quot;.
+action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.</pre>
+          <h3>Source-local calls</h3>
+          <pre>{
+  &quot;label&quot;: &quot;A&quot;,
+  &quot;prompt&quot;: &quot;Task: convert evidence flags into one CKC IR JSON row.\nOutput only JSON. Do not infer any field not shown by the evidence flags.\nsource label: A\nprimary sentence: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nexception sentence: ただし、重度腎機能障害のある患者を除く。\nevidence flags: has_recommend=true; has_contra=false; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=false; has_renal_exception=true; has_abx_a=true\nUse these exact conversions:\nhas_recommend=true means direction \&quot;for\&quot;. has_contra=true means direction \&quot;contraindicate\&quot;. If both are false, direction \&quot;unknown\&quot;. The exception sentence never changes direction.\nhas_adult=true means age \&quot;adult\&quot;. has_child=true means age \&quot;child\&quot;. If both are false, age \&quot;unknown\&quot;.\naction_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.&quot;,
+  &quot;response&quot;: &quot;{\n  \&quot;direction\&quot;: \&quot;for\&quot;,\n  \&quot;action_abx_a\&quot;: true,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;sepsis\&quot;: true,\n  \&quot;pregnancy\&quot;: false,\n  \&quot;renal_severe_exception\&quot;: true\n}&quot;
+}</pre>
+          <pre>{
+  &quot;label&quot;: &quot;C&quot;,
+  &quot;prompt&quot;: &quot;Task: convert evidence flags into one CKC IR JSON row.\nOutput only JSON. Do not infer any field not shown by the evidence flags.\nsource label: C\nprimary sentence: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。\nexception sentence: none\nevidence flags: has_recommend=false; has_contra=true; has_adult=false; has_child=true; has_sepsis=true; has_pregnancy=false; has_renal_exception=false; has_abx_a=true\nUse these exact conversions:\nhas_recommend=true means direction \&quot;for\&quot;. has_contra=true means direction \&quot;contraindicate\&quot;. If both are false, direction \&quot;unknown\&quot;. The exception sentence never changes direction.\nhas_adult=true means age \&quot;adult\&quot;. has_child=true means age \&quot;child\&quot;. If both are false, age \&quot;unknown\&quot;.\naction_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.&quot;,
+  &quot;response&quot;: &quot;{\n  \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n  \&quot;action_abx_a\&quot;: true,\n  \&quot;age\&quot;: \&quot;child\&quot;,\n  \&quot;sepsis\&quot;: true,\n  \&quot;pregnancy\&quot;: false,\n  \&quot;renal_severe_exception\&quot;: false\n}&quot;
+}</pre>
           <h3>Response</h3>
           <pre>{
   &quot;A&quot;: {
-    &quot;direction&quot;: &quot;contraindicate&quot;,
-    &quot;action_abx_a&quot;: true
-    ,
-  &quot;age&quot;: &quot;adult&quot;
-    ,
-  &quot;sepsis&quot;: true
-    ,
-  &quot;pregnancy&quot;: true
-    ,
-  &quot;renal_severe_exception&quot;: true
-    }
-  ,
+    &quot;action_abx_a&quot;: true,
+    &quot;age&quot;: &quot;adult&quot;,
+    &quot;direction&quot;: &quot;for&quot;,
+    &quot;pregnancy&quot;: false,
+    &quot;renal_severe_exception&quot;: true,
+    &quot;sepsis&quot;: true
+  },
   &quot;C&quot;: {
+    &quot;action_abx_a&quot;: true,
+    &quot;age&quot;: &quot;child&quot;,
     &quot;direction&quot;: &quot;contraindicate&quot;,
-    &quot;action_abx_a&quot;: true
-    ,
-  &quot;age&quot;: &quot;child&quot;
-    ,
-  &quot;sepsis&quot;: true
-    ,
-  &quot;pregnancy&quot;: true
-    ,
-  &quot;renal_severe_exception&quot;: true
-    }
+    &quot;pregnancy&quot;: false,
+    &quot;renal_severe_exception&quot;: false,
+    &quot;sepsis&quot;: true
+  }
 }</pre>
           <h3>Scored row</h3>
           <pre>{
-  &quot;admitted&quot;: false,
+  &quot;admitted&quot;: true,
   &quot;candidate_verdict_correct&quot;: true,
-  &quot;diagnostics&quot;: [
-    &quot;ai_hallucinated_source&quot;
-  ],
+  &quot;diagnostics&quot;: [],
   &quot;expected&quot;: &quot;semantic_no_conflict&quot;,
   &quot;group_id&quot;: &quot;group.m1_null&quot;,
   &quot;route_id&quot;: &quot;route.single_ir&quot;,
   &quot;seed&quot;: 33,
   &quot;syntax_valid&quot;: true,
   &quot;verdict&quot;: &quot;semantic_no_conflict&quot;,
-  &quot;verdict_correct&quot;: false
+  &quot;verdict_correct&quot;: true
 }</pre>
         </details>
     </section>

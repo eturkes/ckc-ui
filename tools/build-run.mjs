@@ -1261,7 +1261,7 @@ function escapeHtml(value) {
 }
 
 function escapePre(value) {
-  return escapeHtml(String(value).replaceAll("\t", "  "));
+  return escapeHtml(String(value).replaceAll("\t", "  ").replace(/[ ]+$/gm, ""));
 }
 
 function renderBasicUi(data) {
@@ -1292,17 +1292,26 @@ function renderBasicUi(data) {
             <td>${row.candidate_verdict_correct ? "yes" : "no"}</td>
             <td>${escapeHtml(row.diagnostics.join(", ") || "none")}</td>
           </tr>`).join("");
-  const ioBlocks = data.model_io.map((record) => `
-        <details>
-          <summary><code>${escapeHtml(record.route_id)}</code> / <code>${escapeHtml(record.group_id)}</code> / seed ${escapeHtml(record.seed)} / ${record.row.admitted ? "admitted" : "not admitted"}</summary>
-          <h3>Prompt</h3>
-          <pre>${escapePre(record.prompt)}</pre>
-          ${record.source_calls ? `<h3>Source-local calls</h3>${record.source_calls.map((call) => `<pre>${escapePre(JSON.stringify({ label: call.label, prompt: call.prompt, response: call.response }, null, 2))}</pre>`).join("")}` : ""}
-          <h3>Response</h3>
-          <pre>${escapePre(record.response)}</pre>
-          <h3>Scored row</h3>
-          <pre>${escapePre(JSON.stringify(record.row, null, 2))}</pre>
-        </details>`).join("");
+  const ioBlocks = data.model_io.map((record) => {
+    const sourceCalls = record.source_calls
+      ? [
+          "          <h3>Source-local calls</h3>",
+          ...record.source_calls.map((call) => `          <pre>${escapePre(JSON.stringify({ label: call.label, prompt: call.prompt, response: call.response }, null, 2))}</pre>`)
+        ].join("\n")
+      : "";
+    return [
+      "        <details>",
+      `          <summary><code>${escapeHtml(record.route_id)}</code> / <code>${escapeHtml(record.group_id)}</code> / seed ${escapeHtml(record.seed)} / ${record.row.admitted ? "admitted" : "not admitted"}</summary>`,
+      "          <h3>Prompt</h3>",
+      `          <pre>${escapePre(record.prompt)}</pre>`,
+      sourceCalls,
+      "          <h3>Response</h3>",
+      `          <pre>${escapePre(record.response)}</pre>`,
+      "          <h3>Scored row</h3>",
+      `          <pre>${escapePre(JSON.stringify(record.row, null, 2))}</pre>`,
+      "        </details>"
+    ].filter(Boolean).join("\n");
+  }).join("");
   const finding = report.findings[0];
   const nullResult = report.null_results[0];
 
