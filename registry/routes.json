@@ -9,7 +9,7 @@
     },
     {
       "id": "route.single_ir",
-      "shape": "weak local model fills a compact CKC IR row schema, then deterministic scoring checks admission",
+      "shape": "weak local model fills source-keyed CKC IR rule fields with no verdict field; deterministic bridge computes verdict only after admission checks",
       "runtime": "project-local llama.cpp subprocess via tools/setup-local-model.mjs",
       "default_model": "Qwen2.5-0.5B-Instruct Q2_K GGUF",
       "live_model": true

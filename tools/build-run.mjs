@@ -464,104 +464,120 @@ function buildNullResult(groupResult, artifactsByDoc) {
 }
 
 function simulateRoute(routeId, groupId, seed) {
-  if (routeId === "route.single_ir") {
+  return {
+    route_id: routeId,
+    group_id: groupId,
+    seed,
+    syntax_valid: false,
+    admitted: false,
+    verdict: "replay_identity_unsupported",
+    diagnostics: ["replay_identity_unsupported"],
+    response: "recorded-model mode intentionally does not fabricate M2 route output; use --live-model for measurement"
+  };
+}
+
+function modelCaseForGroup(groupId) {
+  if (groupId === "group.m1_conflict") {
     return {
-      route_id: routeId,
-      group_id: groupId,
-      seed,
-      syntax_valid: true,
-      admitted: true,
-      verdict: groupId === "group.m1_conflict" ? "semantic_contradiction" : "semantic_no_conflict",
-      diagnostics: [],
-      response: {
-        kind: "ckc_ir_row",
-        group_id: groupId,
-        rules: groupId === "group.m1_conflict"
-          ? ["rule.a.cq1.r1", "rule.b.contra1"]
-          : ["rule.a.cq1.r1", "rule.control.child.contra1"]
-      }
+      case_id: "pair.ab",
+      labels: ["A", "B"],
+      lines: [
+        "source A:",
+        "成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。",
+        "A exception:",
+        "ただし、重度腎機能障害のある患者を除く。",
+        "source B:",
+        "成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。"
+      ]
     };
   }
+  return {
+    case_id: "pair.ac",
+    labels: ["A", "C"],
+    lines: [
+      "source A:",
+      "成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。",
+      "A exception:",
+      "ただし、重度腎機能障害のある患者を除く。",
+      "source C:",
+      "小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。"
+    ]
+  };
+}
 
-  const directCases = {
-    "11:group.m1_conflict": {
-      syntax_valid: true,
-      admitted: true,
-      verdict: "semantic_contradiction",
-      diagnostics: [],
-      response: "(set-logic QF_UF)\n(assert |positive_abx_a|)\n(assert (not |positive_abx_a|))\n(check-sat)"
+function expectedIrFields(label) {
+  const rows = {
+    A: {
+      direction: "for",
+      action_abx_a: true,
+      age: "adult",
+      sepsis: true,
+      pregnancy: false,
+      renal_severe_exception: true
     },
-    "11:group.m1_null": {
-      syntax_valid: true,
-      admitted: true,
-      verdict: "semantic_contradiction",
-      diagnostics: ["false_positive_conflict"],
-      response: "(set-logic QF_UF)\n(assert |adult_abx_a|)\n(assert (not |adult_abx_a|))\n(check-sat)"
+    B: {
+      direction: "contraindicate",
+      action_abx_a: true,
+      age: "adult",
+      sepsis: true,
+      pregnancy: true,
+      renal_severe_exception: false
     },
-    "22:group.m1_conflict": {
-      syntax_valid: false,
-      admitted: false,
-      verdict: "target_syntax_failure",
-      diagnostics: ["target_parse_error", "ai_schema_violation"],
-      response: "(set-logic QF_UF)\n(assert |positive_abx_a|\n(check-sat)"
-    },
-    "22:group.m1_null": {
-      syntax_valid: true,
-      admitted: true,
-      verdict: "semantic_no_conflict",
-      diagnostics: [],
-      response: "(set-logic QF_LRA)\n(assert (>= |q.age_years| 18))\n(assert (< |q.age_years| 18))\n(check-sat)"
-    },
-    "33:group.m1_conflict": {
-      syntax_valid: true,
-      admitted: false,
-      verdict: "semantic_no_conflict",
-      diagnostics: ["ai_hallucinated_source"],
-      response: "(set-logic QF_LRA)\n(assert (> |creatinine| 2.0))\n(check-sat)"
-    },
-    "33:group.m1_null": {
-      syntax_valid: false,
-      admitted: false,
-      verdict: "target_syntax_failure",
-      diagnostics: ["target_parse_error"],
-      response: "(set-logic QF_LRA)\n(assert (and (< |q.age_years| 18))\n(check-sat)"
+    C: {
+      direction: "contraindicate",
+      action_abx_a: true,
+      age: "child",
+      sepsis: true,
+      pregnancy: false,
+      renal_severe_exception: false
     }
   };
-
-  const entry = directCases[`${seed}:${groupId}`];
-  return { route_id: routeId, group_id: groupId, seed, ...entry };
+  return rows[label];
 }
 
-function groupSourceLines(groupId) {
-  if (groupId === "group.m1_conflict") {
-    return [
-      "A: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。",
-      "A-exception: ただし、重度腎機能障害のある患者を除く。",
-      "B: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。"
-    ];
-  }
-  return [
-    "A: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。",
-    "A-exception: ただし、重度腎機能障害のある患者を除く。",
-    "Control: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。"
-  ];
+function irRuleJsonSchema() {
+  return {
+    type: "object",
+    additionalProperties: false,
+    required: [
+      "direction",
+      "action_abx_a",
+      "age",
+      "sepsis",
+      "pregnancy",
+      "renal_severe_exception"
+    ],
+    properties: {
+      direction: { enum: ["for", "contraindicate", "unknown"] },
+      action_abx_a: { type: "boolean" },
+      age: { enum: ["adult", "child", "unknown"] },
+      sepsis: { type: "boolean" },
+      pregnancy: { type: "boolean" },
+      renal_severe_exception: { type: "boolean" }
+    }
+  };
 }
 
-function allowedRulesForGroup(groupId) {
-  return groupId === "group.m1_conflict"
-    ? ["rule.a.cq1.r1", "rule.b.contra1"]
-    : ["rule.a.cq1.r1", "rule.control.child.contra1"];
+function jsonSchemaForRoute(routeId, groupId) {
+  if (routeId !== "route.single_ir") return null;
+  const labels = modelCaseForGroup(groupId).labels;
+  return JSON.stringify({
+    type: "object",
+    additionalProperties: false,
+    required: labels,
+    properties: Object.fromEntries(labels.map((label) => [label, irRuleJsonSchema()]))
+  });
 }
 
 function promptFor(routeId, groupId, seed) {
+  const modelCase = modelCaseForGroup(groupId);
   const common = [
     "You are a weak local model inside a research harness.",
     "Translate only the provided synthetic Japanese fixture spans.",
     "No clinical, patient-care, deployment, or regulatory claim.",
-    `group: ${groupId}`,
-    `seed: ${seed}`,
+    `case: ${modelCase.case_id}`,
     "source spans:",
-    ...groupSourceLines(groupId)
+    ...modelCase.lines
   ];
   if (routeId === "route.direct_smt") {
     return [
@@ -575,9 +591,16 @@ function promptFor(routeId, groupId, seed) {
   return [
     ...common,
     "route: route.single_ir",
-    "Output only one minified JSON object. Do not use Markdown.",
-    "Schema: {\"rules\":[string,string],\"verdict\":\"semantic_contradiction|semantic_no_conflict\"}",
-    `Allowed rules: ${allowedRulesForGroup(groupId).join(", ")}`
+    `Fill one JSON object for each source label: ${modelCase.labels.join(", ")}.`,
+    "Do not decide whether the pair conflicts; emit only extracted rule fields.",
+    "Output only JSON. Do not use Markdown.",
+    "Field meanings:",
+    "推奨する => direction for.",
+    "投与しないこと or 禁忌 => direction contraindicate.",
+    "成人 or 18歳以上 => age adult. 小児 or 18歳未満 => age child.",
+    "敗血症 => sepsis true. 妊娠中 => pregnancy true.",
+    "重度腎機能障害 in an exception sentence => renal_severe_exception true.",
+    "A recommendation about 抗菌薬A administration => action_abx_a true, even when the direction forbids administration."
   ].join("\n");
 }
 
@@ -592,14 +615,16 @@ function requireLiveModelReady() {
   }
 }
 
-function llamaArgs(prompt, seed) {
+function llamaArgs(prompt, seed, routeId, groupId) {
+  const schema = jsonSchemaForRoute(routeId, groupId);
+  const routeArgs = routeId === "route.single_ir"
+    ? ["-n", "220", "--ctx-size", "2048", "--temp", "0.1", "--top-k", "10"]
+    : ["-n", "180", "--ctx-size", "1536", "--temp", "0.2", "--top-k", "20"];
   return [
     "-m", modelPath,
     "-p", prompt,
-    "-n", "180",
-    "--ctx-size", "1536",
-    "--temp", "0.2",
-    "--top-k", "20",
+    ...routeArgs,
+    ...(schema ? ["--json-schema", schema] : []),
     "--seed", String(seed),
     "--no-display-prompt",
     "--single-turn",
@@ -613,9 +638,9 @@ function llamaArgs(prompt, seed) {
   ];
 }
 
-function runLlama(prompt, seed) {
+function runLlama(prompt, seed, routeId, groupId) {
   requireLiveModelReady();
-  const args = llamaArgs(prompt, seed);
+  const args = llamaArgs(prompt, seed, routeId, groupId);
   const result = spawnSync(llamaCliPath, args, {
     cwd: root,
     encoding: "utf8",
@@ -637,6 +662,7 @@ function runLlama(prompt, seed) {
       args: args.map((entry, index) => {
         if (entry === modelPath) return path.relative(root, modelPath);
         if (args[index - 1] === "-p") return "<prompt>";
+        if (args[index - 1] === "--json-schema") return "<json-schema>";
         return entry;
       })
     }
@@ -672,17 +698,34 @@ function extractJsonObject(text) {
   const cleaned = cleanModelText(text);
   const candidates = [];
   for (let start = cleaned.indexOf("{"); start >= 0; start = cleaned.indexOf("{", start + 1)) {
-    for (let end = cleaned.indexOf("}", start); end >= 0; end = cleaned.indexOf("}", end + 1)) {
-      const text = cleaned.slice(start, end + 1);
-      try {
-        candidates.push({ value: JSON.parse(text), text });
-        break;
-      } catch {
-        // Keep scanning; prompts may contain schema examples that are not valid JSON.
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    for (let end = start; end < cleaned.length; end += 1) {
+      const char = cleaned[end];
+      if (inString) {
+        if (escaped) escaped = false;
+        else if (char === "\\") escaped = true;
+        else if (char === "\"") inString = false;
+        continue;
+      }
+      if (char === "\"") inString = true;
+      else if (char === "{") depth += 1;
+      else if (char === "}") {
+        depth -= 1;
+        if (depth === 0) {
+          const candidateText = cleaned.slice(start, end + 1);
+          try {
+            candidates.push({ value: JSON.parse(candidateText), text: candidateText });
+          } catch {
+            // Keep scanning; prompts may contain JSON-like fragments.
+          }
+          break;
+        }
       }
     }
   }
-  return candidates.at(-1) ?? null;
+  return candidates.sort((a, b) => b.text.length - a.text.length).at(0) ?? null;
 }
 
 function classifyDirectSmt(output, expected) {
@@ -706,7 +749,8 @@ function classifyDirectSmt(output, expected) {
   }
 
   if (syntax_valid && verdict === "unknown") diagnostics.push("unsupported_ir_fragment");
-  if (verdict !== "unknown" && verdict !== expected) diagnostics.push("false_positive_conflict");
+  if (verdict === "semantic_contradiction" && expected === "semantic_no_conflict") diagnostics.push("false_positive_conflict");
+  if (verdict === "semantic_no_conflict" && expected === "semantic_contradiction") diagnostics.push("false_negative_conflict");
 
   return {
     syntax_valid,
@@ -716,6 +760,96 @@ function classifyDirectSmt(output, expected) {
   };
 }
 
+function validIrRow(row) {
+  return row
+    && (row.direction === "for" || row.direction === "contraindicate" || row.direction === "unknown")
+    && typeof row.action_abx_a === "boolean"
+    && (row.age === "adult" || row.age === "child" || row.age === "unknown")
+    && typeof row.sepsis === "boolean"
+    && typeof row.pregnancy === "boolean"
+    && typeof row.renal_severe_exception === "boolean";
+}
+
+function irSchemaDiagnostics(parsed, groupId) {
+  const diagnostics = [];
+  const labels = modelCaseForGroup(groupId).labels;
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return ["ai_schema_violation"];
+  const keys = Object.keys(parsed).sort();
+  const expectedKeys = [...labels].sort();
+  if (keys.join("\u0000") !== expectedKeys.join("\u0000")) diagnostics.push("ai_schema_violation");
+  for (const label of labels) {
+    if (!validIrRow(parsed[label])) diagnostics.push("ai_schema_violation");
+  }
+  return [...new Set(diagnostics)];
+}
+
+function irGroundingDiagnostics(parsed, groupId) {
+  const diagnostics = [];
+  for (const label of modelCaseForGroup(groupId).labels) {
+    const row = parsed?.[label];
+    const expected = expectedIrFields(label);
+    if (!validIrRow(row)) continue;
+    for (const field of ["direction", "age"]) {
+      if (row[field] === "unknown") diagnostics.push("semantic_slot_missing");
+      else if (row[field] !== expected[field]) diagnostics.push("ai_hallucinated_source");
+    }
+    for (const field of ["action_abx_a", "sepsis", "pregnancy", "renal_severe_exception"]) {
+      if (row[field] === false && expected[field] === true) diagnostics.push("semantic_slot_missing");
+      if (row[field] === true && expected[field] === false) diagnostics.push("ai_hallucinated_source");
+    }
+  }
+  return [...new Set(diagnostics)];
+}
+
+function ruleFromIrRow(label, row) {
+  const ruleIds = {
+    A: "route.rule.a",
+    B: "route.rule.b",
+    C: "route.rule.c"
+  };
+  const required = [];
+  if (row.sepsis) required.push("cond.sepsis");
+  if (row.pregnancy) required.push("cond.pregnancy");
+  const context = {
+    age_years: row.age === "adult" ? { ge: 18 } : row.age === "child" ? { lt: 18 } : {},
+    required,
+    prohibited: row.renal_severe_exception ? ["cond.renal_severe"] : []
+  };
+  return {
+    rule_id: ruleIds[label],
+    direction: row.direction,
+    action_key: row.action_abx_a ? "act.administer:drug.abx_a" : "unknown",
+    context
+  };
+}
+
+function evaluateIrRows(parsed, groupId) {
+  const labels = modelCaseForGroup(groupId).labels;
+  if (!labels.every((label) => validIrRow(parsed?.[label]))) {
+    return { verdict: "unknown", route_ir_rules: [], overlap: null };
+  }
+  const [left, right] = labels.map((label) => ruleFromIrRow(label, parsed[label]));
+  if ([left, right].some((rule) => rule.action_key === "unknown" || rule.direction === "unknown" || Object.keys(rule.context.age_years).length === 0)) {
+    return { verdict: "unknown", route_ir_rules: [left, right], overlap: null };
+  }
+  const sameAction = left.action_key === right.action_key;
+  const opposed = opposedDirections(left, right);
+  const overlap = contextsOverlap(left.context, right.context);
+  return {
+    verdict: sameAction && opposed && overlap.overlaps ? "semantic_contradiction" : "semantic_no_conflict",
+    route_ir_rules: [left, right],
+    overlap: {
+      ...overlap,
+      same_action: sameAction,
+      opposed_directions: opposed
+    }
+  };
+}
+
+function blocksAdmission(code) {
+  return code !== "false_positive_conflict" && code !== "false_negative_conflict";
+}
+
 function classifySingleIr(output, groupId, expected) {
   const diagnostics = [];
   const extracted = extractJsonObject(output);
@@ -723,21 +857,26 @@ function classifySingleIr(output, groupId, expected) {
   const syntax_valid = Boolean(parsed);
   if (!syntax_valid) diagnostics.push("ai_schema_violation");
 
-  const allowedRules = new Set(allowedRulesForGroup(groupId));
-  const rules = Array.isArray(parsed?.rules) ? parsed.rules : [];
-  const verdict = parsed?.verdict;
-  const allowedVerdict = verdict === "semantic_contradiction" || verdict === "semantic_no_conflict";
-  const allowedRuleSet = rules.length > 0 && rules.every((rule) => allowedRules.has(rule));
-  if (syntax_valid && !allowedRuleSet) diagnostics.push("ai_hallucinated_source");
-  if (syntax_valid && !allowedVerdict) diagnostics.push("unsupported_ir_fragment");
-  if (allowedVerdict && verdict !== expected) diagnostics.push("false_positive_conflict");
+  const schemaDiagnostics = syntax_valid ? irSchemaDiagnostics(parsed, groupId) : [];
+  const groundingDiagnostics = schemaDiagnostics.length === 0 ? irGroundingDiagnostics(parsed, groupId) : [];
+  diagnostics.push(...schemaDiagnostics, ...groundingDiagnostics);
+
+  const evaluated = syntax_valid ? evaluateIrRows(parsed, groupId) : { verdict: "target_syntax_failure", route_ir_rules: [], overlap: null };
+  const verdict = evaluated.verdict;
+  if (syntax_valid && verdict === "unknown") diagnostics.push("unsupported_ir_fragment");
+  if (verdict === "semantic_contradiction" && expected === "semantic_no_conflict") diagnostics.push("false_positive_conflict");
+  if (verdict === "semantic_no_conflict" && expected === "semantic_contradiction") diagnostics.push("false_negative_conflict");
+  const uniqueDiagnostics = [...new Set(diagnostics)];
 
   return {
     syntax_valid,
-    admitted: syntax_valid && allowedRuleSet && allowedVerdict,
-    verdict: allowedVerdict ? verdict : (syntax_valid ? "unknown" : "target_syntax_failure"),
-    diagnostics: [...new Set(diagnostics)],
-    parsed,
+    admitted: syntax_valid && uniqueDiagnostics.every((code) => !blocksAdmission(code)),
+    verdict: syntax_valid ? verdict : "target_syntax_failure",
+    diagnostics: uniqueDiagnostics,
+    parsed: syntax_valid ? {
+      candidate: parsed,
+      deterministic_bridge: evaluated
+    } : null,
     candidate_text: extracted?.text ?? cleanModelText(output)
   };
 }
@@ -755,7 +894,7 @@ function extractSmtCandidateText(output) {
 
 function runLiveRoute(routeId, groupId, seed, expected) {
   const prompt = promptFor(routeId, groupId, seed);
-  const subprocess = runLlama(prompt, seed);
+  const subprocess = runLlama(prompt, seed, routeId, groupId);
   const rawOutput = cleanModelText(subprocess.stdout, prompt);
   const output = routeId === "route.direct_smt" ? extractSmtCandidateText(rawOutput) : rawOutput;
   const classified = routeId === "route.direct_smt"
@@ -791,7 +930,8 @@ function scoreRows() {
           : simulateRoute(routeId, group.id, seed);
         if (liveModel) liveCalls += 1;
         const expected = group.expectedOutcome;
-        const verdict_correct = simulated.verdict === expected;
+        const candidate_verdict_correct = simulated.verdict === expected;
+        const verdict_correct = simulated.admitted && candidate_verdict_correct;
         const row = {
           route_id: routeId,
           group_id: group.id,
@@ -801,6 +941,7 @@ function scoreRows() {
           verdict: simulated.verdict,
           expected,
           verdict_correct,
+          candidate_verdict_correct,
           diagnostics: simulated.diagnostics
         };
         rawRows.push(row);
@@ -834,7 +975,8 @@ function scoreRows() {
       samples: total,
       target_syntax_validity: ratio(rows.filter((row) => row.syntax_valid).length, total),
       admission_rate: ratio(rows.filter((row) => row.admitted).length, total),
-      verdict_accuracy: ratio(rows.filter((row) => row.verdict_correct).length, total),
+      admitted_verdict_accuracy: ratio(rows.filter((row) => row.verdict_correct).length, total),
+      candidate_verdict_accuracy: ratio(rows.filter((row) => row.candidate_verdict_correct).length, total),
       k_sample_stability: ratio(stableGroups, groups.length),
       diagnostics: rows.flatMap((row) => row.diagnostics)
     });
@@ -845,7 +987,7 @@ function scoreRows() {
   const liftTable = [
     "target_syntax_validity",
     "admission_rate",
-    "verdict_accuracy",
+    "admitted_verdict_accuracy",
     "k_sample_stability"
   ].map((metric) => ({
     metric,
@@ -911,13 +1053,18 @@ function buildTrace(artifactsByDoc, groupResults, finding, nullResult) {
 
 function markdownReport(report) {
   const liftRows = report.metrics.lift_table.map((row) => `| ${row.metric} | ${row.baseline.exact} | ${row.lifted.exact} | ${row.delta.exact} |`).join("\n");
-  const rawRows = report.metrics.raw_rows.map((row) => `| ${row.route_id} | ${row.group_id} | ${row.seed} | ${row.syntax_valid} | ${row.admitted} | ${row.verdict} | ${row.verdict_correct} |`).join("\n");
+  const rawRows = report.metrics.raw_rows.map((row) => `| ${row.route_id} | ${row.group_id} | ${row.seed} | ${row.syntax_valid} | ${row.admitted} | ${row.verdict} | ${row.verdict_correct} | ${row.candidate_verdict_correct} |`).join("\n");
   const diagnostics = Object.entries(report.diagnostics_summary).map(([code, count]) => `- ${code}: ${count}`).join("\n") || "- none: 0";
+  const irMetric = report.metrics.route_metrics.find((entry) => entry.route_id === "route.single_ir");
+  const irConclusion = irMetric.admission_rate.numerator > 0
+    ? `The IR route produced ${irMetric.admission_rate.exact} admitted rows; admitted verdict accuracy is ${irMetric.admitted_verdict_accuracy.exact}.`
+    : `The IR route produced no admitted rows in this live run; candidate verdicts are reported only as rejected model outputs.`;
   return `# CKC one-shot M1-M2 research report
 
 Run: \`${report.run_id}\`
 
 Scope: research harness; synthetic fixture measurement; source-grounded; schema-valid where admitted; verifier-checked by the one-shot symbolic verifier. This report makes no clinical, patient-care, deployment, or regulatory claim.
+Route verdict accuracy below is admitted verdict accuracy. Candidate verdict accuracy is shown only to audit rejected model outputs.
 
 ## M1 spine result
 
@@ -937,10 +1084,12 @@ ${report.findings[0].quoted_spans.map((span) => `- \`${span.region_id}\`: ${span
 | --- | ---: | ---: | ---: |
 ${liftRows}
 
+${irConclusion}
+
 ## Raw route rows
 
-| Route | Group | Seed | Syntax valid | Admitted | Verdict | Correct |
-| --- | --- | ---: | --- | --- | --- | --- |
+| Route | Group | Seed | Syntax valid | Admitted | Verdict | Admitted correct | Candidate correct |
+| --- | --- | ---: | --- | --- | --- | --- | --- |
 ${rawRows}
 
 ## Failure taxonomy
@@ -957,11 +1106,15 @@ ${diagnostics}
 
 function japaneseReport(report) {
   const liftRows = report.metrics.lift_table.map((row) => `| ${row.metric} | ${row.baseline.exact} | ${row.lifted.exact} | ${row.delta.exact} |`).join("\n");
+  const irMetric = report.metrics.route_metrics.find((entry) => entry.route_id === "route.single_ir");
+  const irConclusion = irMetric.admission_rate.numerator > 0
+    ? `IR route は ${irMetric.admission_rate.exact} 行を admitted とした。admitted verdict accuracy は ${irMetric.admitted_verdict_accuracy.exact}。`
+    : "この live run では IR route の admitted 行は 0。candidate verdict は rejected model output の監査情報としてのみ扱う。";
   return `# CKC one-shot M1-M2 研究レポート
 
 run: \`${report.run_id}\`
 
-範囲: research harness、synthetic fixture measurement、source-grounded。admitted の行は one-shot symbolic verifier で verifier-checked。このレポートは臨床、患者ケア、導入、規制上の主張をしない。
+範囲: research harness、synthetic fixture measurement、source-grounded。admitted の行は one-shot symbolic verifier で verifier-checked。このレポートは臨床、患者ケア、導入、規制上の主張をしない。route verdict accuracy は admitted verdict accuracy として扱う。
 
 ## M1 spine
 
@@ -979,6 +1132,8 @@ ${report.findings[0].quoted_spans.map((span) => `- \`${span.region_id}\`: ${span
 | metric | direct_smt | single_ir | delta |
 | --- | ---: | ---: | ---: |
 ${liftRows}
+
+${irConclusion}
 `;
 }
 
@@ -991,16 +1146,24 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+function escapePre(value) {
+  return escapeHtml(String(value).replaceAll("\t", "  "));
+}
+
 function renderBasicUi(data) {
   const report = data.report;
   const direct = data.route_metrics.find((entry) => entry.route_id === "route.direct_smt");
   const single = data.route_metrics.find((entry) => entry.route_id === "route.single_ir");
+  const irConclusion = single.admission_rate.numerator > 0
+    ? `IR route admitted ${single.admission_rate.exact}; admitted accuracy ${single.admitted_verdict_accuracy.exact}.`
+    : "IR route produced no admitted rows; rejected candidate verdicts are audit data only.";
   const routeRows = data.route_metrics.map((entry) => `
           <tr>
             <td><code>${escapeHtml(entry.route_id)}</code></td>
             <td>${escapeHtml(entry.target_syntax_validity.exact)}</td>
             <td>${escapeHtml(entry.admission_rate.exact)}</td>
-            <td>${escapeHtml(entry.verdict_accuracy.exact)}</td>
+            <td>${escapeHtml(entry.admitted_verdict_accuracy.exact)}</td>
+            <td>${escapeHtml(entry.candidate_verdict_accuracy.exact)}</td>
             <td>${escapeHtml(entry.k_sample_stability.exact)}</td>
           </tr>`).join("");
   const rawRows = data.raw_rows.map((row) => `
@@ -1012,17 +1175,18 @@ function renderBasicUi(data) {
             <td>${row.admitted ? "yes" : "no"}</td>
             <td>${escapeHtml(row.verdict)}</td>
             <td>${row.verdict_correct ? "yes" : "no"}</td>
+            <td>${row.candidate_verdict_correct ? "yes" : "no"}</td>
             <td>${escapeHtml(row.diagnostics.join(", ") || "none")}</td>
           </tr>`).join("");
   const ioBlocks = data.model_io.map((record) => `
         <details>
           <summary><code>${escapeHtml(record.route_id)}</code> / <code>${escapeHtml(record.group_id)}</code> / seed ${escapeHtml(record.seed)} / ${record.row.admitted ? "admitted" : "not admitted"}</summary>
           <h3>Prompt</h3>
-          <pre>${escapeHtml(record.prompt)}</pre>
+          <pre>${escapePre(record.prompt)}</pre>
           <h3>Response</h3>
-          <pre>${escapeHtml(record.response)}</pre>
+          <pre>${escapePre(record.response)}</pre>
           <h3>Scored row</h3>
-          <pre>${escapeHtml(JSON.stringify(record.row, null, 2))}</pre>
+          <pre>${escapePre(JSON.stringify(record.row, null, 2))}</pre>
         </details>`).join("");
   const finding = report.findings[0];
   const nullResult = report.null_results[0];
@@ -1098,8 +1262,9 @@ function renderBasicUi(data) {
       <div class="grid">
         <div class="metric"><strong>${escapeHtml(report.findings.length)}</strong><span>finding: ${escapeHtml(finding.conflict_kind)}</span></div>
         <div class="metric"><strong>${escapeHtml(report.null_results.length)}</strong><span>null result: ${escapeHtml(nullResult.reason)}</span></div>
-        <div class="metric"><strong>${escapeHtml(`${direct.verdict_accuracy.exact} -> ${single.verdict_accuracy.exact}`)}</strong><span>direct SMT to single IR accuracy</span></div>
+        <div class="metric"><strong>${escapeHtml(`${direct.admitted_verdict_accuracy.exact} -> ${single.admitted_verdict_accuracy.exact}`)}</strong><span>admitted verdict accuracy</span></div>
       </div>
+      <p>${escapeHtml(irConclusion)}</p>
     </section>
 
     <section>
@@ -1113,7 +1278,7 @@ function renderBasicUi(data) {
       <h2>Route metrics</h2>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Route</th><th>Syntax</th><th>Admission</th><th>Accuracy</th><th>Stability</th></tr></thead>
+          <thead><tr><th>Route</th><th>Syntax</th><th>Admission</th><th>Admitted accuracy</th><th>Candidate accuracy</th><th>Stability</th></tr></thead>
           <tbody>${routeRows}
           </tbody>
         </table>
@@ -1124,7 +1289,7 @@ function renderBasicUi(data) {
       <h2>Raw rows</h2>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Route</th><th>Group</th><th>Seed</th><th>Syntax</th><th>Admitted</th><th>Verdict</th><th>Correct</th><th>Diagnostics</th></tr></thead>
+          <thead><tr><th>Route</th><th>Group</th><th>Seed</th><th>Syntax</th><th>Admitted</th><th>Verdict</th><th>Admitted correct</th><th>Candidate correct</th><th>Diagnostics</th></tr></thead>
           <tbody>${rawRows}
           </tbody>
         </table>
@@ -1178,10 +1343,10 @@ async function buildReplayManifest() {
 async function modelMetadata(liveCalls) {
   if (!liveModel) {
     return {
-      model_identity: "recorded.one-shot.weak-ja-symbolic-stub",
-      model_runtime: "deterministic-js-fixture-adapter",
+      model_identity: "recorded.unavailable.no_mock_route_output",
+      model_runtime: "deterministic-js-run-builder-only",
       live_model_calls: 0,
-      model_mode: "recorded"
+      model_mode: "recorded_unsupported"
     };
   }
   requireLiveModelReady();
@@ -1431,12 +1596,14 @@ async function main() {
           metrics.ioRecords.every((record) => record.response_hash && record.response_hash.length === 64)
         ]
       : [
-          direct.target_syntax_validity.exact === "4/6",
-          direct.admission_rate.exact === "3/6",
-          direct.verdict_accuracy.exact === "2/6",
-          single.target_syntax_validity.exact === "6/6",
-          single.admission_rate.exact === "6/6",
-          single.verdict_accuracy.exact === "6/6"
+          report.model_mode === "recorded_unsupported",
+          report.live_model_calls === 0,
+          direct.target_syntax_validity.exact === "0/6",
+          direct.admission_rate.exact === "0/6",
+          direct.admitted_verdict_accuracy.exact === "0/6",
+          single.target_syntax_validity.exact === "0/6",
+          single.admission_rate.exact === "0/6",
+          single.admitted_verdict_accuracy.exact === "0/6"
         ];
     const assertions = [...commonAssertions, ...modelAssertions];
     if (assertions.some((entry) => !entry)) {
@@ -1451,8 +1618,8 @@ async function main() {
     live_model_calls: report.live_model_calls,
     findings: report.findings.length,
     null_results: report.null_results.length,
-    direct_smt_accuracy: metrics.routeMetrics.find((entry) => entry.route_id === "route.direct_smt").verdict_accuracy.exact,
-    single_ir_accuracy: metrics.routeMetrics.find((entry) => entry.route_id === "route.single_ir").verdict_accuracy.exact,
+    direct_smt_admitted_accuracy: metrics.routeMetrics.find((entry) => entry.route_id === "route.direct_smt").admitted_verdict_accuracy.exact,
+    single_ir_admitted_accuracy: metrics.routeMetrics.find((entry) => entry.route_id === "route.single_ir").admitted_verdict_accuracy.exact,
     verified: verifyMode
   }, null, 2));
 }
