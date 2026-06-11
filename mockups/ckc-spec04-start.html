@@ -1,0 +1,1064 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CKC spec04 workbench seed</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f6f8;
+      --surface: #ffffff;
+      --surface-2: #f8fafb;
+      --line: #d9e0e7;
+      --line-strong: #b7c2cc;
+      --ink: #18202a;
+      --muted: #657384;
+      --green: #147c5b;
+      --green-soft: #e5f3ee;
+      --blue: #255f99;
+      --blue-soft: #e8f1fa;
+      --amber: #9a6400;
+      --amber-soft: #fff4dc;
+      --red: #a23a34;
+      --red-soft: #fbe9e8;
+      --violet: #5d4f91;
+      --violet-soft: #eeeaf9;
+      --shadow: 0 1px 2px rgba(24, 32, 42, .08);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 15px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    code,
+    .mono {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: .84rem;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) auto;
+      gap: 16px;
+      align-items: center;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, .94);
+      backdrop-filter: blur(12px);
+    }
+
+    .brand {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      min-width: 0;
+    }
+
+    .mark {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: var(--surface-2);
+      color: var(--green);
+      font-weight: 800;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: 1.08rem;
+      font-weight: 760;
+    }
+
+    h2 {
+      font-size: 1rem;
+      font-weight: 740;
+    }
+
+    h3 {
+      font-size: .9rem;
+      font-weight: 720;
+    }
+
+    .subline {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: .82rem;
+      overflow-wrap: anywhere;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .chip,
+    .tool {
+      min-height: 32px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--ink);
+      padding: 5px 9px;
+      white-space: nowrap;
+    }
+
+    .chip {
+      background: var(--surface-2);
+      color: var(--muted);
+      font-size: .8rem;
+    }
+
+    .chip.ok { background: var(--green-soft); color: var(--green); border-color: #b9decf; }
+    .chip.info { background: var(--blue-soft); color: var(--blue); border-color: #bfd6ee; }
+    .chip.warn { background: var(--amber-soft); color: var(--amber); border-color: #ebd094; }
+    .chip.stop { background: var(--red-soft); color: var(--red); border-color: #e8bebc; }
+
+    .tool {
+      cursor: default;
+      box-shadow: var(--shadow);
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr) 330px;
+      gap: 1px;
+      min-height: 0;
+      background: var(--line);
+    }
+
+    .rail,
+    .main,
+    .inspector {
+      min-width: 0;
+      background: var(--surface);
+    }
+
+    .rail,
+    .inspector {
+      overflow: auto;
+      padding: 16px;
+    }
+
+    .main {
+      overflow: auto;
+      padding: 18px;
+    }
+
+    .rail-title,
+    .panel-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .stage-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .stage {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--surface-2);
+      text-align: left;
+      color: var(--ink);
+    }
+
+    .stage[aria-selected="true"] {
+      border-color: #8ec8b4;
+      background: var(--green-soft);
+      box-shadow: inset 3px 0 0 var(--green);
+    }
+
+    .stage-id {
+      display: grid;
+      place-items: center;
+      height: 34px;
+      border-radius: 6px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      font-weight: 800;
+      color: var(--green);
+    }
+
+    .stage .stage-copy {
+      display: block;
+      min-width: 0;
+    }
+
+    .stage strong {
+      display: block;
+      font-size: .88rem;
+      overflow-wrap: anywhere;
+    }
+
+    .stage .stage-copy > span {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: .78rem;
+      line-height: 1.3;
+    }
+
+    .rail-block {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+    }
+
+    .compact-list {
+      display: grid;
+      gap: 7px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .compact-list li {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 7px 0;
+      border-bottom: 1px solid #edf1f4;
+      color: var(--muted);
+      font-size: .82rem;
+    }
+
+    .compact-list b {
+      color: var(--ink);
+      font-weight: 680;
+    }
+
+    .stack {
+      display: grid;
+      gap: 14px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel.pad {
+      padding: 14px;
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface-2);
+    }
+
+    .panel-head p {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: .84rem;
+      line-height: 1.45;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      padding: 14px;
+    }
+
+    .metric {
+      min-height: 92px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px;
+      background: var(--surface);
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: .78rem;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 8px;
+      font-size: 1.3rem;
+      font-weight: 800;
+      overflow-wrap: anywhere;
+    }
+
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(8, minmax(86px, 1fr));
+      gap: 8px;
+      padding: 14px;
+    }
+
+    .step {
+      position: relative;
+      min-height: 92px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px;
+      background: var(--surface-2);
+    }
+
+    .step::after {
+      content: ">";
+      position: absolute;
+      top: 36px;
+      right: -9px;
+      width: 17px;
+      height: 20px;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      font-size: .78rem;
+    }
+
+    .step:last-child::after {
+      display: none;
+    }
+
+    .step b,
+    .trace-node b {
+      display: block;
+      font-size: .86rem;
+    }
+
+    .step code,
+    .trace-node code {
+      display: block;
+      margin-top: 7px;
+      color: var(--muted);
+      overflow-wrap: anywhere;
+    }
+
+    .thread {
+      display: grid;
+      grid-template-columns: 1.05fr 1fr 1fr;
+      gap: 10px;
+      padding: 14px;
+    }
+
+    .trace-node {
+      min-height: 148px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 11px;
+      background: var(--surface);
+    }
+
+    .trace-node.source {
+      border-color: #c8d7e8;
+      background: var(--blue-soft);
+    }
+
+    .trace-node.result {
+      border-color: #b9decf;
+      background: var(--green-soft);
+    }
+
+    .jp {
+      margin-top: 9px;
+      line-height: 1.55;
+      overflow-wrap: anywhere;
+    }
+
+    .jp mark {
+      background: #fff0b8;
+      color: inherit;
+      padding: 0 2px;
+      border-radius: 3px;
+    }
+
+    .mini-json {
+      margin-top: 9px;
+      padding: 9px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #101820;
+      color: #d6f2e5;
+      overflow: auto;
+      line-height: 1.45;
+      max-height: 165px;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 14px;
+    }
+
+    .matrix,
+    .artifact-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .matrix th,
+    .matrix td,
+    .artifact-table th,
+    .artifact-table td {
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      text-align: left;
+      font-size: .84rem;
+      line-height: 1.35;
+    }
+
+    .matrix th,
+    .artifact-table th {
+      color: var(--muted);
+      font-weight: 700;
+      background: var(--surface-2);
+    }
+
+    .matrix td:first-child,
+    .artifact-table td:first-child {
+      white-space: nowrap;
+      font-weight: 720;
+      color: var(--ink);
+    }
+
+    .spec-map {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      padding: 14px;
+    }
+
+    .spec-cell {
+      min-height: 72px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px;
+      background: var(--surface-2);
+    }
+
+    .spec-cell b {
+      display: block;
+      font-size: .82rem;
+    }
+
+    .spec-cell span {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: .76rem;
+      line-height: 1.34;
+    }
+
+    .ledger {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      padding: 14px;
+    }
+
+    .ledger-row {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px;
+      background: var(--surface);
+    }
+
+    .ledger-row .status {
+      display: inline-flex;
+      margin-bottom: 9px;
+      padding: 3px 7px;
+      border-radius: 6px;
+      background: var(--surface-2);
+      color: var(--muted);
+      font-size: .76rem;
+      font-weight: 720;
+    }
+
+    .status.promote { background: var(--green-soft); color: var(--green); }
+    .status.reject { background: var(--red-soft); color: var(--red); }
+    .status.lock { background: var(--violet-soft); color: var(--violet); }
+
+    .bar {
+      height: 8px;
+      border-radius: 999px;
+      background: var(--line);
+      overflow: hidden;
+      margin-top: 10px;
+    }
+
+    .bar i {
+      display: block;
+      height: 100%;
+      background: var(--green);
+    }
+
+    .inspector-card {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 12px;
+      background: var(--surface-2);
+      margin-bottom: 12px;
+    }
+
+    .inspector-card p {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: .83rem;
+      line-height: 1.45;
+    }
+
+    .hash-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .hash {
+      display: block;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--muted);
+      overflow-wrap: anywhere;
+    }
+
+    .gate-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 7px;
+      margin-top: 10px;
+    }
+
+    .gate {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 7px 8px;
+      background: var(--surface);
+      font-size: .8rem;
+    }
+
+    .gate em {
+      font-style: normal;
+      color: var(--muted);
+      font-size: .74rem;
+    }
+
+    .footer {
+      padding: 12px 14px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: .8rem;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 1180px) {
+      .shell {
+        grid-template-columns: 230px minmax(0, 1fr);
+      }
+
+      .inspector {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .pipeline,
+      .spec-map {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .thread,
+      .ledger {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .topbar {
+        position: static;
+        grid-template-columns: 1fr;
+      }
+
+      .toolbar {
+        justify-content: flex-start;
+      }
+
+      .shell {
+        display: block;
+      }
+
+      .rail,
+      .main,
+      .inspector {
+        border-bottom: 1px solid var(--line);
+      }
+
+      .grid-4,
+      .pipeline,
+      .spec-map,
+      .two-col,
+      .inspector {
+        grid-template-columns: 1fr;
+      }
+
+      .step::after {
+        top: auto;
+        right: 50%;
+        bottom: -12px;
+        transform: translateX(50%) rotate(90deg);
+      }
+
+      .matrix,
+      .matrix tbody,
+      .matrix tr,
+      .matrix td,
+      .matrix th,
+      .artifact-table,
+      .artifact-table tbody,
+      .artifact-table tr,
+      .artifact-table td,
+      .artifact-table th {
+        display: block;
+      }
+
+      .matrix thead,
+      .artifact-table thead {
+        display: none;
+      }
+
+      .matrix tr,
+      .artifact-table tr {
+        border-bottom: 1px solid var(--line);
+      }
+
+      .matrix td,
+      .artifact-table td {
+        border-bottom: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark" aria-hidden="true">CKC</div>
+        <div>
+          <h1>spec04 evidence workbench seed</h1>
+          <p class="subline">Headless clinical knowledge compiler / design seed / not run output</p>
+        </div>
+      </div>
+      <div class="toolbar" aria-label="Run controls">
+        <span class="chip ok">research harness</span>
+        <span class="chip info">M1-M5 PoC horizon</span>
+        <span class="chip warn">M6 forward contract</span>
+        <span class="chip stop">no G-S3 claim</span>
+      </div>
+    </header>
+
+    <div class="shell">
+      <aside class="rail" aria-label="Milestone selector">
+        <div class="rail-title">
+          <h2>Milestones</h2>
+          <span class="chip">spec04 r2</span>
+        </div>
+        <div class="stage-list" role="tablist" aria-label="CKC milestone focus">
+          <button class="stage" type="button" role="tab" aria-selected="true" data-stage="m1">
+            <span class="stage-id">M1</span>
+            <span class="stage-copy"><strong>Spine</strong><span>synthetic fixtures, deterministic Rust, solver trace</span></span>
+          </button>
+          <button class="stage" type="button" role="tab" aria-selected="false" data-stage="m2">
+            <span class="stage-id">M2</span>
+            <span class="stage-copy"><strong>Weak-model lift</strong><span>direct SMT versus one IR-mediated route</span></span>
+          </button>
+          <button class="stage" type="button" role="tab" aria-selected="false" data-stage="m3">
+            <span class="stage-id">M3</span>
+            <span class="stage-copy"><strong>Variation + comparison</strong><span>route axis, direct baseline, amortization</span></span>
+          </button>
+          <button class="stage" type="button" role="tab" aria-selected="false" data-stage="m4">
+            <span class="stage-id">M4</span>
+            <span class="stage-copy"><strong>Invented DSLs</strong><span>grammar-masked project-born forms</span></span>
+          </button>
+          <button class="stage" type="button" role="tab" aria-selected="false" data-stage="m5">
+            <span class="stage-id">M5</span>
+            <span class="stage-copy"><strong>Autoresearch loop</strong><span>locked evaluator, attempts, ledgers</span></span>
+          </button>
+          <button class="stage" type="button" role="tab" aria-selected="false" data-stage="m6">
+            <span class="stage-id">M6</span>
+            <span class="stage-copy"><strong>Sources + expansion</strong><span>public corpora, permissions, registry growth</span></span>
+          </button>
+        </div>
+
+        <div class="rail-block">
+          <div class="rail-title">
+            <h2>Claim Tiers</h2>
+          </div>
+          <ul class="compact-list">
+            <li><b>s0</b><span>replayable bytes</span></li>
+            <li><b>s1</b><span>admitted semantics</span></li>
+            <li><b>s2</b><span>research evidence</span></li>
+            <li><b>s3</b><span>clinical/regulatory gated</span></li>
+          </ul>
+        </div>
+
+        <div class="rail-block">
+          <div class="rail-title">
+            <h2>Vocabulary</h2>
+          </div>
+          <ul class="compact-list">
+            <li><b>report</b><span>locked measurement</span></li>
+            <li><b>miss</b><span>documented null result</span></li>
+            <li><b>AI output</b><span>candidate only</span></li>
+            <li><b>authority</b><span>admission decides</span></li>
+          </ul>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div class="stack">
+          <section class="panel" aria-labelledby="summary-title">
+            <div class="panel-head">
+              <div>
+                <h2 id="summary-title">Run Surface</h2>
+                <p>One workbench over source grounding, canonical artifacts, solver evidence, replay, metrics, ledgers, registries, and gates.</p>
+              </div>
+              <span class="chip info mono">exp.m1_spine / preview</span>
+            </div>
+            <div class="grid-4">
+              <div class="metric"><span>operation outcome</span><strong>ok</strong><span class="chip ok">fixture design row</span></div>
+              <div class="metric"><span>active claim tier</span><strong>s1</strong><span class="chip">admitted authority</span></div>
+              <div class="metric"><span>raw metric rows</span><strong>12</strong><span class="chip warn">illustrative</span></div>
+              <div class="metric"><span>runtime model calls</span><strong>0</strong><span class="chip">M1 condition</span></div>
+            </div>
+          </section>
+
+          <section class="panel" aria-labelledby="pipeline-title">
+            <div class="panel-head">
+              <div>
+                <h2 id="pipeline-title">M1 Artifact Spine</h2>
+                <p>Every later route, DSL, loop, and source adapter joins this content-addressed path.</p>
+              </div>
+              <span class="chip ok mono">runtime_ai:false</span>
+            </div>
+            <div class="pipeline" aria-label="Pipeline stages">
+              <div class="step"><b>extract</b><code>source_graph.json</code></div>
+              <div class="step"><b>segment</b><code>segments.json</code></div>
+              <div class="step"><b>normalize</b><code>normalization.json</code></div>
+              <div class="step"><b>assemble</b><code>ir_bundle.json</code></div>
+              <div class="step"><b>compile</b><code>compiled.json + smt2</code></div>
+              <div class="step"><b>verify</b><code>verifier_results.json</code></div>
+              <div class="step"><b>trace</b><code>trace_bundle.json</code></div>
+              <div class="step"><b>report</b><code>report.json + md</code></div>
+            </div>
+          </section>
+
+          <section class="panel" aria-labelledby="thread-title">
+            <div class="panel-head">
+              <div>
+                <h2 id="thread-title">Source-to-Verdict Thread</h2>
+                <p>Representative chain from Japanese fixture span to named SMT core and replayable finding.</p>
+              </div>
+              <span class="chip ok mono">finding.group.m1_conflict.1</span>
+            </div>
+            <div class="thread">
+              <div class="trace-node source">
+                <b>source spans</b>
+                <p class="jp">A: <mark>成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する</mark></p>
+                <p class="jp">B: <mark>妊娠中の患者には抗菌薬Aを投与しないこと</mark></p>
+                <code>SourceRegion -> SourceSpan -> SourceAnchor</code>
+              </div>
+              <div class="trace-node">
+                <b>admitted rule payload</b>
+                <pre class="mini-json"><code>{"rule_id":"rule.a.cq1.r1",
+"context":"cond.sepsis & age >= 18 & !cond.renal_severe",
+"direction":"for",
+"action":"act.administer:drug.abx_a",
+"source_region_ids":["region.a.cq1.rec","region.a.cq1.exc"]}</code></pre>
+              </div>
+              <div class="trace-node result">
+                <b>solver evidence</b>
+                <p class="jp">Q1 overlap: <b>sat</b> / Q2 deontic consistency: <b>unsat</b></p>
+                <code>core: [a.rule.a.cq1.r1, a.rule.b.contra1]</code>
+                <code>classification: deontic_direction_conflict</code>
+              </div>
+            </div>
+          </section>
+
+          <section class="two-col" aria-label="Experiment and contract coverage">
+            <div class="panel">
+              <div class="panel-head">
+                <div>
+                  <h2>Experiment Matrix</h2>
+                  <p>Build plan stages and their proof commands.</p>
+                </div>
+              </div>
+              <table class="matrix">
+                <thead>
+                  <tr><th>Stage</th><th>Question</th><th>Proof surface</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>M1</td><td>Can the spine produce one contradiction and one null result?</td><td><code>ckc run --experiment exp.m1_spine</code></td></tr>
+                  <tr><td>M2</td><td>Does one IR-mediated route lift a weak model over direct SMT?</td><td><code>exp.m2_lift</code> raw rows + bilingual report</td></tr>
+                  <tr><td>M3</td><td>How do layered/direct pipelines and route variants compare?</td><td><code>exp.m3_compare</code>, <code>exp.m3_routes</code>, <code>exp.m3_amortize</code></td></tr>
+                  <tr><td>M4</td><td>Do invented DSLs beat or fail against the locked route field?</td><td><code>exp.m4_dsl</code> singular + layered candidates</td></tr>
+                  <tr><td>M5</td><td>Can bounded autoresearch improve locked objectives?</td><td><code>ckc research loop --experiment exp.m5_loop</code></td></tr>
+                  <tr><td>M6</td><td>Can public sources and expansion candidates join behind gates?</td><td>permission records, drift, source processors, flagship path</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="panel">
+              <div class="panel-head">
+                <div>
+                  <h2>Spec Coverage Map</h2>
+                  <p>Compact anchor map for the initial single-view mockup.</p>
+                </div>
+              </div>
+              <div class="spec-map">
+                <div class="spec-cell"><b>§0</b><span>mission, thesis, posture, claim tiers</span></div>
+                <div class="spec-cell"><b>§1</b><span>operating contract and session discipline</span></div>
+                <div class="spec-cell"><b>§2</b><span>M1-M6 build plan and conservation rule</span></div>
+                <div class="spec-cell"><b>§3</b><span>Rust workspace, run layout, CLI surface</span></div>
+                <div class="spec-cell"><b>§4</b><span>IDs, hashes, canonical bytes, envelopes, replay</span></div>
+                <div class="spec-cell"><b>§5</b><span>SourceGraph, IRBundle layers, lexicon bindings</span></div>
+                <div class="spec-cell"><b>§6</b><span>conflict semantics and SMT profile</span></div>
+                <div class="spec-cell"><b>§7</b><span>trace, report, exact-rational metrics, diagnostics</span></div>
+                <div class="spec-cell"><b>§8-§13</b><span>milestone contracts from spine through sources</span></div>
+                <div class="spec-cell"><b>§14</b><span>registries and research compendium</span></div>
+                <div class="spec-cell"><b>§15</b><span>gates for stronger claims</span></div>
+                <div class="spec-cell"><b>archive</b><span>spec03 prior art for kernel contracts</span></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel" aria-labelledby="artifact-title">
+            <div class="panel-head">
+              <div>
+                <h2 id="artifact-title">Artifacts, Metrics, Diagnostics</h2>
+                <p>Raw evidence rows remain visible before any ranking, score, or narrative report.</p>
+              </div>
+              <span class="chip mono">canonical payload bytes</span>
+            </div>
+            <table class="artifact-table">
+              <thead>
+                <tr><th>Surface</th><th>Fields</th><th>Spec pressure</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Envelope</td><td><code>schema_id</code>, <code>content_hash</code>, <code>origin</code>, <code>authority</code>, <code>trace_refs</code></td><td>accepted semantics only after validation, grounding, canonicalization, checks, replay, gates</td></tr>
+                <tr><td>IRBundle</td><td><code>DocIR</code>, <code>SegmentIR</code>, <code>ClinicalIR</code>, <code>NormIR</code>, <code>FormalIR</code></td><td>reusable components keyed by normalized structural hash</td></tr>
+                <tr><td>Metrics</td><td>reuse, compactness, convergence, compilation, conflict quality, trace completeness, lift</td><td>exact rationals; unavailable values emit diagnostics</td></tr>
+                <tr><td>Diagnostics</td><td><code>terminology_unmapped</code>, <code>target_parse_error</code>, <code>replay_mismatch</code>, <code>unauthorized_surface_edit</code></td><td>one stable code maps to one operation outcome</td></tr>
+                <tr><td>Report</td><td><code>report.json</code>, <code>report.md</code>, <code>report.ja.md</code> from M2</td><td>findings, null results, quoted spans, assertion names, replay status, raw rows</td></tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section class="panel" aria-labelledby="loop-title">
+            <div class="panel-head">
+              <div>
+                <h2 id="loop-title">M5 Loop Ledger Preview</h2>
+                <p>Attempt rows are evidence whether promoted, rejected, invalid, unsupported, or null.</p>
+              </div>
+              <span class="chip info mono">driver.local</span>
+            </div>
+            <div class="ledger">
+              <div class="ledger-row">
+                <span class="status lock">evaluator_lock</span>
+                <h3>immutable scorer</h3>
+                <p class="subline">fixtures, gold, schemas, metric code, toolchain, seed, and budgets hashed before attempts</p>
+                <div class="bar"><i style="width: 100%"></i></div>
+              </div>
+              <div class="ledger-row">
+                <span class="status promote">promote / run_local</span>
+                <h3>attempt.a004</h3>
+                <p class="subline">lexicon delta improves coverage; replay passes; registry promotion still gated</p>
+                <div class="bar"><i style="width: 72%"></i></div>
+              </div>
+              <div class="ledger-row">
+                <span class="status reject">unauthorized</span>
+                <h3>attempt.a005</h3>
+                <p class="subline">edited evaluator surface; classified and left unscored with diagnostic</p>
+                <div class="bar"><i style="width: 18%"></i></div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+
+      <aside class="inspector" aria-label="Selected milestone inspector">
+        <div class="inspector-card">
+          <div class="panel-title">
+            <h2 id="focusTitle">M1 Spine</h2>
+            <span class="chip ok" id="focusStatus">normative</span>
+          </div>
+          <p id="focusIntent">Layered deterministic pipeline over synthetic Japanese fixtures, with one deontic contradiction, one documented null result, full trace, and deterministic replay.</p>
+          <div class="hash-list" aria-label="Selected stage hashes">
+            <code class="hash" id="focusProof">ckc run --experiment exp.m1_spine --out runs/m1</code>
+            <code class="hash" id="focusArtifacts">source_graph.json -> report.md -> replay_manifest.json</code>
+          </div>
+        </div>
+
+        <div class="inspector-card">
+          <h2>Gates</h2>
+          <p>Stronger-than-research claims enter only through gate evidence. Missing gates defer only the stronger claim.</p>
+          <div class="gate-grid">
+            <div class="gate"><span>G-SOURCE-PERMISSION</span><em>M6</em></div>
+            <div class="gate"><span>G-EXTRACTOR-ADAPTER</span><em>M6</em></div>
+            <div class="gate"><span>G-RUNTIME-ORACLE</span><em>M3+</em></div>
+            <div class="gate"><span>G-AUTO-PROMOTE</span><em>M5</em></div>
+            <div class="gate"><span>G-MDL</span><em>frontier</em></div>
+            <div class="gate"><span>G-S3</span><em>absent</em></div>
+          </div>
+        </div>
+
+        <div class="inspector-card">
+          <h2>Registry Growth</h2>
+          <ul class="compact-list">
+            <li><b>M1</b><span>corpora, candidates, experiments</span></li>
+            <li><b>M2</b><span>prompts, schemas</span></li>
+            <li><b>M3</b><span>methods</span></li>
+            <li><b>M5</b><span>evaluators, gates</span></li>
+            <li><b>M6</b><span>source processors, policies, indexes</span></li>
+          </ul>
+        </div>
+
+        <div class="footer">
+          Research-evidence view over canonical artifacts. No patient-care, CDS-runtime, SaMD, deployment, or regulatory authority claim is represented.
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const stages = {
+      m1: {
+        title: "M1 Spine",
+        status: "normative",
+        intent: "Layered deterministic pipeline over synthetic Japanese fixtures, with one deontic contradiction, one documented null result, full trace, and deterministic replay.",
+        proof: "ckc run --experiment exp.m1_spine --out runs/m1",
+        artifacts: "source_graph.json -> report.md -> replay_manifest.json"
+      },
+      m2: {
+        title: "M2 Weak-model lift",
+        status: "contract",
+        intent: "Minimal pair for claim 2: a weak local model emits direct SMT versus one grammar-constrained IR route, scored against identical locked M1 inputs.",
+        proof: "ckc run --experiment exp.m2_lift",
+        artifacts: "recorded model I/O, raw route rows, report.json, report.ja.md"
+      },
+      m3: {
+        title: "M3 Variation + comparison",
+        status: "contract",
+        intent: "Route axis widens, layered and direct deterministic pipelines are compared, component reuse and amortized zero-apply-call coverage become visible.",
+        proof: "ckc run --experiment exp.m3_compare / exp.m3_routes / exp.m3_amortize",
+        artifacts: "candidate_diff.json, ranking.csv, compactness_front.json"
+      },
+      m4: {
+        title: "M4 Invented DSLs",
+        status: "contract",
+        intent: "Project-born grammar-masked IR/DSL candidates are evaluated singularly and in layered configurations against the locked route field.",
+        proof: "ckc run --experiment exp.m4_dsl",
+        artifacts: "schemas, grammars, parsers, prompt templates, ranked raw rows"
+      },
+      m5: {
+        title: "M5 Autoresearch PoC",
+        status: "contract",
+        intent: "Bounded propose-patch-run-score-classify-promote loop over declared surfaces, governed by immutable evaluator locks and append-only ledgers.",
+        proof: "ckc research loop --experiment exp.m5_loop",
+        artifacts: "evaluator_lock.json, experiment_ledger.jsonl, promotion decisions"
+      },
+      m6: {
+        title: "M6 Sources + expansion",
+        status: "forward",
+        intent: "Public Japanese source families, permission-aware caching, extraction expansion, terminology systems, drift checks, and registry-driven candidate growth.",
+        proof: "source processors, permission records, drift reports, flagship cross-source experiment",
+        artifacts: "PermissionRecord, source_drift.json, source_processors.yaml, policy/index registries"
+      }
+    };
+
+    const buttons = document.querySelectorAll(".stage");
+    const title = document.getElementById("focusTitle");
+    const status = document.getElementById("focusStatus");
+    const intent = document.getElementById("focusIntent");
+    const proof = document.getElementById("focusProof");
+    const artifacts = document.getElementById("focusArtifacts");
+
+    function selectStage(id) {
+      const data = stages[id];
+      if (!data) return;
+      buttons.forEach((button) => {
+        button.setAttribute("aria-selected", String(button.dataset.stage === id));
+      });
+      title.textContent = data.title;
+      status.textContent = data.status;
+      status.className = "chip " + (data.status === "normative" ? "ok" : data.status === "forward" ? "warn" : "info");
+      intent.textContent = data.intent;
+      proof.textContent = data.proof;
+      artifacts.textContent = data.artifacts;
+    }
+
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => selectStage(button.dataset.stage));
+    });
+  </script>
+</body>
+</html>

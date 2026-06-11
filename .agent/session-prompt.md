@@ -12,7 +12,7 @@ Load order:
 
 Standing project intent: CKC is a headless clinical knowledge compiler. UI work must present research evidence, traceability, replay, artifacts, metrics, ledgers, and gates. It must avoid clinical decision-support claims unless explicit gate evidence exists.
 
-Current UI seed artifacts: `mockups/ckc-evidence-workbench.html` is a general static CKC evidence workbench; `mockups/ckc-exp-v2-compare.html` focuses on `exp.v2_compare`. Treat both as exploratory design material, not implementation authority.
+Current UI seed artifact: `mockups/ckc-spec04-start.html` is a compact standalone workbench mockup covering SPEC.md §0-§15 under the spec04 M1-M6 framing. Treat it as exploratory design material, not implementation authority or measured output.
 
 Default closeout:
 1. Verify changed artifacts with local tools.
