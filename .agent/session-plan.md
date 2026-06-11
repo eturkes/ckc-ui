@@ -26,7 +26,7 @@ Gate:
 - `node -e "JSON.parse(require('fs').readFileSync('runs/m2-one-shot/metrics/realism_audit.json','utf8')); console.log('realism audit ok')"`
 
 ### R2 Real Guideline Candidate IR Path
-status: pending
+status: done
 
 Intent: make the existing real-guideline intake do more than display metadata, while keeping it outside locked M1/M2 scoring.
 

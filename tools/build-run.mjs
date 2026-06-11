@@ -216,12 +216,466 @@ function stableRawManifest(rawManifest) {
   };
 }
 
+const realSourceScope = "source_intake_candidate_only";
+const realRouteSchemaId = "schema.real_source_route_rule_candidate.v0";
+const realCertaintyMap = {
+  A: "high",
+  B: "moderate",
+  C: "low",
+  D: "very_low"
+};
+
+function sourceHashForRealGuideline(source, rawArtifacts) {
+  return sha256({
+    id: source.id,
+    title_ja: source.title_ja,
+    title_en: source.title_en,
+    source_family: source.source_family,
+    guideline_relation: source.guideline_relation,
+    publisher: source.publisher,
+    journal: source.journal,
+    publication: source.publication,
+    access: source.access,
+    raw_artifacts: rawArtifacts.map((artifact) => ({
+      artifact_id: artifact.artifact_id,
+      kind: artifact.kind,
+      url: artifact.url,
+      path: artifact.path,
+      sha256: artifact.sha256
+    })),
+    candidate_spans: source.candidate_spans.map((span) => ({
+      region_id: span.region_id,
+      locator: span.locator,
+      cq_id: span.cq_id,
+      quote_hash: sha256Bytes(Buffer.from(span.quote)),
+      machine_hint: span.machine_hint
+    }))
+  });
+}
+
+function permissionHashForRealGuideline(source) {
+  return sha256({
+    id: source.id,
+    access: source.access,
+    license: source.license,
+    raw_artifacts: source.raw_artifacts.map((artifact) => ({
+      artifact_id: artifact.artifact_id,
+      kind: artifact.kind,
+      url: artifact.url,
+      path: artifact.path
+    }))
+  });
+}
+
+function realArtifactPath(sourceId, artifactName) {
+  return `real_guidelines/artifacts/${sourceId}/${artifactName}.json`;
+}
+
+function residualId(sourceId, spanId, code, field = null) {
+  return [
+    "residual",
+    sourceId,
+    spanId ?? "source",
+    code,
+    field
+  ].filter(Boolean).join(".");
+}
+
+function realCandidateResidual({ sourceId, spanId = null, stage, code, outcome, reason, field = null, value = null, blocksCandidateRule = false, blocksPromotion = true }) {
+  return {
+    residual_id: residualId(sourceId, spanId, code, field),
+    admission_scope: realSourceScope,
+    scoring_scope: "not_in_locked_m1_m2_measurement",
+    source_id: sourceId,
+    region_id: spanId,
+    stage,
+    code,
+    outcome,
+    field,
+    value,
+    reason,
+    blocks_candidate_rule: blocksCandidateRule,
+    blocks_promotion: blocksPromotion
+  };
+}
+
+function normalizeCandidateCertainty(value) {
+  return realCertaintyMap[value] ?? null;
+}
+
+function isSupportedCandidateDirection(value) {
+  return ["for", "against", "contraindicate", "require", "permit", "avoid"].includes(value);
+}
+
+function isSupportedCandidateStrength(value) {
+  return ["strong", "weak"].includes(value);
+}
+
+function candidateActionKey(value) {
+  if (!value || /_or_|cross_guideline|by_context/.test(value)) return null;
+  return `real.action.${value}`;
+}
+
+function candidateContextKey(value) {
+  if (!value) return null;
+  return `real.context.${value}`;
+}
+
+function realCandidateRouteRule(source, span, index, ruleId) {
+  const hint = span.machine_hint ?? {};
+  return {
+    rule_id: ruleId,
+    source_id: source.id,
+    region_id: span.region_id,
+    cq_id: span.cq_id,
+    scope: realSourceScope,
+    direction: hint.direction,
+    action_key: candidateActionKey(hint.action),
+    strength: hint.strength,
+    certainty: normalizeCandidateCertainty(hint.certainty),
+    context: {
+      population_key: candidateContextKey(hint.population),
+      condition_key: candidateContextKey(hint.condition)
+    },
+    source_region_ids: [span.region_id],
+    machine_hint_hash: sha256(hint),
+    candidate_order: index + 1
+  };
+}
+
+function assessRealCandidateSpan(source, span, index, sourceLevelResiduals) {
+  const hint = span.machine_hint ?? {};
+  const requiredFields = ["population", "condition", "action", "direction", "strength", "certainty"];
+  const residuals = [
+    realCandidateResidual({
+      sourceId: source.id,
+      spanId: span.region_id,
+      stage: "extract",
+      code: "span_grounding_missing",
+      outcome: "residual",
+      reason: "Candidate quote is grounded to the committed registry locator, but raw-document byte offsets are not established by an extractor.",
+      blocksCandidateRule: false
+    }),
+    realCandidateResidual({
+      sourceId: source.id,
+      spanId: span.region_id,
+      stage: "normalize",
+      code: "author_provided_machine_hint",
+      outcome: "residual",
+      reason: "Normalization fields come from registry machine_hint values rather than an admitted extractor or model route.",
+      field: "machine_hint",
+      value: Object.keys(hint).sort(),
+      blocksCandidateRule: false
+    })
+  ];
+
+  for (const field of requiredFields) {
+    if (hint[field] === undefined || hint[field] === null || hint[field] === "") {
+      residuals.push(realCandidateResidual({
+        sourceId: source.id,
+        spanId: span.region_id,
+        stage: "normalize",
+        code: "semantic_slot_missing",
+        outcome: "residual",
+        field,
+        reason: `Required candidate field ${field} is missing from machine_hint.`,
+        blocksCandidateRule: true
+      }));
+    }
+  }
+
+  if (hint.direction && !isSupportedCandidateDirection(hint.direction)) {
+    residuals.push(realCandidateResidual({
+      sourceId: source.id,
+      spanId: span.region_id,
+      stage: "normalize",
+      code: "unsupported_ir_fragment",
+      outcome: "unsupported",
+      field: "direction",
+      value: hint.direction,
+      reason: "Direction is outside the route-rule candidate enum.",
+      blocksCandidateRule: true
+    }));
+  }
+
+  if (hint.strength && !isSupportedCandidateStrength(hint.strength)) {
+    residuals.push(realCandidateResidual({
+      sourceId: source.id,
+      spanId: span.region_id,
+      stage: "normalize",
+      code: "unsupported_ir_fragment",
+      outcome: "unsupported",
+      field: "strength",
+      value: hint.strength,
+      reason: "The toy route-rule schema only admits strong or weak recommendation strength.",
+      blocksCandidateRule: true
+    }));
+  }
+
+  if (hint.certainty && !normalizeCandidateCertainty(hint.certainty)) {
+    residuals.push(realCandidateResidual({
+      sourceId: source.id,
+      spanId: span.region_id,
+      stage: "normalize",
+      code: hint.certainty === "not_extracted" ? "semantic_slot_missing" : "unsupported_ir_fragment",
+      outcome: hint.certainty === "not_extracted" ? "residual" : "unsupported",
+      field: "certainty",
+      value: hint.certainty,
+      reason: "Certainty is not mapped to high/moderate/low/very_low for candidate ClinicalStatement rows.",
+      blocksCandidateRule: true
+    }));
+  }
+
+  if (hint.action && !candidateActionKey(hint.action)) {
+    residuals.push(realCandidateResidual({
+      sourceId: source.id,
+      spanId: span.region_id,
+      stage: "normalize",
+      code: /_or_/.test(hint.action) ? "terminology_ambiguous" : "unsupported_ir_fragment",
+      outcome: /_or_/.test(hint.action) ? "ambiguity" : "unsupported",
+      field: "action",
+      value: hint.action,
+      reason: "The toy route-rule schema admits one normalized action key per candidate rule.",
+      blocksCandidateRule: true
+    }));
+  }
+
+  const blockingResiduals = residuals.filter((residual) => residual.blocks_candidate_rule);
+  const ruleId = `real.rule.${source.id}.${index + 1}`;
+  const rule = blockingResiduals.length === 0
+    ? realCandidateRouteRule(source, span, index, ruleId)
+    : null;
+
+  return {
+    span: {
+      ...span,
+      span_id: `span.${span.region_id}`,
+      quote_hash: sha256Bytes(Buffer.from(span.quote)),
+      quote_chars: [...span.quote].length,
+      machine_hint_hash: sha256(hint),
+      candidate_rule_status: rule ? "candidate_rule_admitted" : "candidate_rule_rejected",
+      route_rule_id: rule?.rule_id ?? null,
+      residual_ids: residuals.map((residual) => residual.residual_id),
+      blocking_residual_ids: blockingResiduals.map((residual) => residual.residual_id)
+    },
+    rule,
+    residuals: [...sourceLevelResiduals, ...residuals]
+  };
+}
+
+function buildRealGuidelineArtifacts(source, rawArtifacts) {
+  const sourceHash = sourceHashForRealGuideline(source, rawArtifacts);
+  const permissionHash = permissionHashForRealGuideline(source);
+  const sourceLevelResiduals = rawArtifacts.every((artifact) => artifact.cache_status === "fetched")
+    ? []
+    : [
+        realCandidateResidual({
+          sourceId: source.id,
+          stage: "extract",
+          code: "source_raw_cache_missing",
+          outcome: "residual",
+          reason: "At least one raw source artifact is not present in corpus/raw; candidate artifacts use committed registry spans only.",
+          blocksCandidateRule: false
+        })
+      ];
+  const assessed = source.candidate_spans.map((span, index) => assessRealCandidateSpan(source, span, index, sourceLevelResiduals));
+  const candidateSpans = assessed.map((entry) => entry.span);
+  const residualsById = new Map();
+  for (const residual of assessed.flatMap((entry) => entry.residuals)) residualsById.set(residual.residual_id, residual);
+  for (const residual of sourceLevelResiduals) residualsById.set(residual.residual_id, residual);
+  const residuals = [...residualsById.values()].sort((left, right) => left.residual_id.localeCompare(right.residual_id));
+  const admittedRules = assessed.map((entry) => entry.rule).filter(Boolean);
+  const rejectedResiduals = residuals.filter((residual) => residual.blocks_candidate_rule);
+  const sourceGraph = {
+    artifact_id: `artifact.${source.id}.source_graph_candidate`,
+    artifact_kind: "SourceGraph",
+    schema_version: "source_graph_candidate.v0",
+    doc_id: source.id,
+    title_ja: source.title_ja,
+    title_en: source.title_en,
+    source_family: source.source_family,
+    provenance: "public_registry_candidate",
+    admission_scope: realSourceScope,
+    scoring_scope: "not_in_locked_m1_m2_measurement",
+    source_hash: sourceHash,
+    permission_hash: permissionHash,
+    nodes: [
+      {
+        node_id: `node.${source.id}.document`,
+        kind: "document",
+        title_ja: source.title_ja
+      },
+      ...candidateSpans.map((span, index) => ({
+        node_id: `node.${source.id}.candidate.${index + 1}`,
+        kind: "recommendation_candidate",
+        parent_id: `node.${source.id}.document`,
+        locator: span.locator,
+        cq_id: span.cq_id
+      }))
+    ],
+    spans: candidateSpans.map((span, index) => ({
+      span_id: span.span_id,
+      node_id: `node.${source.id}.candidate.${index + 1}`,
+      region_id: span.region_id,
+      raw_text: span.quote,
+      nfkc_text: span.quote.normalize("NFKC"),
+      search_text: span.quote.normalize("NFKC").toLowerCase(),
+      byte_start: null,
+      byte_end: null,
+      char_start: 0,
+      char_end: span.quote_chars,
+      reading_order: index + 1,
+      text_hash: span.quote_hash,
+      locator: span.locator
+    })),
+    regions: candidateSpans.map((span) => ({
+      region_id: span.region_id,
+      role: "candidate_recommendation",
+      span_ids: [span.span_id],
+      quote_hash: span.quote_hash,
+      quote: span.quote,
+      locator: span.locator,
+      permission_scope: source.license.redistribution_mode
+    })),
+    residuals: residuals.filter((residual) => residual.stage === "extract")
+  };
+  const segments = {
+    artifact_id: `artifact.${source.id}.segments_candidate`,
+    artifact_kind: "ClinicalSegments",
+    schema_version: "segments_candidate.v0",
+    doc_id: source.id,
+    admission_scope: realSourceScope,
+    scoring_scope: "not_in_locked_m1_m2_measurement",
+    source_graph_hash: sha256(sourceGraph),
+    segments: candidateSpans.map((span, index) => ({
+      segment_id: `segment.${source.id}.${index + 1}`,
+      region_id: span.region_id,
+      span_id: span.span_id,
+      kind: "recommendation_candidate",
+      text_hash: span.quote_hash,
+      text: span.quote,
+      machine_hint_hash: span.machine_hint_hash,
+      candidate_rule_status: span.candidate_rule_status
+    })),
+    residuals: residuals.filter((residual) => residual.stage === "segment")
+  };
+  const terminologyBindings = candidateSpans.flatMap((span) => {
+    const hint = span.machine_hint ?? {};
+    return ["population", "condition", "action"].filter((field) => hint[field]).map((field) => ({
+      binding_id: `binding.${span.region_id}.${field}`,
+      mention: hint[field],
+      system: "machine_hint",
+      code: hint[field],
+      status: "unmapped",
+      field,
+      source_region_ids: [span.region_id],
+      evidence_status: "author_provided_hint"
+    }));
+  });
+  const clinicalStatements = candidateSpans.map((span, index) => {
+    const hint = span.machine_hint ?? {};
+    return {
+      statement_id: `statement.${source.id}.${index + 1}`,
+      source_region_ids: [span.region_id],
+      population: hint.population ?? null,
+      condition: hint.condition ?? null,
+      action: hint.action ?? null,
+      direction: hint.direction ?? null,
+      strength: isSupportedCandidateStrength(hint.strength) ? hint.strength : null,
+      certainty: normalizeCandidateCertainty(hint.certainty),
+      evidence_status: "author_provided_machine_hint",
+      candidate_rule_status: span.candidate_rule_status,
+      residual_ids: span.residual_ids
+    };
+  });
+  const normalization = {
+    artifact_id: `artifact.${source.id}.normalization_candidate`,
+    artifact_kind: "Normalization",
+    schema_version: "normalization_candidate.v0",
+    doc_id: source.id,
+    admission_scope: realSourceScope,
+    scoring_scope: "not_in_locked_m1_m2_measurement",
+    source_graph_hash: sha256(sourceGraph),
+    segments_hash: sha256(segments),
+    terminology_bindings: terminologyBindings,
+    clinical_statements: clinicalStatements,
+    rules: admittedRules,
+    residuals: residuals.filter((residual) => residual.stage === "normalize")
+  };
+  const routeRuleIr = {
+    artifact_id: `artifact.${source.id}.route_rule_ir_candidate`,
+    artifact_kind: "RouteRuleIR",
+    schema_id: realRouteSchemaId,
+    schema_version: "real_source_route_rule_candidate.v0",
+    route_id: "route.real_guideline_candidate_ir",
+    doc_id: source.id,
+    admission_scope: realSourceScope,
+    scoring_scope: "not_in_locked_m1_m2_measurement",
+    clinical_claim_scope: "none",
+    normalization_hash: sha256(normalization),
+    candidate_span_count: candidateSpans.length,
+    admitted_candidate_rule_count: admittedRules.length,
+    rejected_candidate_span_count: new Set(rejectedResiduals.map((residual) => residual.region_id)).size,
+    candidate_rules: admittedRules.map((rule) => ({
+      source_id: rule.source_id,
+      region_id: rule.region_id,
+      rule_id: rule.rule_id,
+      direction: rule.direction,
+      action_key: rule.action_key,
+      strength: rule.strength,
+      certainty: rule.certainty,
+      context: rule.context,
+      source_region_ids: rule.source_region_ids,
+      machine_hint_hash: rule.machine_hint_hash
+    })),
+    rejected_residuals: rejectedResiduals,
+    nonblocking_residuals: residuals.filter((residual) => !residual.blocks_candidate_rule)
+  };
+  const artifacts = {
+    source_graph: {
+      path: realArtifactPath(source.id, "source_graph"),
+      hash: sha256(sourceGraph)
+    },
+    segments: {
+      path: realArtifactPath(source.id, "segments"),
+      hash: sha256(segments)
+    },
+    normalization: {
+      path: realArtifactPath(source.id, "normalization"),
+      hash: sha256(normalization)
+    },
+    route_rule_ir: {
+      path: realArtifactPath(source.id, "route_rule_ir"),
+      hash: sha256(routeRuleIr)
+    }
+  };
+  return {
+    source_hash: sourceHash,
+    permission_hash: permissionHash,
+    candidate_spans: candidateSpans,
+    admitted_candidate_rules: routeRuleIr.candidate_rules.map((rule) => ({
+      ...rule,
+      rule_hash: sha256(rule)
+    })),
+    residuals,
+    rejected_residuals: rejectedResiduals,
+    artifacts,
+    artifact_payloads: {
+      source_graph: sourceGraph,
+      segments,
+      normalization,
+      route_rule_ir: routeRuleIr
+    }
+  };
+}
+
 async function buildRealGuidelineIntake() {
   const registry = JSON.parse(await readFile(realGuidelineRegistryPath, "utf8"));
   const rawManifest = await readOptionalJson(realGuidelineRawManifestPath);
   const rawManifestStable = stableRawManifest(rawManifest);
   const rawBySource = new Map((rawManifest?.sources ?? []).map((source) => [source.id, source]));
-  const sources = registry.sources.map((source) => {
+  const sources = [];
+  for (const source of registry.sources) {
     const rawSource = rawBySource.get(source.id);
     const rawArtifacts = source.raw_artifacts.map((artifact) => {
       const fetched = rawSource?.artifacts?.find((entry) => entry.artifact_id === artifact.artifact_id);
@@ -235,12 +689,11 @@ async function buildRealGuidelineIntake() {
         sha256: fetched?.sha256 ?? null
       };
     });
-    const candidateSpans = source.candidate_spans.map((span) => ({
-      ...span,
-      quote_hash: sha256Bytes(Buffer.from(span.quote)),
-      quote_chars: [...span.quote].length
-    }));
-    return {
+    const candidateArtifacts = buildRealGuidelineArtifacts(source, rawArtifacts);
+    for (const [artifactName, payload] of Object.entries(candidateArtifacts.artifact_payloads)) {
+      await writeJson(candidateArtifacts.artifacts[artifactName].path, payload);
+    }
+    sources.push({
       id: source.id,
       title_ja: source.title_ja,
       title_en: source.title_en,
@@ -253,20 +706,39 @@ async function buildRealGuidelineIntake() {
       license: source.license,
       raw_artifacts: rawArtifacts,
       raw_cache_status: rawArtifacts.every((artifact) => artifact.cache_status === "fetched") ? "complete" : "missing",
-      candidate_spans: candidateSpans
-    };
-  });
+      source_hash: candidateArtifacts.source_hash,
+      permission_hash: candidateArtifacts.permission_hash,
+      candidate_spans: candidateArtifacts.candidate_spans,
+      admitted_candidate_rules: candidateArtifacts.admitted_candidate_rules,
+      residuals: candidateArtifacts.residuals,
+      rejected_residuals: candidateArtifacts.rejected_residuals,
+      artifacts: candidateArtifacts.artifacts,
+      admission_scope: realSourceScope,
+      scoring_scope: "not_in_locked_m1_m2_measurement"
+    });
+  }
+  const admittedCandidateRuleCount = sources.reduce((count, source) => count + source.admitted_candidate_rules.length, 0);
+  const residualCount = sources.reduce((count, source) => count + source.residuals.length, 0);
+  const blockingResidualCount = sources.reduce((count, source) => count + source.rejected_residuals.length, 0);
   return {
     artifact_id: "artifact.real_guidelines.source_intake",
     artifact_kind: "RealGuidelineSourceIntake",
+    schema_version: "real_guideline_source_intake.v1",
     registry_path: path.relative(root, realGuidelineRegistryPath),
     raw_manifest_path: path.relative(root, realGuidelineRawManifestPath),
     registry_hash: sha256(registry),
     raw_manifest_hash: rawManifestStable ? sha256(rawManifestStable) : null,
     source_count: sources.length,
     candidate_span_count: sources.reduce((count, source) => count + source.candidate_spans.length, 0),
+    admitted_candidate_rule_count: admittedCandidateRuleCount,
+    residual_count: residualCount,
+    blocking_residual_count: blockingResidualCount,
+    rejected_candidate_span_count: sources.reduce((count, source) => (
+      count + new Set(source.rejected_residuals.map((residual) => residual.region_id)).size
+    ), 0),
     sources,
-    admission_scope: "source_intake_candidate_only",
+    route_rule_schema_id: realRouteSchemaId,
+    admission_scope: realSourceScope,
     scoring_scope: "not_in_locked_m1_m2_measurement",
     clinical_claim_scope: "none"
   };
@@ -1536,8 +2008,12 @@ function buildRealismAudit({ realGuidelineIntake, sourceCueLayer, promptCatalog 
       surface_id: "real_guideline_intake",
       stage: "source_intake",
       classification: "data_driven",
-      evidence_paths: [realGuidelineIntake.registry_path, realGuidelineIntake.raw_manifest_path],
-      note: "Real guideline source metadata and candidate spans are registry-driven and remain outside locked M1/M2 scoring."
+      evidence_paths: [
+        realGuidelineIntake.registry_path,
+        realGuidelineIntake.raw_manifest_path,
+        ...realGuidelineIntake.sources.flatMap((source) => Object.values(source.artifacts).map((artifact) => artifact.path))
+      ],
+      note: "Real guideline source metadata, candidate spans, machine-hint normalization, and candidate route-rule IR are registry-driven and remain outside locked M1/M2 scoring."
     },
     {
       surface_id: "report_and_ui_renderer",
@@ -1703,6 +2179,25 @@ function buildTrace(artifactsByDoc, groupResults, finding, nullResult, realGuide
   for (const result of groupResults) edges.push({ from: `artifact.${result.compiled.group_id}.verifier_results`, to: "artifact.report.json", op: "render_report" });
   if (realGuidelineIntake) {
     nodes.push({ id: realGuidelineIntake.artifact_id, kind: "real_guideline_source_intake" });
+    for (const source of realGuidelineIntake.sources ?? []) {
+      const sourceGraphId = `artifact.${source.id}.source_graph_candidate`;
+      const segmentsId = `artifact.${source.id}.segments_candidate`;
+      const normalizationId = `artifact.${source.id}.normalization_candidate`;
+      const routeRuleIrId = `artifact.${source.id}.route_rule_ir_candidate`;
+      nodes.push(
+        { id: sourceGraphId, kind: "real_source_graph_candidate" },
+        { id: segmentsId, kind: "real_segments_candidate" },
+        { id: normalizationId, kind: "real_normalization_candidate" },
+        { id: routeRuleIrId, kind: "real_route_rule_ir_candidate" }
+      );
+      edges.push(
+        { from: realGuidelineIntake.artifact_id, to: sourceGraphId, op: "extract_candidate_spans" },
+        { from: sourceGraphId, to: segmentsId, op: "segment_candidate_spans" },
+        { from: segmentsId, to: normalizationId, op: "normalize_machine_hints" },
+        { from: normalizationId, to: routeRuleIrId, op: "emit_candidate_route_rule_ir" },
+        { from: routeRuleIrId, to: "artifact.report.json", op: "render_source_intake_candidate_ir" }
+      );
+    }
     edges.push({ from: realGuidelineIntake.artifact_id, to: "artifact.report.json", op: "render_source_intake" });
   }
 
@@ -1804,6 +2299,47 @@ function realismAuditJapaneseMarkdown(realismAudit) {
 ${rows}`;
 }
 
+function shortHash(value) {
+  return value ? String(value).slice(0, 12) : "missing";
+}
+
+function realGuidelineCoverageMarkdown(intake) {
+  const sourceRows = intake.sources.map((source) => `| \`${source.id}\` | \`${shortHash(source.source_hash)}\` | \`${shortHash(source.permission_hash)}\` | ${source.candidate_span_count} | ${source.admitted_candidate_rule_count} | ${source.rejected_residual_count} | ${source.raw_cache_status} |`).join("\n");
+  const spanRows = intake.candidate_span_rows.map((span) => `| \`${span.source_id}\` | \`${span.region_id}\` | ${span.cq_id} | ${span.candidate_rule_status} | ${span.direction ?? "missing"} | ${span.strength ?? "missing"} | ${span.certainty ?? "missing"} | \`${shortHash(span.quote_hash)}\` |`).join("\n");
+  const ruleRows = intake.admitted_candidate_rules.map((rule) => `| \`${rule.rule_id}\` | \`${rule.source_id}\` | \`${rule.region_id}\` | ${rule.direction} | \`${rule.action_key}\` | ${rule.strength} | ${rule.certainty} | \`${shortHash(rule.rule_hash)}\` |`).join("\n") || "| none | none | none | none | none | none | none | none |";
+  const residualRows = intake.rejected_residuals.map((residual) => `| \`${residual.residual_id}\` | \`${residual.source_id}\` | \`${residual.region_id ?? "source"}\` | ${residual.code} | ${residual.outcome} | ${residual.field ?? "source"} | ${residual.reason} |`).join("\n") || "| none | none | none | none | none | none | none |";
+  const artifactRows = intake.sources.map((source) => `| \`${source.id}\` | \`${source.artifacts.source_graph.path}\` | \`${source.artifacts.segments.path}\` | \`${source.artifacts.normalization.path}\` | \`${source.artifacts.route_rule_ir.path}\` |`).join("\n");
+  return `### Real-source candidate coverage
+
+All rows below are \`${intake.admission_scope}\`; scoring scope is \`${intake.scoring_scope}\`.
+
+| Source | Source hash | Permission hash | Spans | Candidate rules | Rejected residuals | Raw cache |
+| --- | --- | --- | ---: | ---: | ---: | --- |
+${sourceRows}
+
+| Source | Candidate span | CQ | Status | Direction | Strength | Certainty | Quote hash |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+${spanRows}
+
+### Admitted Candidate Rules
+
+| Rule | Source | Span | Direction | Action | Strength | Certainty | Rule hash |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+${ruleRows}
+
+### Rejected Residuals
+
+| Residual | Source | Span | Code | Outcome | Field | Reason |
+| --- | --- | --- | --- | --- | --- | --- |
+${residualRows}
+
+### Real-source Candidate Artifacts
+
+| Source | SourceGraph | Segments | Normalization | Route-rule IR |
+| --- | --- | --- | --- | --- |
+${artifactRows}`;
+}
+
 function markdownReport(report) {
   const liftRows = report.metrics.lift_table.map((row) => `| ${row.metric} | ${row.baseline.exact} | ${row.lifted.exact} | ${row.delta.exact} |`).join("\n");
   const rawRows = report.metrics.raw_rows.map((row) => `| ${row.route_id} | ${row.group_id} | ${row.seed} | ${row.model_output_syntax_valid} | ${row.target_syntax_valid} | ${row.admitted} | ${row.verdict} | ${row.verdict_correct} | ${row.candidate_verdict_correct} |`).join("\n");
@@ -1818,7 +2354,7 @@ function markdownReport(report) {
     : `With the shared source-cue layer and the small local model, direct SMT remains below the IR route on admitted verdict accuracy for this locked fixture.`;
   const directAudit = report.direct_smt_audit;
   const directAuditConclusion = `Direct SMT residual audit: exact template matches ${directAudit.exact_template_match_rate.exact}; rows without named assertions ${directAudit.missing_named_assertion_rate.exact}; rows asserting negated sepsis ${directAudit.negated_sepsis_assertion_rate.exact}. This audit is non-admission evidence for malformed direct target composition under the shared cue layer.`;
-  const realGuidelineRows = report.real_guideline_intake.sources.map((source) => `| ${source.id} | ${source.license_label} | ${source.raw_cache_status} | ${source.candidate_span_count} | ${source.guideline_relation} |`).join("\n");
+  const realGuidelineRows = report.real_guideline_intake.sources.map((source) => `| ${source.id} | ${source.license_label} | ${source.raw_cache_status} | ${source.candidate_span_count} | ${source.admitted_candidate_rule_count} | ${source.rejected_residual_count} | ${source.guideline_relation} |`).join("\n");
   return `# CKC one-shot M1-M2 research report
 
 Run: \`${report.run_id}\`
@@ -1842,9 +2378,11 @@ ${report.findings[0].quoted_spans.map((span) => `- \`${span.region_id}\`: ${span
 
 Scope: source-intake candidate evidence only. These real Japanese guideline sources are fetched and permission-recorded for PoC extraction work, but they are not part of the locked M1/M2 solver score and make no clinical recommendation claim here.
 
-| Source | License | Raw cache | Candidate spans | Relation |
-| --- | --- | --- | ---: | --- |
+| Source | License | Raw cache | Candidate spans | Candidate rules | Rejected residuals | Relation |
+| --- | --- | --- | ---: | ---: | ---: | --- |
 ${realGuidelineRows}
+
+${realGuidelineCoverageMarkdown(report.real_guideline_intake)}
 
 ${realismAuditMarkdown(report.realism_audit)}
 
@@ -1901,7 +2439,7 @@ function japaneseReport(report) {
     : "shared source-cue layer と小さい local model の条件で、direct SMT baseline はこの locked fixture の admitted verdict accuracy で IR route を下回った。";
   const directAudit = report.direct_smt_audit;
   const directAuditConclusion = `Direct SMT residual audit: exact template match ${directAudit.exact_template_match_rate.exact}、named assertion なし ${directAudit.missing_named_assertion_rate.exact}、negated sepsis assertion ${directAudit.negated_sepsis_assertion_rate.exact}。これは admission 判定外の監査情報であり、shared cue layer 下で direct target composition が malformed になることを記録する。`;
-  const realGuidelineRows = report.real_guideline_intake.sources.map((source) => `| ${source.id} | ${source.license_label} | ${source.raw_cache_status} | ${source.candidate_span_count} |`).join("\n");
+  const realGuidelineRows = report.real_guideline_intake.sources.map((source) => `| ${source.id} | ${source.license_label} | ${source.raw_cache_status} | ${source.candidate_span_count} | ${source.admitted_candidate_rule_count} | ${source.rejected_residual_count} |`).join("\n");
   return `# CKC one-shot M1-M2 研究レポート
 
 run: \`${report.run_id}\`
@@ -1923,9 +2461,11 @@ ${report.findings[0].quoted_spans.map((span) => `- \`${span.region_id}\`: ${span
 
 範囲: source-intake candidate evidence のみ。実在する日本語診療ガイドライン系ソースを PoC 抽出候補として fetch/permission 記録したが、M1/M2 の locked score には含めず、ここでは臨床推奨の主張をしない。
 
-| source | license | raw cache | candidate spans |
-| --- | --- | --- | ---: |
+| source | license | raw cache | candidate spans | candidate rules | rejected residuals |
+| --- | --- | --- | ---: | ---: | ---: |
 ${realGuidelineRows}
+
+${realGuidelineCoverageMarkdown(report.real_guideline_intake)}
 
 ${realismAuditJapaneseMarkdown(report.realism_audit)}
 
@@ -2351,6 +2891,59 @@ function renderBasicUi(data) {
   const realismSummary = Object.entries(realismAudit.summary)
     .map(([classification, count]) => `${classification}: ${count}`)
     .join("; ");
+  const realIntake = data.real_guideline_intake;
+  const realSourceRows = realIntake.sources.map((source) => `
+          <tr>
+            <td><code>${escapeHtml(source.id)}</code></td>
+            <td><code>${escapeHtml(shortHash(source.source_hash))}</code></td>
+            <td><code>${escapeHtml(shortHash(source.permission_hash))}</code></td>
+            <td>${escapeHtml(source.candidate_spans.length)}</td>
+            <td>${escapeHtml(source.admitted_candidate_rules.length)}</td>
+            <td>${escapeHtml(source.rejected_residuals.length)}</td>
+            <td>${escapeHtml(source.raw_cache_status)}</td>
+          </tr>`).join("");
+  const realSpanRows = realIntake.sources.flatMap((source) => source.candidate_spans.map((span) => `
+          <tr>
+            <td><code>${escapeHtml(source.id)}</code></td>
+            <td><code>${escapeHtml(span.region_id)}</code></td>
+            <td>${escapeHtml(span.cq_id)}</td>
+            <td>${escapeHtml(span.candidate_rule_status)}</td>
+            <td>${escapeHtml(span.machine_hint?.direction ?? "missing")}</td>
+            <td>${escapeHtml(span.machine_hint?.strength ?? "missing")}</td>
+            <td>${escapeHtml(span.machine_hint?.certainty ?? "missing")}</td>
+            <td><code>${escapeHtml(shortHash(span.quote_hash))}</code></td>
+          </tr>`)).join("");
+  const realRuleRows = realIntake.sources.flatMap((source) => source.admitted_candidate_rules.map((rule) => `
+          <tr>
+            <td><code>${escapeHtml(rule.rule_id)}</code></td>
+            <td><code>${escapeHtml(rule.source_id)}</code></td>
+            <td><code>${escapeHtml(rule.region_id)}</code></td>
+            <td>${escapeHtml(rule.direction)}</td>
+            <td><code>${escapeHtml(rule.action_key)}</code></td>
+            <td>${escapeHtml(rule.strength)}</td>
+            <td>${escapeHtml(rule.certainty)}</td>
+            <td><code>${escapeHtml(shortHash(rule.rule_hash))}</code></td>
+          </tr>`)).join("") || `
+          <tr><td colspan="8">none</td></tr>`;
+  const realRejectedRows = realIntake.sources.flatMap((source) => source.rejected_residuals.map((residual) => `
+          <tr>
+            <td><code>${escapeHtml(residual.residual_id)}</code></td>
+            <td><code>${escapeHtml(residual.source_id)}</code></td>
+            <td><code>${escapeHtml(residual.region_id ?? "source")}</code></td>
+            <td>${escapeHtml(residual.code)}</td>
+            <td>${escapeHtml(residual.outcome)}</td>
+            <td>${escapeHtml(residual.field ?? "source")}</td>
+            <td>${escapeHtml(residual.reason)}</td>
+          </tr>`)).join("") || `
+          <tr><td colspan="7">none</td></tr>`;
+  const realArtifactRows = realIntake.sources.map((source) => `
+          <tr>
+            <td><code>${escapeHtml(source.id)}</code></td>
+            <td><code>${escapeHtml(source.artifacts.source_graph.path)}</code></td>
+            <td><code>${escapeHtml(source.artifacts.segments.path)}</code></td>
+            <td><code>${escapeHtml(source.artifacts.normalization.path)}</code></td>
+            <td><code>${escapeHtml(source.artifacts.route_rule_ir.path)}</code></td>
+          </tr>`).join("");
   const realismRows = realismAudit.surfaces.map((surface) => `
           <tr>
             <td><code>${escapeHtml(surface.surface_id)}</code></td>
@@ -2563,6 +3156,49 @@ ${transformationStepsHtml}
           </tbody>
         </table>
       </div>
+      <h3>Real guideline candidate intake</h3>
+      <p>These public-source rows are candidate-only intake artifacts. They use committed registry spans and machine hints, stay outside locked M1/M2 scoring, and make no clinical recommendation claim.</p>
+      <div class="table-wrap">
+        <table class="extra-wide">
+          <thead><tr><th>Source</th><th>Source hash</th><th>Permission hash</th><th>Spans</th><th>Candidate rules</th><th>Rejected residuals</th><th>Raw cache</th></tr></thead>
+          <tbody>${realSourceRows}
+          </tbody>
+        </table>
+      </div>
+      <div class="table-wrap">
+        <table class="extra-wide">
+          <thead><tr><th>Source</th><th>Candidate span</th><th>CQ</th><th>Status</th><th>Direction</th><th>Strength</th><th>Certainty</th><th>Quote hash</th></tr></thead>
+          <tbody>${realSpanRows}
+          </tbody>
+        </table>
+      </div>
+      <details>
+        <summary>Real-source candidate rules, residuals, and artifact paths</summary>
+        <h3>Candidate rules</h3>
+        <div class="table-wrap">
+          <table class="extra-wide">
+            <thead><tr><th>Rule</th><th>Source</th><th>Span</th><th>Direction</th><th>Action</th><th>Strength</th><th>Certainty</th><th>Rule hash</th></tr></thead>
+            <tbody>${realRuleRows}
+            </tbody>
+          </table>
+        </div>
+        <h3>Rejected residuals</h3>
+        <div class="table-wrap">
+          <table class="extra-wide">
+            <thead><tr><th>Residual</th><th>Source</th><th>Span</th><th>Code</th><th>Outcome</th><th>Field</th><th>Reason</th></tr></thead>
+            <tbody>${realRejectedRows}
+            </tbody>
+          </table>
+        </div>
+        <h3>Candidate artifacts</h3>
+        <div class="table-wrap">
+          <table class="extra-wide">
+            <thead><tr><th>Source</th><th>SourceGraph</th><th>Segments</th><th>Normalization</th><th>Route-rule IR</th></tr></thead>
+            <tbody>${realArtifactRows}
+            </tbody>
+          </table>
+        </div>
+      </details>
       <h3>Realism audit</h3>
       <p>Fixture-scale audit only; this does not add any clinical, patient-care, deployment, or regulatory claim. Summary: ${escapeHtml(realismSummary)}.</p>
       <div class="table-wrap">
@@ -2868,6 +3504,11 @@ async function main() {
       raw_manifest_hash: realGuidelineIntake.raw_manifest_hash,
       source_count: realGuidelineIntake.source_count,
       candidate_span_count: realGuidelineIntake.candidate_span_count,
+      admitted_candidate_rule_count: realGuidelineIntake.admitted_candidate_rule_count,
+      rejected_candidate_span_count: realGuidelineIntake.rejected_candidate_span_count,
+      residual_count: realGuidelineIntake.residual_count,
+      blocking_residual_count: realGuidelineIntake.blocking_residual_count,
+      route_rule_schema_id: realGuidelineIntake.route_rule_schema_id,
       admission_scope: realGuidelineIntake.admission_scope,
       scoring_scope: realGuidelineIntake.scoring_scope,
       clinical_claim_scope: realGuidelineIntake.clinical_claim_scope,
@@ -2877,11 +3518,31 @@ async function main() {
         license_label: source.license.label,
         license_url: source.license.url,
         raw_cache_status: source.raw_cache_status,
+        source_hash: source.source_hash,
+        permission_hash: source.permission_hash,
         candidate_span_count: source.candidate_spans.length,
+        admitted_candidate_rule_count: source.admitted_candidate_rules.length,
+        rejected_residual_count: source.rejected_residuals.length,
+        artifacts: source.artifacts,
         guideline_relation: source.guideline_relation,
         landing_url: source.access.landing_url,
         doi: source.access.doi
-      }))
+      })),
+      candidate_span_rows: realGuidelineIntake.sources.flatMap((source) => source.candidate_spans.map((span) => ({
+        source_id: source.id,
+        region_id: span.region_id,
+        cq_id: span.cq_id,
+        candidate_rule_status: span.candidate_rule_status,
+        direction: span.machine_hint?.direction ?? null,
+        strength: span.machine_hint?.strength ?? null,
+        certainty: span.machine_hint?.certainty ?? null,
+        quote_hash: span.quote_hash,
+        machine_hint_hash: span.machine_hint_hash,
+        route_rule_id: span.route_rule_id,
+        blocking_residual_ids: span.blocking_residual_ids
+      }))),
+      admitted_candidate_rules: realGuidelineIntake.sources.flatMap((source) => source.admitted_candidate_rules),
+      rejected_residuals: realGuidelineIntake.sources.flatMap((source) => source.rejected_residuals)
     },
     replay: {
       status: "pending_manifest",
@@ -2937,19 +3598,39 @@ async function main() {
 
   const events = [
     { event: "run_started", run_id: runId },
-    { event: "real_guideline_intake_completed", outcome: "ok", sources: realGuidelineIntake.source_count, candidate_spans: realGuidelineIntake.candidate_span_count },
+    {
+      event: "real_guideline_intake_completed",
+      outcome: "ok",
+      sources: realGuidelineIntake.source_count,
+      candidate_spans: realGuidelineIntake.candidate_span_count,
+      admitted_candidate_rules: realGuidelineIntake.admitted_candidate_rule_count,
+      blocking_residuals: realGuidelineIntake.blocking_residual_count
+    },
     { event: "m1_spine_completed", outcome: "ok" },
     { event: "m2_lift_completed", outcome: "ok", model_mode: modelMeta.model_mode, live_model_calls: modelMeta.live_model_calls },
     { event: "run_completed", outcome: "ok" }
   ];
   await writeText("logs/events.jsonl", events.map((entry) => JSON.stringify(stable(entry))).join("\n"));
-  const diagnostics = metrics.rawRows.flatMap((row) => row.diagnostics.map((code) => ({
-    code,
-    outcome: code === "false_positive_conflict" ? "incoherence" : "invalid",
-    route_id: row.route_id,
-    group_id: row.group_id,
-    seed: row.seed
-  })));
+  const diagnostics = [
+    ...metrics.rawRows.flatMap((row) => row.diagnostics.map((code) => ({
+      code,
+      outcome: code === "false_positive_conflict" ? "incoherence" : "invalid",
+      route_id: row.route_id,
+      group_id: row.group_id,
+      seed: row.seed
+    }))),
+    ...realGuidelineIntake.sources.flatMap((source) => source.residuals.map((residual) => ({
+      code: residual.code,
+      outcome: residual.outcome,
+      residual_id: residual.residual_id,
+      source_id: residual.source_id,
+      region_id: residual.region_id,
+      stage: residual.stage,
+      admission_scope: residual.admission_scope,
+      scoring_scope: residual.scoring_scope,
+      blocks_candidate_rule: residual.blocks_candidate_rule
+    })))
+  ];
   await writeText("logs/diagnostics.jsonl", diagnostics.map((entry) => JSON.stringify(stable(entry))).join("\n"));
 
   const replayManifest = await buildReplayManifest();
@@ -2994,6 +3675,7 @@ async function main() {
       "trace_bundle.json",
       "lineage_index.json",
       "real_guidelines/source_intake.json",
+      ...realGuidelineIntake.sources.flatMap((source) => Object.values(source.artifacts).map((artifact) => artifact.path)),
       "metrics/raw_rows.json",
       "metrics/direct_smt_audit.json",
       "metrics/source_cues.json",
@@ -3013,6 +3695,15 @@ async function main() {
       metrics.ioRecords.length === 12,
       realGuidelineIntake.source_count >= 2,
       realGuidelineIntake.candidate_span_count >= 6,
+      realGuidelineIntake.admitted_candidate_rule_count >= 4,
+      realGuidelineIntake.blocking_residual_count >= 2,
+      realGuidelineIntake.sources.every((source) => source.admission_scope === realSourceScope),
+      realGuidelineIntake.sources.every((source) => source.scoring_scope === "not_in_locked_m1_m2_measurement"),
+      realGuidelineIntake.sources.every((source) => source.source_hash?.length === 64 && source.permission_hash?.length === 64),
+      realGuidelineIntake.sources.every((source) => Object.values(source.artifacts).every((artifact) => artifact.path && artifact.hash?.length === 64)),
+      realGuidelineIntake.sources.flatMap((source) => source.candidate_spans).every((span) => span.machine_hint_hash?.length === 64),
+      report.real_guideline_intake.admitted_candidate_rule_count === realGuidelineIntake.admitted_candidate_rule_count,
+      report.real_guideline_intake.rejected_residuals.length === realGuidelineIntake.blocking_residual_count,
       report.real_guideline_intake.scoring_scope === "not_in_locked_m1_m2_measurement",
       promptCatalog.prompt_count === 4,
       promptCatalog.call_count === metrics.ioRecords.length,
@@ -3026,6 +3717,9 @@ async function main() {
       existsSync(webDataPath),
       renderedUi.includes("Transformation rules"),
       renderedUi.includes("Realism audit"),
+      renderedUi.includes("Real guideline candidate intake"),
+      renderedUi.includes("Candidate rules"),
+      renderedUi.includes("Rejected residuals"),
       renderedUi.includes("Model JSON field"),
       renderedUi.includes("same_action &amp;&amp; opposed_directions &amp;&amp; context_overlap"),
       ...requiredFiles.map((relative) => existsSync(path.join(runDir, relative)))
