@@ -10,7 +10,7 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 1600 900] /Resources << /Font << /F1 5 0 R /F2 6 0 R /F3 7 0 R >> >> /Contents 4 0 R >>
 endobj
 4 0 obj
-<< /Length 5212 >>
+<< /Length 5293 >>
 stream
 0.067 0.094 0.153 rg
 BT /F2 32 Tf 54 842 Td (Route mechanics and evidence boundaries) Tj ET
@@ -33,13 +33,15 @@ B
 0.208 0.361 0.604 rg
 BT /F2 16 Tf 285 717 Td (input) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 17 Tf 88 684 Td (Groups: conflict, null,) Tj ET
+BT /F1 17 Tf 88 684 Td (Groups: M2 holdout: 1; M3) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 17 Tf 88 661 Td (holdout conflict.) Tj ET
+BT /F1 17 Tf 88 661 Td (expanded: 3; M3) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 17 Tf 88 638 Td (Gold verdicts and source) Tj ET
+BT /F1 17 Tf 88 638 Td (metamorphic: 2; M1: 2.) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 17 Tf 88 615 Td (spans remain fixed.) Tj ET
+BT /F1 17 Tf 88 615 Td (Gold verdicts and source) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 88 592 Td (spans remain fixed.) Tj ET
 1 1 1 rg
 0.184 0.42 0.31 RG
 3 w
@@ -92,9 +94,9 @@ BT /F1 17 Tf 863 714 Td (The model emits one SMT-LIB) Tj ET
 0.349 0.384 0.451 rg
 BT /F1 17 Tf 863 691 Td (target.) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 17 Tf 863 668 Td (Target syntax: 3/9.) Tj ET
+BT /F1 17 Tf 863 668 Td (Target syntax: 3/24.) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 17 Tf 863 645 Td (Admission: 0/9.) Tj ET
+BT /F1 17 Tf 863 645 Td (Admission: 0/24.) Tj ET
 1 1 1 rg
 0.122 0.435 0.545 RG
 3 w
@@ -114,11 +116,11 @@ BT /F1 17 Tf 863 444 Td (single_ir emits an) Tj ET
 0.349 0.384 0.451 rg
 BT /F1 17 Tf 863 421 Td (intermediate route artifact.) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 17 Tf 863 398 Td (9 rows compile to 15 SMT) Tj ET
+BT /F1 17 Tf 863 398 Td (24 rows compile to 36 SMT) Tj ET
 0.349 0.384 0.451 rg
 BT /F1 17 Tf 863 375 Td (file\(s\).) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 17 Tf 863 352 Td (Target syntax: 9/9.) Tj ET
+BT /F1 17 Tf 863 352 Td (Target syntax: 24/24.) Tj ET
 0.349 0.384 0.451 RG
 2 w
 740 665 m 845 688 l S
@@ -158,7 +160,7 @@ BT /F1 17 Tf 1278 691 Td (and route admission run) Tj ET
 0.349 0.384 0.451 rg
 BT /F1 17 Tf 1278 668 Td (before accuracy claims.) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 17 Tf 1278 645 Td (Admitted accuracy: 0/9.) Tj ET
+BT /F1 17 Tf 1278 645 Td (Admitted accuracy: 0/24.) Tj ET
 1 1 1 rg
 0.184 0.42 0.31 RG
 3 w
@@ -180,7 +182,7 @@ BT /F1 17 Tf 1278 421 Td (to SMT-LIB and are scored) Tj ET
 0.349 0.384 0.451 rg
 BT /F1 17 Tf 1278 398 Td (by the same evaluator.) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 17 Tf 1278 375 Td (Admission: 0/9.) Tj ET
+BT /F1 17 Tf 1278 375 Td (Admission: 0/24.) Tj ET
 0.349 0.384 0.451 RG
 2 w
 1155 688 m 1260 688 l S
@@ -207,9 +209,9 @@ B
 0.067 0.094 0.153 rg
 BT /F2 22 Tf 96 195 Td (Route matrix result) Tj ET
 0.067 0.094 0.153 rg
-BT /F1 18 Tf 96 165 Td (The route matrix keeps route.direct_smt as baseline. Highest target syntax is ir_hop_chain at 9/9; candidate accuracy remains) Tj ET
+BT /F1 18 Tf 96 165 Td (The route matrix keeps route.direct_smt as baseline. Highest target syntax is single_ir at 24/24; candidate accuracy remains rejected-output) Tj ET
 0.067 0.094 0.153 rg
-BT /F1 18 Tf 96 140 Td (rejected-output audit evidence.) Tj ET
+BT /F1 18 Tf 96 140 Td (audit evidence.) Tj ET
 0.898 0.914 0.937 RG
 1 w
 54 56 m 1546 56 l S
@@ -235,11 +237,11 @@ xref
 0000000064 00000 n
 0000000121 00000 n
 0000000268 00000 n
-0000005531 00000 n
-0000005601 00000 n
-0000005676 00000 n
+0000005612 00000 n
+0000005682 00000 n
+0000005757 00000 n
 trailer
 << /Size 8 /Root 1 0 R >>
 startxref
-5744
+5825
 %%EOF

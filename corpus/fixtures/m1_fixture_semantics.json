@@ -193,6 +193,311 @@
           "source_region_ids": ["region.d.holdout.contra1"]
         }
       ]
+    },
+    {
+      "id": "fixture.m3_guideline_a_metamorphic",
+      "key": "a2",
+      "source_label": "A2",
+      "title": "合成敗血症診療ガイドライン A2",
+      "report_primary_region_ids": ["region.a2.cq1.rec"],
+      "regions": [
+        {
+          "id": "region.a2.cq1.rec",
+          "role": "recommendation",
+          "quote": "敗血症の成人(18歳以上)患者には、抗菌薬Aを投与することを推奨する(強い推奨)。"
+        },
+        {
+          "id": "region.a2.cq1.exc",
+          "role": "exception",
+          "quote": "重度腎機能障害を有する患者は対象から除く。"
+        }
+      ],
+      "terminology_bindings": [
+        { "mention": "成人", "system": "ckc.lex", "code": "pop.adult", "status": "exact" },
+        { "mention": "敗血症", "system": "ckc.lex", "code": "cond.sepsis", "status": "exact" },
+        { "mention": "抗菌薬A", "system": "ckc.lex", "code": "drug.abx_a", "status": "exact" },
+        { "mention": "重度腎機能障害", "system": "ckc.lex", "code": "cond.renal_severe", "status": "exact" }
+      ],
+      "clinical_statements": [
+        {
+          "statement_id": "statement.a2.1",
+          "population": "pop.adult",
+          "condition": "cond.sepsis",
+          "action": "act.administer:drug.abx_a",
+          "modality": "for",
+          "strength": "strong",
+          "certainty": "moderate",
+          "source_region_ids": ["region.a2.cq1.rec", "region.a2.cq1.exc"]
+        }
+      ],
+      "rules": [
+        {
+          "rule_id": "rule.a2.cq1.r1",
+          "direction": "for",
+          "action_key": "act.administer:drug.abx_a",
+          "strength": "strong",
+          "certainty": "moderate",
+          "context": {
+            "age_years": { "ge": 18 },
+            "required": ["cond.sepsis"],
+            "prohibited": ["cond.renal_severe"]
+          },
+          "source_region_ids": ["region.a2.cq1.rec", "region.a2.cq1.exc"]
+        }
+      ]
+    },
+    {
+      "id": "fixture.m3_guideline_b_metamorphic",
+      "key": "b2",
+      "source_label": "B2",
+      "title": "合成敗血症診療ガイドライン B2",
+      "report_primary_region_ids": ["region.b2.contra1"],
+      "regions": [
+        {
+          "id": "region.b2.contra1",
+          "role": "contraindication",
+          "quote": "妊娠中の成人敗血症患者では、抗菌薬Aを投与しないこと(禁忌)。"
+        }
+      ],
+      "terminology_bindings": [
+        { "mention": "成人", "system": "ckc.lex", "code": "pop.adult", "status": "exact" },
+        { "mention": "敗血症", "system": "ckc.lex", "code": "cond.sepsis", "status": "exact" },
+        { "mention": "妊娠中", "system": "ckc.lex", "code": "cond.pregnancy", "status": "exact" },
+        { "mention": "抗菌薬A", "system": "ckc.lex", "code": "drug.abx_a", "status": "exact" }
+      ],
+      "clinical_statements": [
+        {
+          "statement_id": "statement.b2.1",
+          "population": "pop.adult",
+          "condition": "cond.sepsis",
+          "action": "act.administer:drug.abx_a",
+          "modality": "contraindicate",
+          "strength": "strong",
+          "certainty": "moderate",
+          "source_region_ids": ["region.b2.contra1"]
+        }
+      ],
+      "rules": [
+        {
+          "rule_id": "rule.b2.contra1",
+          "direction": "contraindicate",
+          "action_key": "act.administer:drug.abx_a",
+          "strength": "strong",
+          "certainty": "moderate",
+          "context": {
+            "age_years": { "ge": 18 },
+            "required": ["cond.sepsis", "cond.pregnancy"],
+            "prohibited": []
+          },
+          "source_region_ids": ["region.b2.contra1"]
+        }
+      ]
+    },
+    {
+      "id": "fixture.m3_threshold_adult",
+      "key": "e",
+      "source_label": "E",
+      "title": "合成敗血症閾値文書 E",
+      "report_primary_region_ids": ["region.e.threshold.adult"],
+      "regions": [
+        {
+          "id": "region.e.threshold.adult",
+          "role": "recommendation",
+          "quote": "成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。"
+        }
+      ],
+      "terminology_bindings": [
+        { "mention": "成人", "system": "ckc.lex", "code": "pop.adult", "status": "exact" },
+        { "mention": "敗血症", "system": "ckc.lex", "code": "cond.sepsis", "status": "exact" },
+        { "mention": "抗菌薬A", "system": "ckc.lex", "code": "drug.abx_a", "status": "exact" }
+      ],
+      "clinical_statements": [
+        {
+          "statement_id": "statement.e.1",
+          "population": "pop.adult",
+          "condition": "cond.sepsis",
+          "action": "act.administer:drug.abx_a",
+          "modality": "for",
+          "strength": "strong",
+          "certainty": "moderate",
+          "source_region_ids": ["region.e.threshold.adult"]
+        }
+      ],
+      "rules": [
+        {
+          "rule_id": "rule.e.threshold_adult",
+          "direction": "for",
+          "action_key": "act.administer:drug.abx_a",
+          "strength": "strong",
+          "certainty": "moderate",
+          "context": {
+            "age_years": { "ge": 18 },
+            "required": ["cond.sepsis"],
+            "prohibited": []
+          },
+          "source_region_ids": ["region.e.threshold.adult"]
+        }
+      ]
+    },
+    {
+      "id": "fixture.m3_threshold_child",
+      "key": "f",
+      "source_label": "F",
+      "title": "合成敗血症閾値文書 F",
+      "report_primary_region_ids": ["region.f.threshold.child"],
+      "regions": [
+        {
+          "id": "region.f.threshold.child",
+          "role": "recommendation",
+          "quote": "小児(18歳未満)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。"
+        }
+      ],
+      "terminology_bindings": [
+        { "mention": "小児", "system": "ckc.lex", "code": "pop.child", "status": "exact" },
+        { "mention": "敗血症", "system": "ckc.lex", "code": "cond.sepsis", "status": "exact" },
+        { "mention": "抗菌薬A", "system": "ckc.lex", "code": "drug.abx_a", "status": "exact" }
+      ],
+      "clinical_statements": [
+        {
+          "statement_id": "statement.f.1",
+          "population": "pop.child",
+          "condition": "cond.sepsis",
+          "action": "act.administer:drug.abx_a",
+          "modality": "for",
+          "strength": "strong",
+          "certainty": "moderate",
+          "source_region_ids": ["region.f.threshold.child"]
+        }
+      ],
+      "rules": [
+        {
+          "rule_id": "rule.f.threshold_child",
+          "direction": "for",
+          "action_key": "act.administer:drug.abx_a",
+          "strength": "strong",
+          "certainty": "moderate",
+          "context": {
+            "age_years": { "lt": 18 },
+            "required": ["cond.sepsis"],
+            "prohibited": []
+          },
+          "source_region_ids": ["region.f.threshold.child"]
+        }
+      ]
+    },
+    {
+      "id": "fixture.m3_factual_positive",
+      "key": "g",
+      "source_label": "G",
+      "title": "合成敗血症事実文書 G",
+      "report_primary_region_ids": ["region.g.fact.pregnancy_risk"],
+      "regions": [
+        {
+          "id": "region.g.fact.pregnancy_risk",
+          "role": "recommendation",
+          "quote": "成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。妊娠中は高リスク因子である。"
+        }
+      ],
+      "terminology_bindings": [
+        { "mention": "成人", "system": "ckc.lex", "code": "pop.adult", "status": "exact" },
+        { "mention": "敗血症", "system": "ckc.lex", "code": "cond.sepsis", "status": "exact" },
+        { "mention": "抗菌薬A", "system": "ckc.lex", "code": "drug.abx_a", "status": "exact" },
+        { "mention": "妊娠中", "system": "ckc.lex", "code": "cond.pregnancy", "status": "exact" }
+      ],
+      "clinical_statements": [
+        {
+          "statement_id": "statement.g.1",
+          "population": "pop.adult",
+          "condition": "cond.sepsis",
+          "action": "act.administer:drug.abx_a",
+          "modality": "for",
+          "strength": "strong",
+          "certainty": "moderate",
+          "source_region_ids": ["region.g.fact.pregnancy_risk"]
+        }
+      ],
+      "rules": [
+        {
+          "rule_id": "rule.g.pregnancy_risk_positive",
+          "direction": "for",
+          "action_key": "act.administer:drug.abx_a",
+          "strength": "strong",
+          "certainty": "moderate",
+          "context": {
+            "age_years": { "ge": 18 },
+            "required": ["cond.sepsis", "cond.pregnancy"],
+            "prohibited": []
+          },
+          "source_region_ids": ["region.g.fact.pregnancy_risk"]
+        }
+      ],
+      "factual_claims": [
+        {
+          "fact_id": "fact.g.pregnancy_high_risk",
+          "subject": "cond.pregnancy",
+          "predicate": "is_high_risk_factor",
+          "value": true,
+          "strict": true,
+          "source_region_ids": ["region.g.fact.pregnancy_risk"]
+        }
+      ]
+    },
+    {
+      "id": "fixture.m3_factual_negative",
+      "key": "h",
+      "source_label": "H",
+      "title": "合成敗血症事実文書 H",
+      "report_primary_region_ids": ["region.h.fact.pregnancy_risk"],
+      "regions": [
+        {
+          "id": "region.h.fact.pregnancy_risk",
+          "role": "recommendation",
+          "quote": "成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。妊娠中は高リスク因子ではない。"
+        }
+      ],
+      "terminology_bindings": [
+        { "mention": "成人", "system": "ckc.lex", "code": "pop.adult", "status": "exact" },
+        { "mention": "敗血症", "system": "ckc.lex", "code": "cond.sepsis", "status": "exact" },
+        { "mention": "抗菌薬A", "system": "ckc.lex", "code": "drug.abx_a", "status": "exact" },
+        { "mention": "妊娠中", "system": "ckc.lex", "code": "cond.pregnancy_not_high_risk", "status": "exact" }
+      ],
+      "clinical_statements": [
+        {
+          "statement_id": "statement.h.1",
+          "population": "pop.adult",
+          "condition": "cond.sepsis",
+          "action": "act.administer:drug.abx_a",
+          "modality": "for",
+          "strength": "strong",
+          "certainty": "moderate",
+          "source_region_ids": ["region.h.fact.pregnancy_risk"]
+        }
+      ],
+      "rules": [
+        {
+          "rule_id": "rule.h.pregnancy_risk_negative",
+          "direction": "for",
+          "action_key": "act.administer:drug.abx_a",
+          "strength": "strong",
+          "certainty": "moderate",
+          "context": {
+            "age_years": { "ge": 18 },
+            "required": ["cond.sepsis", "cond.pregnancy"],
+            "prohibited": []
+          },
+          "source_region_ids": ["region.h.fact.pregnancy_risk"]
+        }
+      ],
+      "factual_claims": [
+        {
+          "fact_id": "fact.h.pregnancy_high_risk",
+          "subject": "cond.pregnancy",
+          "predicate": "is_high_risk_factor",
+          "value": false,
+          "strict": true,
+          "source_region_ids": ["region.h.fact.pregnancy_risk"]
+        }
+      ]
     }
   ]
 }

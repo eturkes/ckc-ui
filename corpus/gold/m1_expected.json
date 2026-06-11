@@ -3,17 +3,62 @@
     "group_id": "group.m1_conflict",
     "expected_outcome": "semantic_contradiction",
     "expected_conflict_kind": "deontic_direction_conflict",
-    "expected_core": ["assert.rule.a.cq1.r1.pos", "assert.rule.b.contra1.neg"]
+    "expected_core": ["assert.rule.a.cq1.r1.pos", "assert.rule.b.contra1.neg"],
+    "expected_evidence_region_ids": ["region.a.cq1.rec", "region.a.cq1.exc", "region.b.contra1"],
+    "expected_evidence_note": "Opposed ABX-A directions are source-derived from A recommendation/exception and B contraindication spans."
   },
   {
     "group_id": "group.m1_null",
     "expected_outcome": "semantic_no_conflict",
-    "expected_null_result": true
+    "expected_null_result": true,
+    "expected_evidence_region_ids": ["region.a.cq1.rec", "region.a.cq1.exc", "region.control.child.contra1"],
+    "expected_evidence_note": "Adult and child age intervals are disjoint under the quoted source spans."
   },
   {
     "group_id": "group.m2_holdout_conflict",
     "expected_outcome": "semantic_contradiction",
     "expected_conflict_kind": "deontic_direction_conflict",
-    "expected_core": ["assert.rule.a.cq1.r1.pos", "assert.rule.d.mutation1.neg"]
+    "expected_core": ["assert.rule.a.cq1.r1.pos", "assert.rule.d.mutation1.neg"],
+    "expected_evidence_region_ids": ["region.a.cq1.rec", "region.a.cq1.exc", "region.d.holdout.contra1"],
+    "expected_evidence_note": "D is a holdout phrasing of the adult pregnant contraindication against A's adult recommendation."
+  },
+  {
+    "group_id": "group.m3_metamorphic_conflict",
+    "expected_outcome": "semantic_contradiction",
+    "expected_conflict_kind": "deontic_direction_conflict",
+    "expected_core": ["assert.rule.a2.cq1.r1.pos", "assert.rule.b2.contra1.neg"],
+    "expected_evidence_region_ids": ["region.a2.cq1.rec", "region.a2.cq1.exc", "region.b2.contra1"],
+    "expected_evidence_note": "A2 and B2 preserve the A/B opposed-direction conflict under deterministic wording and section-order mutations."
+  },
+  {
+    "group_id": "group.m3_metamorphic_null",
+    "expected_outcome": "semantic_no_conflict",
+    "expected_null_result": true,
+    "expected_evidence_region_ids": ["region.a2.cq1.rec", "region.a2.cq1.exc", "region.control.child.contra1"],
+    "expected_evidence_note": "A2 remains adult-only while the control source remains child-only, preserving the documented null result."
+  },
+  {
+    "group_id": "group.m3_threshold_conflict",
+    "expected_outcome": "semantic_contradiction",
+    "expected_conflict_kind": "numeric_threshold_empty_intersection",
+    "expected_core": ["ctx.rule.e.threshold_adult", "ctx.rule.f.threshold_child"],
+    "expected_evidence_region_ids": ["region.e.threshold.adult", "region.f.threshold.child"],
+    "expected_evidence_note": "The adult and child source spans assert the same action and direction over disjoint age thresholds in the toy schema."
+  },
+  {
+    "group_id": "group.m3_factual_conflict",
+    "expected_outcome": "semantic_contradiction",
+    "expected_conflict_kind": "strict_factual_contradiction",
+    "expected_core": ["fact.g.pregnancy_high_risk.true", "fact.h.pregnancy_high_risk.false"],
+    "expected_evidence_region_ids": ["region.g.fact.pregnancy_risk", "region.h.fact.pregnancy_risk"],
+    "expected_evidence_note": "G states the pregnancy high-risk predicate as true; H states the same predicate as false."
+  },
+  {
+    "group_id": "group.m3_terminology_incoherence",
+    "expected_outcome": "semantic_contradiction",
+    "expected_conflict_kind": "terminology_incoherence",
+    "expected_core": ["binding.g.pregnancy.cond_pregnancy", "binding.h.pregnancy.cond_pregnancy_not_high_risk"],
+    "expected_evidence_region_ids": ["region.g.fact.pregnancy_risk", "region.h.fact.pregnancy_risk"],
+    "expected_evidence_note": "The shared mention 妊娠中 is bound to incompatible concept identifiers in the fixture semantics for G and H."
   }
 ]

@@ -192,7 +192,8 @@ async function loadM1FixtureInputs() {
       regions: cloneData(semantics.regions ?? []),
       terminology_bindings: cloneData(semantics.terminology_bindings ?? []),
       clinical_statements: cloneData(semantics.clinical_statements ?? []),
-      rules: cloneData(semantics.rules ?? [])
+      rules: cloneData(semantics.rules ?? []),
+      factual_claims: cloneData(semantics.factual_claims ?? [])
     };
   });
 
@@ -227,7 +228,9 @@ async function loadM1FixtureInputs() {
       expectedOutcome: gold.expected_outcome,
       expectedConflictKind: gold.expected_conflict_kind ?? null,
       expectedCore: cloneData(gold.expected_core ?? []),
-      expectedNullResult: Boolean(gold.expected_null_result)
+      expectedNullResult: Boolean(gold.expected_null_result),
+      expectedEvidenceRegionIds: cloneData(gold.expected_evidence_region_ids ?? []),
+      expectedEvidenceNote: gold.expected_evidence_note ?? null
     };
   }
 
@@ -4260,14 +4263,89 @@ function buildRouteTargetSummary(ioRecords) {
   };
 }
 
+function groupSetForMeasurementRole(measurementRole) {
+  if (measurementRole?.startsWith("locked_m1")) return "original_m1_group";
+  if (measurementRole?.includes("holdout")) return "m2_holdout_group";
+  if (measurementRole?.includes("metamorphic")) return "m3_metamorphic_group";
+  if (measurementRole?.startsWith("m3_")) return "m3_expanded_group";
+  return "route_evaluation_group";
+}
+
+function buildGroupAudit() {
+  const rows = groups.map((group) => {
+    const fixtures = group.fixtures.map((fixtureId) => fixtureRegistry.find((entry) => entry.id === fixtureId));
+    const evidenceRegionIds = group.expectedEvidenceRegionIds.length > 0
+      ? group.expectedEvidenceRegionIds
+      : fixtures.flatMap((fixture) => fixture?.report_primary_region_ids ?? []);
+    const regionsById = new Map(fixtures.flatMap((fixture) => (
+      (fixture?.regions ?? []).map((region) => [region.id, { ...region, fixture_id: fixture.id, source_path: fixture.path }])
+    )));
+    const sourcePaths = fixtures.map((fixture) => fixture?.path ?? null);
+    const sourcePathsPresent = sourcePaths.every((sourcePath) => sourcePath && existsSync(path.join(root, sourcePath)));
+    const fixtureSemanticsPresent = fixtures.every((fixture) => (
+      fixture
+      && Array.isArray(fixture.regions)
+      && fixture.regions.length > 0
+      && Array.isArray(fixture.rules)
+      && fixture.rules.length > 0
+    ));
+    const evidenceQuotes = evidenceRegionIds.map((regionId) => {
+      const region = regionsById.get(regionId);
+      return {
+        region_id: regionId,
+        fixture_id: region?.fixture_id ?? null,
+        source_path: region?.source_path ?? null,
+        role: region?.role ?? null,
+        quote: region?.quote ?? null,
+        quote_hash: region?.quote ? sha256Text(region.quote) : null
+      };
+    });
+    const evidenceRegionsPresent = evidenceQuotes.every((entry) => entry.quote);
+    return {
+      group_id: group.id,
+      group_set: groupSetForMeasurementRole(group.measurementRole),
+      measurement_role: group.measurementRole,
+      fixture_ids: group.fixtures,
+      source_labels: fixtures.map((fixture) => fixture?.source_label ?? null),
+      source_paths: sourcePaths,
+      source_paths_present: sourcePathsPresent,
+      fixture_semantics_present: fixtureSemanticsPresent,
+      gold_present: Boolean(group.expectedOutcome),
+      expected_outcome: group.expectedOutcome,
+      expected_conflict_kind: group.expectedConflictKind,
+      expected_null_result: group.expectedNullResult,
+      expected_evidence_note: group.expectedEvidenceNote,
+      expected_evidence_region_ids: evidenceRegionIds,
+      evidence_regions_present: evidenceRegionsPresent,
+      evidence_quotes: evidenceQuotes,
+      audit_pass: sourcePathsPresent && fixtureSemanticsPresent && Boolean(group.expectedOutcome) && evidenceRegionsPresent
+    };
+  });
+  const groupSetCounts = {};
+  for (const row of rows) groupSetCounts[row.group_set] = (groupSetCounts[row.group_set] ?? 0) + 1;
+  return {
+    artifact_kind: "M3RouteGroupAudit",
+    schema_version: "m3_route_group_audit.v0",
+    experiment_id: selectedExperimentId,
+    scope: "Audit that each selected route-evaluation group resolves to gold expectations, fixture semantics, source paths, and quoted evidence regions.",
+    group_count: rows.length,
+    group_set_counts: groupSetCounts,
+    all_groups_have_gold_fixture_semantics_and_source_paths: rows.every((row) => row.audit_pass),
+    rows
+  };
+}
+
 function buildRouteEvaluation(rawRows) {
   const evaluationGroups = groups.map((group) => ({
     group_id: group.id,
+    group_set: groupSetForMeasurementRole(group.measurementRole),
     fixture_ids: group.fixtures,
     source_labels: modelCaseForGroup(group.id).labels,
     measurement_role: group.measurementRole,
     mutation_note: group.mutationNote,
-    expected_outcome: group.expectedOutcome
+    expected_outcome: group.expectedOutcome,
+    expected_conflict_kind: group.expectedConflictKind,
+    expected_null_result: group.expectedNullResult
   }));
   const routeCategoryCounts = Object.fromEntries(routeIds.map((routeId) => {
     const routeRows = rawRows.filter((row) => row.route_id === routeId);
@@ -4299,6 +4377,13 @@ function buildRouteEvaluation(rawRows) {
     holdout_group_ids: evaluationGroups
       .filter((group) => group.measurement_role.includes("holdout") || group.measurement_role.includes("mutation"))
       .map((group) => group.group_id),
+    expanded_group_ids: evaluationGroups
+      .filter((group) => group.group_set === "m3_expanded_group" || group.group_set === "m3_metamorphic_group")
+      .map((group) => group.group_id),
+    group_set_counts: evaluationGroups.reduce((counts, group) => ({
+      ...counts,
+      [group.group_set]: (counts[group.group_set] ?? 0) + 1
+    }), {}),
     route_category_counts: routeCategoryCounts,
     raw_row_count: rawRows.length
   };
@@ -4333,6 +4418,13 @@ function buildRealismAudit({ realGuidelineIntake, sourceCueLayer, promptCatalog 
       classification: "data_driven",
       evidence_paths: [m1InputRefs.experiments_registry_path, m1InputRefs.gold_expectations_path],
       note: "M2 route scoring groups, including holdout mutation roles, are read from the experiment registry and gold artifact."
+    },
+    {
+      surface_id: "m3_expanded_evaluation_groups",
+      stage: "m3_route_evaluation",
+      classification: "data_driven",
+      evidence_paths: ["metrics/group_audit.json", m1InputRefs.experiments_registry_path, m1InputRefs.gold_expectations_path],
+      note: "M3 route groups are separated by group_set in route_evaluation and checked for source paths, fixture semantics, gold, and quoted evidence regions."
     },
     {
       surface_id: "expected_outcomes",
@@ -4851,7 +4943,7 @@ ${rows}`;
 
 function markdownReport(report) {
   const rawRows = report.metrics.raw_rows.map((row) => `| ${row.route_id} | ${row.group_id} | ${row.measurement_role} | ${row.measurement_status} | ${row.model_call_recorded} | ${row.live_call_count ?? 0} | ${row.seed} | ${row.model_output_syntax_valid} | ${row.target_syntax_valid} | ${row.admitted} | ${row.verdict} | ${row.verdict_correct} | ${row.candidate_verdict_correct} | ${row.diagnostic_categories.join(", ") || "none"} |`).join("\n");
-  const groupRows = report.m2_evaluation.evaluation_groups.map((group) => `| \`${group.group_id}\` | ${group.measurement_role} | ${group.source_labels.join(", ")} | ${group.expected_outcome} | ${group.mutation_note ?? "none"} |`).join("\n");
+  const groupRows = report.m2_evaluation.evaluation_groups.map((group) => `| \`${group.group_id}\` | ${group.group_set} | ${group.measurement_role} | ${group.source_labels.join(", ")} | ${group.expected_outcome} | ${group.expected_conflict_kind ?? "none"} | ${group.mutation_note ?? "none"} |`).join("\n");
   const diagnosticCategoryRows = Object.entries(report.m2_evaluation.diagnostic_categories).map(([category, codes]) => `| ${category} | ${codes.map((code) => `\`${code}\``).join(", ")} |`).join("\n");
   const diagnostics = Object.entries(report.diagnostics_summary).map(([code, count]) => `- ${code}: ${count}`).join("\n") || "- none: 0";
   const comparisonConclusion = routeMatrixConclusion(report);
@@ -4899,9 +4991,11 @@ Evaluation strength: \`${report.m2_evaluation.evaluation_strength}\`. ${report.m
 
 Harness note: ${report.m2_evaluation.harness_change_note}
 
-| Group | Role | Source labels | Expected | Note |
-| --- | --- | --- | --- | --- |
+| Group | Set | Role | Source labels | Expected | Conflict kind | Note |
+| --- | --- | --- | --- | --- | --- | --- |
 ${groupRows}
+
+Group audit: \`${report.m3_group_audit.artifact_kind}\` checked ${report.m3_group_audit.group_count} groups; pass = ${report.m3_group_audit.all_groups_have_gold_fixture_semantics_and_source_paths}. Group sets: ${Object.entries(report.m3_group_audit.group_set_counts).map(([groupSet, count]) => `${groupSet}=${count}`).join(", ")}.
 
 ### Exact route values
 
@@ -4948,7 +5042,7 @@ ${diagnostics}
 }
 
 function japaneseReport(report) {
-  const groupRows = report.m2_evaluation.evaluation_groups.map((group) => `| \`${group.group_id}\` | ${group.measurement_role} | ${group.source_labels.join(", ")} | ${group.expected_outcome} | ${group.mutation_note ?? "none"} |`).join("\n");
+  const groupRows = report.m2_evaluation.evaluation_groups.map((group) => `| \`${group.group_id}\` | ${group.group_set} | ${group.measurement_role} | ${group.source_labels.join(", ")} | ${group.expected_outcome} | ${group.expected_conflict_kind ?? "none"} | ${group.mutation_note ?? "none"} |`).join("\n");
   const comparisonConclusion = routeMatrixConclusion(report, "ja");
   const directAudit = report.direct_smt_audit;
   const directAuditConclusion = `Direct SMT residual audit: exact template match ${directAudit.exact_template_match_rate.exact}、named assertion なし ${directAudit.missing_named_assertion_rate.exact}、negated sepsis assertion ${directAudit.negated_sepsis_assertion_rate.exact}。これは admission 判定外の監査情報であり、shared cue layer 下で direct target composition が malformed になることを記録する。`;
@@ -4992,9 +5086,11 @@ evaluation strength: \`${report.m2_evaluation.evaluation_strength}\`。${report.
 
 harness note: ${report.m2_evaluation.harness_change_note}
 
-| group | role | source labels | expected | note |
-| --- | --- | --- | --- | --- |
+| group | set | role | source labels | expected | conflict kind | note |
+| --- | --- | --- | --- | --- | --- | --- |
 ${groupRows}
+
+group audit: \`${report.m3_group_audit.artifact_kind}\` は ${report.m3_group_audit.group_count} groups を確認。pass = ${report.m3_group_audit.all_groups_have_gold_fixture_semantics_and_source_paths}。group sets: ${Object.entries(report.m3_group_audit.group_set_counts).map(([groupSet, count]) => `${groupSet}=${count}`).join(", ")}.
 
 ### Exact route values
 
@@ -5200,6 +5296,7 @@ async function main() {
   const directSmtAudit = buildDirectSmtAudit(metrics.ioRecords);
   const routeTargetSummary = buildRouteTargetSummary(metrics.ioRecords);
   const routeEvaluation = buildRouteEvaluation(metrics.rawRows);
+  const groupAudit = buildGroupAudit();
   const promptCatalog = buildPromptCatalog(metrics.ioRecords);
   const realismAudit = buildRealismAudit({ realGuidelineIntake, sourceCueLayer, promptCatalog });
   const realismAuditHash = sha256(realismAudit);
@@ -5221,6 +5318,7 @@ async function main() {
   await writeJson("metrics/source_cues.json", sourceCueLayer);
   await writeJson("metrics/route_targets.json", routeTargetSummary);
   await writeJson("metrics/route_evaluation.json", routeEvaluation);
+  await writeJson("metrics/group_audit.json", groupAudit);
   await writeJson("metrics/realism_audit.json", realismAudit);
 
   const diagnosticsSummary = {};
@@ -5269,6 +5367,7 @@ async function main() {
     direct_smt_audit: directSmtAudit,
     route_target_summary: routeTargetSummary,
     route_evaluation: routeEvaluation,
+    m3_group_audit: groupAudit,
     prompt_catalog: {
       artifact_kind: promptCatalog.artifact_kind,
       schema_version: promptCatalog.schema_version,
@@ -5297,6 +5396,8 @@ async function main() {
       scaffolded_route_ids: routeEvaluation.scaffolded_route_ids,
       evaluation_groups: routeEvaluation.evaluation_groups,
       holdout_group_ids: routeEvaluation.holdout_group_ids,
+      expanded_group_ids: routeEvaluation.expanded_group_ids,
+      group_set_counts: routeEvaluation.group_set_counts,
       diagnostic_categories: routeEvaluation.diagnostic_categories
     },
     realism_audit: {
@@ -5398,6 +5499,7 @@ async function main() {
     route_target_summary_hash: sha256(routeTargetSummary),
     route_matrix_hash: sha256(metrics.routeMatrix),
     route_evaluation_hash: sha256(routeEvaluation),
+    group_audit_hash: sha256(groupAudit),
     realism_audit_hash: realismAuditHash,
     prompt_catalog_hash: sha256(promptCatalog),
     prompt_template_hashes: Object.fromEntries(promptCatalog.entries.map((entry) => [entry.prompt_id, entry.prompt_hash])),
@@ -5481,6 +5583,7 @@ async function main() {
       "metrics/source_cues.json",
       "metrics/route_targets.json",
       "metrics/route_evaluation.json",
+      "metrics/group_audit.json",
       "metrics/realism_audit.json",
       "prompts/catalog.json",
       ...promptCatalog.entries.map((entry) => entry.prompt_path),
@@ -5520,6 +5623,13 @@ async function main() {
       metrics.rawRows.some((row) => row.group_id === "group.m2_holdout_conflict"),
       metrics.rawRows.every((row) => row.evaluator_id === routeEvaluation.evaluator_id),
       metrics.rawRows.every((row) => Array.isArray(row.diagnostic_categories)),
+      groupAudit.group_count === groups.length,
+      groupAudit.all_groups_have_gold_fixture_semantics_and_source_paths,
+      groupAudit.rows.every((row) => row.audit_pass && row.evidence_quotes.every((quote) => quote.quote_hash?.length === 64)),
+      report.m3_group_audit.all_groups_have_gold_fixture_semantics_and_source_paths,
+      selectedExperimentId !== "exp.m3_routes" || groupAudit.rows.some((row) => row.group_set === "m3_expanded_group"),
+      selectedExperimentId !== "exp.m3_routes" || groupAudit.rows.some((row) => row.group_set === "m3_metamorphic_group"),
+      selectedExperimentId !== "exp.m3_routes" || routeEvaluation.expanded_group_ids.length >= 4,
       realGuidelineIntake.source_count >= 2,
       realGuidelineIntake.candidate_span_count >= 6,
       realGuidelineIntake.admitted_candidate_rule_count >= 4,

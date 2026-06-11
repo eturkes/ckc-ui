@@ -31,6 +31,54 @@
       "authority": "source_authority",
       "provenance": "synthetic_holdout_mutation",
       "role": "m2_holdout_contraindication_source"
+    },
+    {
+      "id": "fixture.m3_guideline_a_metamorphic",
+      "path": "corpus/fixtures/fixture-m3-guideline-a-metamorphic.html",
+      "origin": "ai_generated",
+      "authority": "source_authority",
+      "provenance": "synthetic_metamorphic_variant",
+      "role": "m3_metamorphic_recommendation_source"
+    },
+    {
+      "id": "fixture.m3_guideline_b_metamorphic",
+      "path": "corpus/fixtures/fixture-m3-guideline-b-metamorphic.html",
+      "origin": "ai_generated",
+      "authority": "source_authority",
+      "provenance": "synthetic_metamorphic_variant",
+      "role": "m3_metamorphic_contraindication_source"
+    },
+    {
+      "id": "fixture.m3_threshold_adult",
+      "path": "corpus/fixtures/fixture-m3-threshold-adult.html",
+      "origin": "ai_generated",
+      "authority": "source_authority",
+      "provenance": "synthetic_m3_expansion",
+      "role": "m3_threshold_adult_source"
+    },
+    {
+      "id": "fixture.m3_threshold_child",
+      "path": "corpus/fixtures/fixture-m3-threshold-child.html",
+      "origin": "ai_generated",
+      "authority": "source_authority",
+      "provenance": "synthetic_m3_expansion",
+      "role": "m3_threshold_child_source"
+    },
+    {
+      "id": "fixture.m3_factual_positive",
+      "path": "corpus/fixtures/fixture-m3-factual-positive.html",
+      "origin": "ai_generated",
+      "authority": "source_authority",
+      "provenance": "synthetic_m3_expansion",
+      "role": "m3_factual_positive_source"
+    },
+    {
+      "id": "fixture.m3_factual_negative",
+      "path": "corpus/fixtures/fixture-m3-factual-negative.html",
+      "origin": "ai_generated",
+      "authority": "source_authority",
+      "provenance": "synthetic_m3_expansion",
+      "role": "m3_factual_negative_source"
     }
   ],
   "real_guideline_registry": "corpus/real_guidelines/japanese_guidelines.json",

@@ -42,8 +42,8 @@
     {
       "id": "exp.m3_routes",
       "basis": "exp.m2_lift",
-      "comparison_scope": "frozen_route_registry_implemented_routes",
-      "route_registry_status": "includes implemented route.stacked_ir, route.ir_hop_chain, and route.ckc_layered over the frozen M2 evaluation groups",
+      "comparison_scope": "frozen_route_registry_implemented_routes_with_m3_fixture_expansion",
+      "route_registry_status": "includes implemented route.stacked_ir, route.ir_hop_chain, and route.ckc_layered over original M1 groups, the M2 holdout, and M3 expanded synthetic/metamorphic groups",
       "routes": [
         "route.direct_smt",
         "route.single_ir",
@@ -67,6 +67,36 @@
           "fixtures": ["fixture.m1_guideline_a", "fixture.m2_guideline_d"],
           "measurement_role": "holdout_mutation_conflict",
           "mutation_note": "Contraindication source uses a new fixture label and phrasing with 禁忌とする instead of the original 投与しないこと sentence."
+        },
+        {
+          "id": "group.m3_metamorphic_conflict",
+          "fixtures": ["fixture.m3_guideline_a_metamorphic", "fixture.m3_guideline_b_metamorphic"],
+          "measurement_role": "m3_metamorphic_conflict",
+          "mutation_note": "Deterministic punctuation, section-order, and word-order variants preserve the original A/B deontic conflict."
+        },
+        {
+          "id": "group.m3_metamorphic_null",
+          "fixtures": ["fixture.m3_guideline_a_metamorphic", "fixture.m1_control"],
+          "measurement_role": "m3_metamorphic_null",
+          "mutation_note": "A2 preserves the A adult recommendation while the control source remains age-disjoint."
+        },
+        {
+          "id": "group.m3_threshold_conflict",
+          "fixtures": ["fixture.m3_threshold_adult", "fixture.m3_threshold_child"],
+          "measurement_role": "m3_threshold_conflict",
+          "mutation_note": "Toy-schema threshold pressure: same action and direction are asserted over disjoint age intervals."
+        },
+        {
+          "id": "group.m3_factual_conflict",
+          "fixtures": ["fixture.m3_factual_positive", "fixture.m3_factual_negative"],
+          "measurement_role": "m3_factual_conflict",
+          "mutation_note": "Toy-schema factual pressure: the same pregnancy high-risk predicate is asserted true and false."
+        },
+        {
+          "id": "group.m3_terminology_incoherence",
+          "fixtures": ["fixture.m3_factual_positive", "fixture.m3_factual_negative"],
+          "measurement_role": "m3_terminology_incoherence",
+          "mutation_note": "Toy-schema terminology pressure: the shared mention 妊娠中 maps to incompatible concept identifiers across the pair."
         }
       ],
       "sample_seeds": [11, 22, 33]

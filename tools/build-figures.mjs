@@ -296,6 +296,21 @@ function compiledRouteSummaries(report) {
   return report.route_target_summary?.routes ?? [];
 }
 
+function groupSetSummary(report) {
+  const counts = report.m2_evaluation?.group_set_counts ?? {};
+  const labels = {
+    original_m1_group: "M1",
+    m2_holdout_group: "M2 holdout",
+    m3_metamorphic_group: "M3 metamorphic",
+    m3_expanded_group: "M3 expanded",
+    route_evaluation_group: "route eval"
+  };
+  const parts = Object.entries(counts)
+    .filter(([, count]) => count > 0)
+    .map(([groupSet, count]) => `${labels[groupSet] ?? groupSet}: ${count}`);
+  return parts.length > 0 ? parts.join("; ") : "route evaluation groups";
+}
+
 function buildRouteMechanicsFigure(report) {
   const shapes = [];
   const baselineId = baselineRouteId(report);
@@ -320,7 +335,7 @@ function buildRouteMechanicsFigure(report) {
     title: "Fixture evidence",
     accent: colors.blue,
     lines: [
-      "Groups: conflict, null, holdout conflict.",
+      `Groups: ${groupSetSummary(report)}.`,
       "Gold verdicts and source spans remain fixed."
     ],
     badge: { label: "input", w: 82, fill: "#eef3fb", stroke: "#b8c8e6", textFill: colors.blue }

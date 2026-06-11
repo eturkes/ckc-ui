@@ -142,7 +142,7 @@ Gate:
 - `npm run verify:figures`
 
 ### C6 M3 Fixture And Mutation Expansion
-status: pending
+status: done
 
 Intent: make the route comparison less fixture-bound by adding reuse pressure
 and metamorphic variants.

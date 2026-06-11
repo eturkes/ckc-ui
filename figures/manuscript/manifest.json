@@ -1,7 +1,7 @@
 {
   "artifact_kind": "ManuscriptFigureManifest",
   "bundle_pdf_export": "deterministic_pdf_writer_v0",
-  "bundle_pdf_hash": "1ddc47b71a992424d1ae6a3fa921247dc209a899ec32ecaf336b55afa3189491",
+  "bundle_pdf_hash": "c445091b83d8fd85748dab6d460610d50e1dae017c2da73c617f31c5285027e6",
   "bundle_pdf_page_count": 4,
   "bundle_pdf_path": "manuscript_figures.pdf",
   "figure_count": 4,
@@ -11,7 +11,7 @@
       "figure_id": "fig01_route_mechanics",
       "pdf_export": "deterministic_pdf_writer_v0",
       "pdf_path": "fig01_route_mechanics.pdf",
-      "svg_hash": "e2f3c75a06606b928c18a439e2799bf60406b56baf12a6e43a477c15a5f161e2",
+      "svg_hash": "5eadcaaac6941cd70a8c606c89c7e1c173820510756d9ad0ab2da20f37de0992",
       "svg_path": "fig01_route_mechanics.svg",
       "title": "Route mechanics and evidence boundaries"
     },
@@ -20,7 +20,7 @@
       "figure_id": "fig02_route_metrics",
       "pdf_export": "deterministic_pdf_writer_v0",
       "pdf_path": "fig02_route_metrics.pdf",
-      "svg_hash": "b09693b1b39615444aef925a17b7f4dd3e6e8a7ec441615e4cefabe122d666b2",
+      "svg_hash": "d54ec2f2f740626aedc9c0937b0b4b6d1e21923ad4cfac45c42271cee7bc968a",
       "svg_path": "fig02_route_metrics.svg",
       "title": "Route matrix metrics"
     },
@@ -29,7 +29,7 @@
       "figure_id": "fig03_failure_taxonomy",
       "pdf_export": "deterministic_pdf_writer_v0",
       "pdf_path": "fig03_failure_taxonomy.pdf",
-      "svg_hash": "c50802c1c6b2396f72966e11c3cd54388dffac397084fdfc1c141721a457cc3d",
+      "svg_hash": "aac2a9ea69753f9f050d5319343d163b8c2d89f476ee3b1683bbd7710c3a74a4",
       "svg_path": "fig03_failure_taxonomy.svg",
       "title": "Failure taxonomy by route"
     },
@@ -46,6 +46,6 @@
   "generated_by": "tools/build-figures.mjs",
   "output_dir": "figures/manuscript",
   "schema_version": "manuscript_figures.v0",
-  "source_report_hash": "d20c26fff431558db3e36982957c834d1f70d21842f29c496a44796ac50d998f",
+  "source_report_hash": "607cd9da2537f520bf23ab42e090b750d0615aa32054d466190d77547d766d30",
   "source_report_path": "runs/m3-routes/report.json"
 }
