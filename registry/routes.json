@@ -9,7 +9,7 @@
     },
     {
       "id": "route.single_ir",
-      "shape": "weak local model maps source-derived evidence flags to source-keyed CKC IR rule fields with no verdict field; deterministic bridge computes verdict only after admission checks",
+      "shape": "weak local model maps source Japanese spans plus a literal primary-direction cue to source-keyed CKC IR rule fields with no verdict field; deterministic bridge computes verdict only after admission checks",
       "runtime": "project-local llama.cpp subprocess via tools/setup-local-model.mjs",
       "default_model": "Qwen2.5-1.5B-Instruct Q4_K_M GGUF",
       "live_model": true

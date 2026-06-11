@@ -547,19 +547,11 @@ function sourceCaseForLabel(label) {
   };
 }
 
-function sourceEvidenceFlags(sourceCase) {
-  const primary = sourceCase.primary;
-  const exception = sourceCase.exception ?? "";
-  return {
-    has_recommend: /推奨する/.test(primary),
-    has_contra: /投与しないこと|禁忌/.test(primary),
-    has_adult: /成人|18歳以上/.test(primary),
-    has_child: /小児|18歳未満/.test(primary),
-    has_sepsis: /敗血症/.test(primary),
-    has_pregnancy: /妊娠中/.test(primary),
-    has_renal_exception: /重度腎機能障害/.test(exception),
-    has_abx_a: /抗菌薬A/.test(primary)
-  };
+function primaryDirectionCue(primary) {
+  if (/推奨する/.test(primary)) return "推奨する";
+  if (/投与しないこと/.test(primary)) return "投与しないこと";
+  if (/禁忌/.test(primary)) return "禁忌";
+  return "none";
 }
 
 function irRuleJsonSchema() {
@@ -599,21 +591,23 @@ function jsonSchemaForRoute(routeId, groupId, sourceLabel = null) {
 
 function promptForSingleIrSource(label) {
   const sourceCase = sourceCaseForLabel(label);
-  const flags = sourceEvidenceFlags(sourceCase);
-  const flagText = Object.entries(flags)
-    .map(([key, value]) => `${key}=${value}`)
-    .join("; ");
   return [
-    "Task: convert evidence flags into one CKC IR JSON row.",
-    "Output only JSON. Do not infer any field not shown by the evidence flags.",
+    "Task: extract one CKC IR JSON row from the provided Japanese source span.",
+    "Output only JSON. Do not decide whether any source pair conflicts.",
     `source label: ${label}`,
     `primary sentence: ${sourceCase.primary}`,
     `exception sentence: ${sourceCase.exception ?? "none"}`,
-    `evidence flags: ${flagText}`,
-    "Use these exact conversions:",
-    "has_recommend=true means direction \"for\". has_contra=true means direction \"contraindicate\". If both are false, direction \"unknown\". The exception sentence never changes direction.",
-    "has_adult=true means age \"adult\". has_child=true means age \"child\". If both are false, age \"unknown\".",
-    "action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception."
+    `primary direction cue: ${primaryDirectionCue(sourceCase.primary)}`,
+    "Field meanings:",
+    "Choose direction from the primary sentence only.",
+    "If the primary sentence contains 推奨する, direction is for even when the exception sentence contains 除く.",
+    "推奨する => direction for.",
+    "投与しないこと or 禁忌 => direction contraindicate.",
+    "成人 or 18歳以上 => age adult. 小児 or 18歳未満 => age child.",
+    "敗血症 => sepsis true. 妊娠中 => pregnancy true.",
+    "重度腎機能障害 plus 除く in the exception sentence => renal_severe_exception true.",
+    "A rule about 抗菌薬A administration has action_abx_a true, including 投与しないこと and 禁忌 rules.",
+    "The exception sentence never changes direction."
   ].join("\n");
 }
 
@@ -647,8 +641,8 @@ function promptFor(routeId, groupId, seed) {
     "投与しないこと or 禁忌 => direction contraindicate.",
     "成人 or 18歳以上 => age adult. 小児 or 18歳未満 => age child.",
     "敗血症 => sepsis true. 妊娠中 => pregnancy true.",
-    "重度腎機能障害 in an exception sentence => renal_severe_exception true.",
-    "A recommendation about 抗菌薬A administration => action_abx_a true, even when the direction forbids administration."
+    "重度腎機能障害 plus 除く in an exception sentence => renal_severe_exception true for that source.",
+    "Any source rule about 抗菌薬A administration has action_abx_a true, including 投与しないこと and 禁忌 rules."
   ].join("\n");
 }
 
@@ -1720,9 +1714,11 @@ async function main() {
           metrics.ioRecords.every((record) => record.response_hash && record.response_hash.length === 64),
           direct.admission_rate.exact === "0/6",
           direct.admitted_verdict_accuracy.exact === "0/6",
-          single.admission_rate.exact === "6/6",
-          single.admitted_verdict_accuracy.exact === "6/6",
-          single.k_sample_stability.exact === "2/2"
+          single.target_syntax_validity.exact === "6/6",
+          single.admission_rate.exact === "0/6",
+          single.admitted_verdict_accuracy.exact === "0/6",
+          single.candidate_verdict_accuracy.exact === "3/6",
+          single.k_sample_stability.exact === "0/2"
         ]
       : [
           report.model_mode === "recorded_unsupported",
@@ -1749,6 +1745,7 @@ async function main() {
     null_results: report.null_results.length,
     direct_smt_admitted_accuracy: metrics.routeMetrics.find((entry) => entry.route_id === "route.direct_smt").admitted_verdict_accuracy.exact,
     single_ir_admitted_accuracy: metrics.routeMetrics.find((entry) => entry.route_id === "route.single_ir").admitted_verdict_accuracy.exact,
+    single_ir_candidate_accuracy: metrics.routeMetrics.find((entry) => entry.route_id === "route.single_ir").candidate_verdict_accuracy.exact,
     verified: verifyMode
   }, null, 2));
 }

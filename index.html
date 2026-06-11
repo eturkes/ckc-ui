@@ -69,9 +69,9 @@
       <div class="grid">
         <div class="metric"><strong>1</strong><span>finding: deontic_direction_conflict</span></div>
         <div class="metric"><strong>1</strong><span>null result: age_intervals_disjoint</span></div>
-        <div class="metric"><strong>0/6 -&gt; 6/6</strong><span>admitted verdict accuracy</span></div>
+        <div class="metric"><strong>0/6 -&gt; 0/6</strong><span>admitted verdict accuracy</span></div>
       </div>
-      <p>IR route admitted 6/6; admitted accuracy 6/6.</p>
+      <p>IR route produced no admitted rows; rejected candidate verdicts are audit data only.</p>
     </section>
 
     <section>
@@ -98,10 +98,10 @@
           <tr>
             <td><code>route.single_ir</code></td>
             <td>6/6</td>
-            <td>6/6</td>
-            <td>6/6</td>
-            <td>6/6</td>
-            <td>2/2</td>
+            <td>0/6</td>
+            <td>0/6</td>
+            <td>3/6</td>
+            <td>0/2</td>
           </tr>
           </tbody>
         </table>
@@ -185,66 +185,66 @@
             <td><code>group.m1_conflict</code></td>
             <td>11</td>
             <td>yes</td>
-            <td>yes</td>
-            <td>semantic_contradiction</td>
-            <td>yes</td>
-            <td>yes</td>
-            <td>none</td>
+            <td>no</td>
+            <td>semantic_no_conflict</td>
+            <td>no</td>
+            <td>no</td>
+            <td>ai_hallucinated_source, false_negative_conflict</td>
           </tr>
           <tr>
             <td><code>route.single_ir</code></td>
             <td><code>group.m1_null</code></td>
             <td>11</td>
             <td>yes</td>
-            <td>yes</td>
+            <td>no</td>
             <td>semantic_no_conflict</td>
+            <td>no</td>
             <td>yes</td>
-            <td>yes</td>
-            <td>none</td>
+            <td>ai_hallucinated_source</td>
           </tr>
           <tr>
             <td><code>route.single_ir</code></td>
             <td><code>group.m1_conflict</code></td>
             <td>22</td>
             <td>yes</td>
-            <td>yes</td>
-            <td>semantic_contradiction</td>
-            <td>yes</td>
-            <td>yes</td>
-            <td>none</td>
+            <td>no</td>
+            <td>semantic_no_conflict</td>
+            <td>no</td>
+            <td>no</td>
+            <td>ai_hallucinated_source, false_negative_conflict</td>
           </tr>
           <tr>
             <td><code>route.single_ir</code></td>
             <td><code>group.m1_null</code></td>
             <td>22</td>
             <td>yes</td>
-            <td>yes</td>
+            <td>no</td>
             <td>semantic_no_conflict</td>
+            <td>no</td>
             <td>yes</td>
-            <td>yes</td>
-            <td>none</td>
+            <td>ai_hallucinated_source</td>
           </tr>
           <tr>
             <td><code>route.single_ir</code></td>
             <td><code>group.m1_conflict</code></td>
             <td>33</td>
             <td>yes</td>
-            <td>yes</td>
-            <td>semantic_contradiction</td>
-            <td>yes</td>
-            <td>yes</td>
-            <td>none</td>
+            <td>no</td>
+            <td>semantic_no_conflict</td>
+            <td>no</td>
+            <td>no</td>
+            <td>ai_hallucinated_source, false_negative_conflict</td>
           </tr>
           <tr>
             <td><code>route.single_ir</code></td>
             <td><code>group.m1_null</code></td>
             <td>33</td>
             <td>yes</td>
-            <td>yes</td>
+            <td>no</td>
             <td>semantic_no_conflict</td>
+            <td>no</td>
             <td>yes</td>
-            <td>yes</td>
-            <td>none</td>
+            <td>ai_hallucinated_source</td>
           </tr>
           </tbody>
         </table>
@@ -637,40 +637,52 @@ End with (check-sat).</pre>
   &quot;verdict_correct&quot;: false
 }</pre>
         </details>        <details>
-          <summary><code>route.single_ir</code> / <code>group.m1_conflict</code> / seed 11 / admitted</summary>
+          <summary><code>route.single_ir</code> / <code>group.m1_conflict</code> / seed 11 / not admitted</summary>
           <h3>Prompt</h3>
           <pre># source A
-Task: convert evidence flags into one CKC IR JSON row.
-Output only JSON. Do not infer any field not shown by the evidence flags.
+Task: extract one CKC IR JSON row from the provided Japanese source span.
+Output only JSON. Do not decide whether any source pair conflicts.
 source label: A
 primary sentence: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
 exception sentence: ただし、重度腎機能障害のある患者を除く。
-evidence flags: has_recommend=true; has_contra=false; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=false; has_renal_exception=true; has_abx_a=true
-Use these exact conversions:
-has_recommend=true means direction &quot;for&quot;. has_contra=true means direction &quot;contraindicate&quot;. If both are false, direction &quot;unknown&quot;. The exception sentence never changes direction.
-has_adult=true means age &quot;adult&quot;. has_child=true means age &quot;child&quot;. If both are false, age &quot;unknown&quot;.
-action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.
+primary direction cue: 推奨する
+Field meanings:
+Choose direction from the primary sentence only.
+If the primary sentence contains 推奨する, direction is for even when the exception sentence contains 除く.
+推奨する =&gt; direction for.
+投与しないこと or 禁忌 =&gt; direction contraindicate.
+成人 or 18歳以上 =&gt; age adult. 小児 or 18歳未満 =&gt; age child.
+敗血症 =&gt; sepsis true. 妊娠中 =&gt; pregnancy true.
+重度腎機能障害 plus 除く in the exception sentence =&gt; renal_severe_exception true.
+A rule about 抗菌薬A administration has action_abx_a true, including 投与しないこと and 禁忌 rules.
+The exception sentence never changes direction.
 
 # source B
-Task: convert evidence flags into one CKC IR JSON row.
-Output only JSON. Do not infer any field not shown by the evidence flags.
+Task: extract one CKC IR JSON row from the provided Japanese source span.
+Output only JSON. Do not decide whether any source pair conflicts.
 source label: B
 primary sentence: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。
 exception sentence: none
-evidence flags: has_recommend=false; has_contra=true; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=true; has_renal_exception=false; has_abx_a=true
-Use these exact conversions:
-has_recommend=true means direction &quot;for&quot;. has_contra=true means direction &quot;contraindicate&quot;. If both are false, direction &quot;unknown&quot;. The exception sentence never changes direction.
-has_adult=true means age &quot;adult&quot;. has_child=true means age &quot;child&quot;. If both are false, age &quot;unknown&quot;.
-action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.</pre>
+primary direction cue: 投与しないこと
+Field meanings:
+Choose direction from the primary sentence only.
+If the primary sentence contains 推奨する, direction is for even when the exception sentence contains 除く.
+推奨する =&gt; direction for.
+投与しないこと or 禁忌 =&gt; direction contraindicate.
+成人 or 18歳以上 =&gt; age adult. 小児 or 18歳未満 =&gt; age child.
+敗血症 =&gt; sepsis true. 妊娠中 =&gt; pregnancy true.
+重度腎機能障害 plus 除く in the exception sentence =&gt; renal_severe_exception true.
+A rule about 抗菌薬A administration has action_abx_a true, including 投与しないこと and 禁忌 rules.
+The exception sentence never changes direction.</pre>
           <h3>Source-local calls</h3>
           <pre>{
   &quot;label&quot;: &quot;A&quot;,
-  &quot;prompt&quot;: &quot;Task: convert evidence flags into one CKC IR JSON row.\nOutput only JSON. Do not infer any field not shown by the evidence flags.\nsource label: A\nprimary sentence: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nexception sentence: ただし、重度腎機能障害のある患者を除く。\nevidence flags: has_recommend=true; has_contra=false; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=false; has_renal_exception=true; has_abx_a=true\nUse these exact conversions:\nhas_recommend=true means direction \&quot;for\&quot;. has_contra=true means direction \&quot;contraindicate\&quot;. If both are false, direction \&quot;unknown\&quot;. The exception sentence never changes direction.\nhas_adult=true means age \&quot;adult\&quot;. has_child=true means age \&quot;child\&quot;. If both are false, age \&quot;unknown\&quot;.\naction_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.&quot;,
-  &quot;response&quot;: &quot;{\n  \&quot;direction\&quot;: \&quot;for\&quot;,\n  \&quot;action_abx_a\&quot;: true,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;sepsis\&quot;: true,\n  \&quot;pregnancy\&quot;: false,\n  \&quot;renal_severe_exception\&quot;: true\n}&quot;
+  &quot;prompt&quot;: &quot;Task: extract one CKC IR JSON row from the provided Japanese source span.\nOutput only JSON. Do not decide whether any source pair conflicts.\nsource label: A\nprimary sentence: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nexception sentence: ただし、重度腎機能障害のある患者を除く。\nprimary direction cue: 推奨する\nField meanings:\nChoose direction from the primary sentence only.\nIf the primary sentence contains 推奨する, direction is for even when the exception sentence contains 除く.\n推奨する =&gt; direction for.\n投与しないこと or 禁忌 =&gt; direction contraindicate.\n成人 or 18歳以上 =&gt; age adult. 小児 or 18歳未満 =&gt; age child.\n敗血症 =&gt; sepsis true. 妊娠中 =&gt; pregnancy true.\n重度腎機能障害 plus 除く in the exception sentence =&gt; renal_severe_exception true.\nA rule about 抗菌薬A administration has action_abx_a true, including 投与しないこと and 禁忌 rules.\nThe exception sentence never changes direction.&quot;,
+  &quot;response&quot;: &quot;{\n  \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n  \&quot;action_abx_a\&quot;: true,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;sepsis\&quot;: true,\n  \&quot;pregnancy\&quot;: false,\n  \&quot;renal_severe_exception\&quot;: true\n}&quot;
 }</pre>
           <pre>{
   &quot;label&quot;: &quot;B&quot;,
-  &quot;prompt&quot;: &quot;Task: convert evidence flags into one CKC IR JSON row.\nOutput only JSON. Do not infer any field not shown by the evidence flags.\nsource label: B\nprimary sentence: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。\nexception sentence: none\nevidence flags: has_recommend=false; has_contra=true; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=true; has_renal_exception=false; has_abx_a=true\nUse these exact conversions:\nhas_recommend=true means direction \&quot;for\&quot;. has_contra=true means direction \&quot;contraindicate\&quot;. If both are false, direction \&quot;unknown\&quot;. The exception sentence never changes direction.\nhas_adult=true means age \&quot;adult\&quot;. has_child=true means age \&quot;child\&quot;. If both are false, age \&quot;unknown\&quot;.\naction_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.&quot;,
+  &quot;prompt&quot;: &quot;Task: extract one CKC IR JSON row from the provided Japanese source span.\nOutput only JSON. Do not decide whether any source pair conflicts.\nsource label: B\nprimary sentence: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。\nexception sentence: none\nprimary direction cue: 投与しないこと\nField meanings:\nChoose direction from the primary sentence only.\nIf the primary sentence contains 推奨する, direction is for even when the exception sentence contains 除く.\n推奨する =&gt; direction for.\n投与しないこと or 禁忌 =&gt; direction contraindicate.\n成人 or 18歳以上 =&gt; age adult. 小児 or 18歳未満 =&gt; age child.\n敗血症 =&gt; sepsis true. 妊娠中 =&gt; pregnancy true.\n重度腎機能障害 plus 除く in the exception sentence =&gt; renal_severe_exception true.\nA rule about 抗菌薬A administration has action_abx_a true, including 投与しないこと and 禁忌 rules.\nThe exception sentence never changes direction.&quot;,
   &quot;response&quot;: &quot;{\n  \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n  \&quot;action_abx_a\&quot;: true,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;sepsis\&quot;: true,\n  \&quot;pregnancy\&quot;: true,\n  \&quot;renal_severe_exception\&quot;: false\n}&quot;
 }</pre>
           <h3>Response</h3>
@@ -678,7 +690,7 @@ action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_
   &quot;A&quot;: {
     &quot;action_abx_a&quot;: true,
     &quot;age&quot;: &quot;adult&quot;,
-    &quot;direction&quot;: &quot;for&quot;,
+    &quot;direction&quot;: &quot;contraindicate&quot;,
     &quot;pregnancy&quot;: false,
     &quot;renal_severe_exception&quot;: true,
     &quot;sepsis&quot;: true
@@ -694,52 +706,67 @@ action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_
 }</pre>
           <h3>Scored row</h3>
           <pre>{
-  &quot;admitted&quot;: true,
-  &quot;candidate_verdict_correct&quot;: true,
-  &quot;diagnostics&quot;: [],
+  &quot;admitted&quot;: false,
+  &quot;candidate_verdict_correct&quot;: false,
+  &quot;diagnostics&quot;: [
+    &quot;ai_hallucinated_source&quot;,
+    &quot;false_negative_conflict&quot;
+  ],
   &quot;expected&quot;: &quot;semantic_contradiction&quot;,
   &quot;group_id&quot;: &quot;group.m1_conflict&quot;,
   &quot;route_id&quot;: &quot;route.single_ir&quot;,
   &quot;seed&quot;: 11,
   &quot;syntax_valid&quot;: true,
-  &quot;verdict&quot;: &quot;semantic_contradiction&quot;,
-  &quot;verdict_correct&quot;: true
+  &quot;verdict&quot;: &quot;semantic_no_conflict&quot;,
+  &quot;verdict_correct&quot;: false
 }</pre>
         </details>        <details>
-          <summary><code>route.single_ir</code> / <code>group.m1_null</code> / seed 11 / admitted</summary>
+          <summary><code>route.single_ir</code> / <code>group.m1_null</code> / seed 11 / not admitted</summary>
           <h3>Prompt</h3>
           <pre># source A
-Task: convert evidence flags into one CKC IR JSON row.
-Output only JSON. Do not infer any field not shown by the evidence flags.
+Task: extract one CKC IR JSON row from the provided Japanese source span.
+Output only JSON. Do not decide whether any source pair conflicts.
 source label: A
 primary sentence: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
 exception sentence: ただし、重度腎機能障害のある患者を除く。
-evidence flags: has_recommend=true; has_contra=false; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=false; has_renal_exception=true; has_abx_a=true
-Use these exact conversions:
-has_recommend=true means direction &quot;for&quot;. has_contra=true means direction &quot;contraindicate&quot;. If both are false, direction &quot;unknown&quot;. The exception sentence never changes direction.
-has_adult=true means age &quot;adult&quot;. has_child=true means age &quot;child&quot;. If both are false, age &quot;unknown&quot;.
-action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.
+primary direction cue: 推奨する
+Field meanings:
+Choose direction from the primary sentence only.
+If the primary sentence contains 推奨する, direction is for even when the exception sentence contains 除く.
+推奨する =&gt; direction for.
+投与しないこと or 禁忌 =&gt; direction contraindicate.
+成人 or 18歳以上 =&gt; age adult. 小児 or 18歳未満 =&gt; age child.
+敗血症 =&gt; sepsis true. 妊娠中 =&gt; pregnancy true.
+重度腎機能障害 plus 除く in the exception sentence =&gt; renal_severe_exception true.
+A rule about 抗菌薬A administration has action_abx_a true, including 投与しないこと and 禁忌 rules.
+The exception sentence never changes direction.
 
 # source C
-Task: convert evidence flags into one CKC IR JSON row.
-Output only JSON. Do not infer any field not shown by the evidence flags.
+Task: extract one CKC IR JSON row from the provided Japanese source span.
+Output only JSON. Do not decide whether any source pair conflicts.
 source label: C
 primary sentence: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。
 exception sentence: none
-evidence flags: has_recommend=false; has_contra=true; has_adult=false; has_child=true; has_sepsis=true; has_pregnancy=false; has_renal_exception=false; has_abx_a=true
-Use these exact conversions:
-has_recommend=true means direction &quot;for&quot;. has_contra=true means direction &quot;contraindicate&quot;. If both are false, direction &quot;unknown&quot;. The exception sentence never changes direction.
-has_adult=true means age &quot;adult&quot;. has_child=true means age &quot;child&quot;. If both are false, age &quot;unknown&quot;.
-action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.</pre>
+primary direction cue: 禁忌
+Field meanings:
+Choose direction from the primary sentence only.
+If the primary sentence contains 推奨する, direction is for even when the exception sentence contains 除く.
+推奨する =&gt; direction for.
+投与しないこと or 禁忌 =&gt; direction contraindicate.
+成人 or 18歳以上 =&gt; age adult. 小児 or 18歳未満 =&gt; age child.
+敗血症 =&gt; sepsis true. 妊娠中 =&gt; pregnancy true.
+重度腎機能障害 plus 除く in the exception sentence =&gt; renal_severe_exception true.
+A rule about 抗菌薬A administration has action_abx_a true, including 投与しないこと and 禁忌 rules.
+The exception sentence never changes direction.</pre>
           <h3>Source-local calls</h3>
           <pre>{
   &quot;label&quot;: &quot;A&quot;,
-  &quot;prompt&quot;: &quot;Task: convert evidence flags into one CKC IR JSON row.\nOutput only JSON. Do not infer any field not shown by the evidence flags.\nsource label: A\nprimary sentence: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nexception sentence: ただし、重度腎機能障害のある患者を除く。\nevidence flags: has_recommend=true; has_contra=false; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=false; has_renal_exception=true; has_abx_a=true\nUse these exact conversions:\nhas_recommend=true means direction \&quot;for\&quot;. has_contra=true means direction \&quot;contraindicate\&quot;. If both are false, direction \&quot;unknown\&quot;. The exception sentence never changes direction.\nhas_adult=true means age \&quot;adult\&quot;. has_child=true means age \&quot;child\&quot;. If both are false, age \&quot;unknown\&quot;.\naction_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.&quot;,
-  &quot;response&quot;: &quot;{\n  \&quot;direction\&quot;: \&quot;for\&quot;,\n  \&quot;action_abx_a\&quot;: true,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;sepsis\&quot;: true,\n  \&quot;pregnancy\&quot;: false,\n  \&quot;renal_severe_exception\&quot;: true\n}&quot;
+  &quot;prompt&quot;: &quot;Task: extract one CKC IR JSON row from the provided Japanese source span.\nOutput only JSON. Do not decide whether any source pair conflicts.\nsource label: A\nprimary sentence: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nexception sentence: ただし、重度腎機能障害のある患者を除く。\nprimary direction cue: 推奨する\nField meanings:\nChoose direction from the primary sentence only.\nIf the primary sentence contains 推奨する, direction is for even when the exception sentence contains 除く.\n推奨する =&gt; direction for.\n投与しないこと or 禁忌 =&gt; direction contraindicate.\n成人 or 18歳以上 =&gt; age adult. 小児 or 18歳未満 =&gt; age child.\n敗血症 =&gt; sepsis true. 妊娠中 =&gt; pregnancy true.\n重度腎機能障害 plus 除く in the exception sentence =&gt; renal_severe_exception true.\nA rule about 抗菌薬A administration has action_abx_a true, including 投与しないこと and 禁忌 rules.\nThe exception sentence never changes direction.&quot;,
+  &quot;response&quot;: &quot;{\n  \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n  \&quot;action_abx_a\&quot;: true,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;sepsis\&quot;: true,\n  \&quot;pregnancy\&quot;: false,\n  \&quot;renal_severe_exception\&quot;: true\n}&quot;
 }</pre>
           <pre>{
   &quot;label&quot;: &quot;C&quot;,
-  &quot;prompt&quot;: &quot;Task: convert evidence flags into one CKC IR JSON row.\nOutput only JSON. Do not infer any field not shown by the evidence flags.\nsource label: C\nprimary sentence: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。\nexception sentence: none\nevidence flags: has_recommend=false; has_contra=true; has_adult=false; has_child=true; has_sepsis=true; has_pregnancy=false; has_renal_exception=false; has_abx_a=true\nUse these exact conversions:\nhas_recommend=true means direction \&quot;for\&quot;. has_contra=true means direction \&quot;contraindicate\&quot;. If both are false, direction \&quot;unknown\&quot;. The exception sentence never changes direction.\nhas_adult=true means age \&quot;adult\&quot;. has_child=true means age \&quot;child\&quot;. If both are false, age \&quot;unknown\&quot;.\naction_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.&quot;,
+  &quot;prompt&quot;: &quot;Task: extract one CKC IR JSON row from the provided Japanese source span.\nOutput only JSON. Do not decide whether any source pair conflicts.\nsource label: C\nprimary sentence: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。\nexception sentence: none\nprimary direction cue: 禁忌\nField meanings:\nChoose direction from the primary sentence only.\nIf the primary sentence contains 推奨する, direction is for even when the exception sentence contains 除く.\n推奨する =&gt; direction for.\n投与しないこと or 禁忌 =&gt; direction contraindicate.\n成人 or 18歳以上 =&gt; age adult. 小児 or 18歳未満 =&gt; age child.\n敗血症 =&gt; sepsis true. 妊娠中 =&gt; pregnancy true.\n重度腎機能障害 plus 除く in the exception sentence =&gt; renal_severe_exception true.\nA rule about 抗菌薬A administration has action_abx_a true, including 投与しないこと and 禁忌 rules.\nThe exception sentence never changes direction.&quot;,
   &quot;response&quot;: &quot;{\n  \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n  \&quot;action_abx_a\&quot;: true,\n  \&quot;age\&quot;: \&quot;child\&quot;,\n  \&quot;sepsis\&quot;: true,\n  \&quot;pregnancy\&quot;: false,\n  \&quot;renal_severe_exception\&quot;: false\n}&quot;
 }</pre>
           <h3>Response</h3>
@@ -747,7 +774,7 @@ action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_
   &quot;A&quot;: {
     &quot;action_abx_a&quot;: true,
     &quot;age&quot;: &quot;adult&quot;,
-    &quot;direction&quot;: &quot;for&quot;,
+    &quot;direction&quot;: &quot;contraindicate&quot;,
     &quot;pregnancy&quot;: false,
     &quot;renal_severe_exception&quot;: true,
     &quot;sepsis&quot;: true
@@ -763,52 +790,66 @@ action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_
 }</pre>
           <h3>Scored row</h3>
           <pre>{
-  &quot;admitted&quot;: true,
+  &quot;admitted&quot;: false,
   &quot;candidate_verdict_correct&quot;: true,
-  &quot;diagnostics&quot;: [],
+  &quot;diagnostics&quot;: [
+    &quot;ai_hallucinated_source&quot;
+  ],
   &quot;expected&quot;: &quot;semantic_no_conflict&quot;,
   &quot;group_id&quot;: &quot;group.m1_null&quot;,
   &quot;route_id&quot;: &quot;route.single_ir&quot;,
   &quot;seed&quot;: 11,
   &quot;syntax_valid&quot;: true,
   &quot;verdict&quot;: &quot;semantic_no_conflict&quot;,
-  &quot;verdict_correct&quot;: true
+  &quot;verdict_correct&quot;: false
 }</pre>
         </details>        <details>
-          <summary><code>route.single_ir</code> / <code>group.m1_conflict</code> / seed 22 / admitted</summary>
+          <summary><code>route.single_ir</code> / <code>group.m1_conflict</code> / seed 22 / not admitted</summary>
           <h3>Prompt</h3>
           <pre># source A
-Task: convert evidence flags into one CKC IR JSON row.
-Output only JSON. Do not infer any field not shown by the evidence flags.
+Task: extract one CKC IR JSON row from the provided Japanese source span.
+Output only JSON. Do not decide whether any source pair conflicts.
 source label: A
 primary sentence: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
 exception sentence: ただし、重度腎機能障害のある患者を除く。
-evidence flags: has_recommend=true; has_contra=false; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=false; has_renal_exception=true; has_abx_a=true
-Use these exact conversions:
-has_recommend=true means direction &quot;for&quot;. has_contra=true means direction &quot;contraindicate&quot;. If both are false, direction &quot;unknown&quot;. The exception sentence never changes direction.
-has_adult=true means age &quot;adult&quot;. has_child=true means age &quot;child&quot;. If both are false, age &quot;unknown&quot;.
-action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.
+primary direction cue: 推奨する
+Field meanings:
+Choose direction from the primary sentence only.
+If the primary sentence contains 推奨する, direction is for even when the exception sentence contains 除く.
+推奨する =&gt; direction for.
+投与しないこと or 禁忌 =&gt; direction contraindicate.
+成人 or 18歳以上 =&gt; age adult. 小児 or 18歳未満 =&gt; age child.
+敗血症 =&gt; sepsis true. 妊娠中 =&gt; pregnancy true.
+重度腎機能障害 plus 除く in the exception sentence =&gt; renal_severe_exception true.
+A rule about 抗菌薬A administration has action_abx_a true, including 投与しないこと and 禁忌 rules.
+The exception sentence never changes direction.
 
 # source B
-Task: convert evidence flags into one CKC IR JSON row.
-Output only JSON. Do not infer any field not shown by the evidence flags.
+Task: extract one CKC IR JSON row from the provided Japanese source span.
+Output only JSON. Do not decide whether any source pair conflicts.
 source label: B
 primary sentence: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。
 exception sentence: none
-evidence flags: has_recommend=false; has_contra=true; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=true; has_renal_exception=false; has_abx_a=true
-Use these exact conversions:
-has_recommend=true means direction &quot;for&quot;. has_contra=true means direction &quot;contraindicate&quot;. If both are false, direction &quot;unknown&quot;. The exception sentence never changes direction.
-has_adult=true means age &quot;adult&quot;. has_child=true means age &quot;child&quot;. If both are false, age &quot;unknown&quot;.
-action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.</pre>
+primary direction cue: 投与しないこと
+Field meanings:
+Choose direction from the primary sentence only.
+If the primary sentence contains 推奨する, direction is for even when the exception sentence contains 除く.
+推奨する =&gt; direction for.
+投与しないこと or 禁忌 =&gt; direction contraindicate.
+成人 or 18歳以上 =&gt; age adult. 小児 or 18歳未満 =&gt; age child.
+敗血症 =&gt; sepsis true. 妊娠中 =&gt; pregnancy true.
+重度腎機能障害 plus 除く in the exception sentence =&gt; renal_severe_exception true.
+A rule about 抗菌薬A administration has action_abx_a true, including 投与しないこと and 禁忌 rules.
+The exception sentence never changes direction.</pre>
           <h3>Source-local calls</h3>
           <pre>{
   &quot;label&quot;: &quot;A&quot;,
-  &quot;prompt&quot;: &quot;Task: convert evidence flags into one CKC IR JSON row.\nOutput only JSON. Do not infer any field not shown by the evidence flags.\nsource label: A\nprimary sentence: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nexception sentence: ただし、重度腎機能障害のある患者を除く。\nevidence flags: has_recommend=true; has_contra=false; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=false; has_renal_exception=true; has_abx_a=true\nUse these exact conversions:\nhas_recommend=true means direction \&quot;for\&quot;. has_contra=true means direction \&quot;contraindicate\&quot;. If both are false, direction \&quot;unknown\&quot;. The exception sentence never changes direction.\nhas_adult=true means age \&quot;adult\&quot;. has_child=true means age \&quot;child\&quot;. If both are false, age \&quot;unknown\&quot;.\naction_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.&quot;,
-  &quot;response&quot;: &quot;{\n  \&quot;direction\&quot;: \&quot;for\&quot;,\n  \&quot;action_abx_a\&quot;: true,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;sepsis\&quot;: true,\n  \&quot;pregnancy\&quot;: false,\n  \&quot;renal_severe_exception\&quot;: true\n}&quot;
+  &quot;prompt&quot;: &quot;Task: extract one CKC IR JSON row from the provided Japanese source span.\nOutput only JSON. Do not decide whether any source pair conflicts.\nsource label: A\nprimary sentence: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nexception sentence: ただし、重度腎機能障害のある患者を除く。\nprimary direction cue: 推奨する\nField meanings:\nChoose direction from the primary sentence only.\nIf the primary sentence contains 推奨する, direction is for even when the exception sentence contains 除く.\n推奨する =&gt; direction for.\n投与しないこと or 禁忌 =&gt; direction contraindicate.\n成人 or 18歳以上 =&gt; age adult. 小児 or 18歳未満 =&gt; age child.\n敗血症 =&gt; sepsis true. 妊娠中 =&gt; pregnancy true.\n重度腎機能障害 plus 除く in the exception sentence =&gt; renal_severe_exception true.\nA rule about 抗菌薬A administration has action_abx_a true, including 投与しないこと and 禁忌 rules.\nThe exception sentence never changes direction.&quot;,
+  &quot;response&quot;: &quot;{\n  \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n  \&quot;action_abx_a\&quot;: true,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;sepsis\&quot;: true,\n  \&quot;pregnancy\&quot;: false,\n  \&quot;renal_severe_exception\&quot;: true\n}&quot;
 }</pre>
           <pre>{
   &quot;label&quot;: &quot;B&quot;,
-  &quot;prompt&quot;: &quot;Task: convert evidence flags into one CKC IR JSON row.\nOutput only JSON. Do not infer any field not shown by the evidence flags.\nsource label: B\nprimary sentence: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。\nexception sentence: none\nevidence flags: has_recommend=false; has_contra=true; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=true; has_renal_exception=false; has_abx_a=true\nUse these exact conversions:\nhas_recommend=true means direction \&quot;for\&quot;. has_contra=true means direction \&quot;contraindicate\&quot;. If both are false, direction \&quot;unknown\&quot;. The exception sentence never changes direction.\nhas_adult=true means age \&quot;adult\&quot;. has_child=true means age \&quot;child\&quot;. If both are false, age \&quot;unknown\&quot;.\naction_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.&quot;,
+  &quot;prompt&quot;: &quot;Task: extract one CKC IR JSON row from the provided Japanese source span.\nOutput only JSON. Do not decide whether any source pair conflicts.\nsource label: B\nprimary sentence: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。\nexception sentence: none\nprimary direction cue: 投与しないこと\nField meanings:\nChoose direction from the primary sentence only.\nIf the primary sentence contains 推奨する, direction is for even when the exception sentence contains 除く.\n推奨する =&gt; direction for.\n投与しないこと or 禁忌 =&gt; direction contraindicate.\n成人 or 18歳以上 =&gt; age adult. 小児 or 18歳未満 =&gt; age child.\n敗血症 =&gt; sepsis true. 妊娠中 =&gt; pregnancy true.\n重度腎機能障害 plus 除く in the exception sentence =&gt; renal_severe_exception true.\nA rule about 抗菌薬A administration has action_abx_a true, including 投与しないこと and 禁忌 rules.\nThe exception sentence never changes direction.&quot;,
   &quot;response&quot;: &quot;{\n  \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n  \&quot;action_abx_a\&quot;: true,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;sepsis\&quot;: true,\n  \&quot;pregnancy\&quot;: true,\n  \&quot;renal_severe_exception\&quot;: false\n}&quot;
 }</pre>
           <h3>Response</h3>
@@ -816,7 +857,7 @@ action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_
   &quot;A&quot;: {
     &quot;action_abx_a&quot;: true,
     &quot;age&quot;: &quot;adult&quot;,
-    &quot;direction&quot;: &quot;for&quot;,
+    &quot;direction&quot;: &quot;contraindicate&quot;,
     &quot;pregnancy&quot;: false,
     &quot;renal_severe_exception&quot;: true,
     &quot;sepsis&quot;: true
@@ -832,52 +873,67 @@ action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_
 }</pre>
           <h3>Scored row</h3>
           <pre>{
-  &quot;admitted&quot;: true,
-  &quot;candidate_verdict_correct&quot;: true,
-  &quot;diagnostics&quot;: [],
+  &quot;admitted&quot;: false,
+  &quot;candidate_verdict_correct&quot;: false,
+  &quot;diagnostics&quot;: [
+    &quot;ai_hallucinated_source&quot;,
+    &quot;false_negative_conflict&quot;
+  ],
   &quot;expected&quot;: &quot;semantic_contradiction&quot;,
   &quot;group_id&quot;: &quot;group.m1_conflict&quot;,
   &quot;route_id&quot;: &quot;route.single_ir&quot;,
   &quot;seed&quot;: 22,
   &quot;syntax_valid&quot;: true,
-  &quot;verdict&quot;: &quot;semantic_contradiction&quot;,
-  &quot;verdict_correct&quot;: true
+  &quot;verdict&quot;: &quot;semantic_no_conflict&quot;,
+  &quot;verdict_correct&quot;: false
 }</pre>
         </details>        <details>
-          <summary><code>route.single_ir</code> / <code>group.m1_null</code> / seed 22 / admitted</summary>
+          <summary><code>route.single_ir</code> / <code>group.m1_null</code> / seed 22 / not admitted</summary>
           <h3>Prompt</h3>
           <pre># source A
-Task: convert evidence flags into one CKC IR JSON row.
-Output only JSON. Do not infer any field not shown by the evidence flags.
+Task: extract one CKC IR JSON row from the provided Japanese source span.
+Output only JSON. Do not decide whether any source pair conflicts.
 source label: A
 primary sentence: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
 exception sentence: ただし、重度腎機能障害のある患者を除く。
-evidence flags: has_recommend=true; has_contra=false; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=false; has_renal_exception=true; has_abx_a=true
-Use these exact conversions:
-has_recommend=true means direction &quot;for&quot;. has_contra=true means direction &quot;contraindicate&quot;. If both are false, direction &quot;unknown&quot;. The exception sentence never changes direction.
-has_adult=true means age &quot;adult&quot;. has_child=true means age &quot;child&quot;. If both are false, age &quot;unknown&quot;.
-action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.
+primary direction cue: 推奨する
+Field meanings:
+Choose direction from the primary sentence only.
+If the primary sentence contains 推奨する, direction is for even when the exception sentence contains 除く.
+推奨する =&gt; direction for.
+投与しないこと or 禁忌 =&gt; direction contraindicate.
+成人 or 18歳以上 =&gt; age adult. 小児 or 18歳未満 =&gt; age child.
+敗血症 =&gt; sepsis true. 妊娠中 =&gt; pregnancy true.
+重度腎機能障害 plus 除く in the exception sentence =&gt; renal_severe_exception true.
+A rule about 抗菌薬A administration has action_abx_a true, including 投与しないこと and 禁忌 rules.
+The exception sentence never changes direction.
 
 # source C
-Task: convert evidence flags into one CKC IR JSON row.
-Output only JSON. Do not infer any field not shown by the evidence flags.
+Task: extract one CKC IR JSON row from the provided Japanese source span.
+Output only JSON. Do not decide whether any source pair conflicts.
 source label: C
 primary sentence: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。
 exception sentence: none
-evidence flags: has_recommend=false; has_contra=true; has_adult=false; has_child=true; has_sepsis=true; has_pregnancy=false; has_renal_exception=false; has_abx_a=true
-Use these exact conversions:
-has_recommend=true means direction &quot;for&quot;. has_contra=true means direction &quot;contraindicate&quot;. If both are false, direction &quot;unknown&quot;. The exception sentence never changes direction.
-has_adult=true means age &quot;adult&quot;. has_child=true means age &quot;child&quot;. If both are false, age &quot;unknown&quot;.
-action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.</pre>
+primary direction cue: 禁忌
+Field meanings:
+Choose direction from the primary sentence only.
+If the primary sentence contains 推奨する, direction is for even when the exception sentence contains 除く.
+推奨する =&gt; direction for.
+投与しないこと or 禁忌 =&gt; direction contraindicate.
+成人 or 18歳以上 =&gt; age adult. 小児 or 18歳未満 =&gt; age child.
+敗血症 =&gt; sepsis true. 妊娠中 =&gt; pregnancy true.
+重度腎機能障害 plus 除く in the exception sentence =&gt; renal_severe_exception true.
+A rule about 抗菌薬A administration has action_abx_a true, including 投与しないこと and 禁忌 rules.
+The exception sentence never changes direction.</pre>
           <h3>Source-local calls</h3>
           <pre>{
   &quot;label&quot;: &quot;A&quot;,
-  &quot;prompt&quot;: &quot;Task: convert evidence flags into one CKC IR JSON row.\nOutput only JSON. Do not infer any field not shown by the evidence flags.\nsource label: A\nprimary sentence: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nexception sentence: ただし、重度腎機能障害のある患者を除く。\nevidence flags: has_recommend=true; has_contra=false; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=false; has_renal_exception=true; has_abx_a=true\nUse these exact conversions:\nhas_recommend=true means direction \&quot;for\&quot;. has_contra=true means direction \&quot;contraindicate\&quot;. If both are false, direction \&quot;unknown\&quot;. The exception sentence never changes direction.\nhas_adult=true means age \&quot;adult\&quot;. has_child=true means age \&quot;child\&quot;. If both are false, age \&quot;unknown\&quot;.\naction_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.&quot;,
-  &quot;response&quot;: &quot;{\n  \&quot;direction\&quot;: \&quot;for\&quot;,\n  \&quot;action_abx_a\&quot;: true,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;sepsis\&quot;: true,\n  \&quot;pregnancy\&quot;: false,\n  \&quot;renal_severe_exception\&quot;: true\n}&quot;
+  &quot;prompt&quot;: &quot;Task: extract one CKC IR JSON row from the provided Japanese source span.\nOutput only JSON. Do not decide whether any source pair conflicts.\nsource label: A\nprimary sentence: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nexception sentence: ただし、重度腎機能障害のある患者を除く。\nprimary direction cue: 推奨する\nField meanings:\nChoose direction from the primary sentence only.\nIf the primary sentence contains 推奨する, direction is for even when the exception sentence contains 除く.\n推奨する =&gt; direction for.\n投与しないこと or 禁忌 =&gt; direction contraindicate.\n成人 or 18歳以上 =&gt; age adult. 小児 or 18歳未満 =&gt; age child.\n敗血症 =&gt; sepsis true. 妊娠中 =&gt; pregnancy true.\n重度腎機能障害 plus 除く in the exception sentence =&gt; renal_severe_exception true.\nA rule about 抗菌薬A administration has action_abx_a true, including 投与しないこと and 禁忌 rules.\nThe exception sentence never changes direction.&quot;,
+  &quot;response&quot;: &quot;{\n  \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n  \&quot;action_abx_a\&quot;: true,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;sepsis\&quot;: true,\n  \&quot;pregnancy\&quot;: false,\n  \&quot;renal_severe_exception\&quot;: true\n}&quot;
 }</pre>
           <pre>{
   &quot;label&quot;: &quot;C&quot;,
-  &quot;prompt&quot;: &quot;Task: convert evidence flags into one CKC IR JSON row.\nOutput only JSON. Do not infer any field not shown by the evidence flags.\nsource label: C\nprimary sentence: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。\nexception sentence: none\nevidence flags: has_recommend=false; has_contra=true; has_adult=false; has_child=true; has_sepsis=true; has_pregnancy=false; has_renal_exception=false; has_abx_a=true\nUse these exact conversions:\nhas_recommend=true means direction \&quot;for\&quot;. has_contra=true means direction \&quot;contraindicate\&quot;. If both are false, direction \&quot;unknown\&quot;. The exception sentence never changes direction.\nhas_adult=true means age \&quot;adult\&quot;. has_child=true means age \&quot;child\&quot;. If both are false, age \&quot;unknown\&quot;.\naction_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.&quot;,
+  &quot;prompt&quot;: &quot;Task: extract one CKC IR JSON row from the provided Japanese source span.\nOutput only JSON. Do not decide whether any source pair conflicts.\nsource label: C\nprimary sentence: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。\nexception sentence: none\nprimary direction cue: 禁忌\nField meanings:\nChoose direction from the primary sentence only.\nIf the primary sentence contains 推奨する, direction is for even when the exception sentence contains 除く.\n推奨する =&gt; direction for.\n投与しないこと or 禁忌 =&gt; direction contraindicate.\n成人 or 18歳以上 =&gt; age adult. 小児 or 18歳未満 =&gt; age child.\n敗血症 =&gt; sepsis true. 妊娠中 =&gt; pregnancy true.\n重度腎機能障害 plus 除く in the exception sentence =&gt; renal_severe_exception true.\nA rule about 抗菌薬A administration has action_abx_a true, including 投与しないこと and 禁忌 rules.\nThe exception sentence never changes direction.&quot;,
   &quot;response&quot;: &quot;{\n  \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n  \&quot;action_abx_a\&quot;: true,\n  \&quot;age\&quot;: \&quot;child\&quot;,\n  \&quot;sepsis\&quot;: true,\n  \&quot;pregnancy\&quot;: false,\n  \&quot;renal_severe_exception\&quot;: false\n}&quot;
 }</pre>
           <h3>Response</h3>
@@ -885,7 +941,7 @@ action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_
   &quot;A&quot;: {
     &quot;action_abx_a&quot;: true,
     &quot;age&quot;: &quot;adult&quot;,
-    &quot;direction&quot;: &quot;for&quot;,
+    &quot;direction&quot;: &quot;contraindicate&quot;,
     &quot;pregnancy&quot;: false,
     &quot;renal_severe_exception&quot;: true,
     &quot;sepsis&quot;: true
@@ -901,52 +957,66 @@ action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_
 }</pre>
           <h3>Scored row</h3>
           <pre>{
-  &quot;admitted&quot;: true,
+  &quot;admitted&quot;: false,
   &quot;candidate_verdict_correct&quot;: true,
-  &quot;diagnostics&quot;: [],
+  &quot;diagnostics&quot;: [
+    &quot;ai_hallucinated_source&quot;
+  ],
   &quot;expected&quot;: &quot;semantic_no_conflict&quot;,
   &quot;group_id&quot;: &quot;group.m1_null&quot;,
   &quot;route_id&quot;: &quot;route.single_ir&quot;,
   &quot;seed&quot;: 22,
   &quot;syntax_valid&quot;: true,
   &quot;verdict&quot;: &quot;semantic_no_conflict&quot;,
-  &quot;verdict_correct&quot;: true
+  &quot;verdict_correct&quot;: false
 }</pre>
         </details>        <details>
-          <summary><code>route.single_ir</code> / <code>group.m1_conflict</code> / seed 33 / admitted</summary>
+          <summary><code>route.single_ir</code> / <code>group.m1_conflict</code> / seed 33 / not admitted</summary>
           <h3>Prompt</h3>
           <pre># source A
-Task: convert evidence flags into one CKC IR JSON row.
-Output only JSON. Do not infer any field not shown by the evidence flags.
+Task: extract one CKC IR JSON row from the provided Japanese source span.
+Output only JSON. Do not decide whether any source pair conflicts.
 source label: A
 primary sentence: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
 exception sentence: ただし、重度腎機能障害のある患者を除く。
-evidence flags: has_recommend=true; has_contra=false; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=false; has_renal_exception=true; has_abx_a=true
-Use these exact conversions:
-has_recommend=true means direction &quot;for&quot;. has_contra=true means direction &quot;contraindicate&quot;. If both are false, direction &quot;unknown&quot;. The exception sentence never changes direction.
-has_adult=true means age &quot;adult&quot;. has_child=true means age &quot;child&quot;. If both are false, age &quot;unknown&quot;.
-action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.
+primary direction cue: 推奨する
+Field meanings:
+Choose direction from the primary sentence only.
+If the primary sentence contains 推奨する, direction is for even when the exception sentence contains 除く.
+推奨する =&gt; direction for.
+投与しないこと or 禁忌 =&gt; direction contraindicate.
+成人 or 18歳以上 =&gt; age adult. 小児 or 18歳未満 =&gt; age child.
+敗血症 =&gt; sepsis true. 妊娠中 =&gt; pregnancy true.
+重度腎機能障害 plus 除く in the exception sentence =&gt; renal_severe_exception true.
+A rule about 抗菌薬A administration has action_abx_a true, including 投与しないこと and 禁忌 rules.
+The exception sentence never changes direction.
 
 # source B
-Task: convert evidence flags into one CKC IR JSON row.
-Output only JSON. Do not infer any field not shown by the evidence flags.
+Task: extract one CKC IR JSON row from the provided Japanese source span.
+Output only JSON. Do not decide whether any source pair conflicts.
 source label: B
 primary sentence: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。
 exception sentence: none
-evidence flags: has_recommend=false; has_contra=true; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=true; has_renal_exception=false; has_abx_a=true
-Use these exact conversions:
-has_recommend=true means direction &quot;for&quot;. has_contra=true means direction &quot;contraindicate&quot;. If both are false, direction &quot;unknown&quot;. The exception sentence never changes direction.
-has_adult=true means age &quot;adult&quot;. has_child=true means age &quot;child&quot;. If both are false, age &quot;unknown&quot;.
-action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.</pre>
+primary direction cue: 投与しないこと
+Field meanings:
+Choose direction from the primary sentence only.
+If the primary sentence contains 推奨する, direction is for even when the exception sentence contains 除く.
+推奨する =&gt; direction for.
+投与しないこと or 禁忌 =&gt; direction contraindicate.
+成人 or 18歳以上 =&gt; age adult. 小児 or 18歳未満 =&gt; age child.
+敗血症 =&gt; sepsis true. 妊娠中 =&gt; pregnancy true.
+重度腎機能障害 plus 除く in the exception sentence =&gt; renal_severe_exception true.
+A rule about 抗菌薬A administration has action_abx_a true, including 投与しないこと and 禁忌 rules.
+The exception sentence never changes direction.</pre>
           <h3>Source-local calls</h3>
           <pre>{
   &quot;label&quot;: &quot;A&quot;,
-  &quot;prompt&quot;: &quot;Task: convert evidence flags into one CKC IR JSON row.\nOutput only JSON. Do not infer any field not shown by the evidence flags.\nsource label: A\nprimary sentence: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nexception sentence: ただし、重度腎機能障害のある患者を除く。\nevidence flags: has_recommend=true; has_contra=false; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=false; has_renal_exception=true; has_abx_a=true\nUse these exact conversions:\nhas_recommend=true means direction \&quot;for\&quot;. has_contra=true means direction \&quot;contraindicate\&quot;. If both are false, direction \&quot;unknown\&quot;. The exception sentence never changes direction.\nhas_adult=true means age \&quot;adult\&quot;. has_child=true means age \&quot;child\&quot;. If both are false, age \&quot;unknown\&quot;.\naction_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.&quot;,
-  &quot;response&quot;: &quot;{\n  \&quot;direction\&quot;: \&quot;for\&quot;,\n  \&quot;action_abx_a\&quot;: true,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;sepsis\&quot;: true,\n  \&quot;pregnancy\&quot;: false,\n  \&quot;renal_severe_exception\&quot;: true\n}&quot;
+  &quot;prompt&quot;: &quot;Task: extract one CKC IR JSON row from the provided Japanese source span.\nOutput only JSON. Do not decide whether any source pair conflicts.\nsource label: A\nprimary sentence: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nexception sentence: ただし、重度腎機能障害のある患者を除く。\nprimary direction cue: 推奨する\nField meanings:\nChoose direction from the primary sentence only.\nIf the primary sentence contains 推奨する, direction is for even when the exception sentence contains 除く.\n推奨する =&gt; direction for.\n投与しないこと or 禁忌 =&gt; direction contraindicate.\n成人 or 18歳以上 =&gt; age adult. 小児 or 18歳未満 =&gt; age child.\n敗血症 =&gt; sepsis true. 妊娠中 =&gt; pregnancy true.\n重度腎機能障害 plus 除く in the exception sentence =&gt; renal_severe_exception true.\nA rule about 抗菌薬A administration has action_abx_a true, including 投与しないこと and 禁忌 rules.\nThe exception sentence never changes direction.&quot;,
+  &quot;response&quot;: &quot;{\n  \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n  \&quot;action_abx_a\&quot;: true,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;sepsis\&quot;: true,\n  \&quot;pregnancy\&quot;: false,\n  \&quot;renal_severe_exception\&quot;: true\n}&quot;
 }</pre>
           <pre>{
   &quot;label&quot;: &quot;B&quot;,
-  &quot;prompt&quot;: &quot;Task: convert evidence flags into one CKC IR JSON row.\nOutput only JSON. Do not infer any field not shown by the evidence flags.\nsource label: B\nprimary sentence: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。\nexception sentence: none\nevidence flags: has_recommend=false; has_contra=true; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=true; has_renal_exception=false; has_abx_a=true\nUse these exact conversions:\nhas_recommend=true means direction \&quot;for\&quot;. has_contra=true means direction \&quot;contraindicate\&quot;. If both are false, direction \&quot;unknown\&quot;. The exception sentence never changes direction.\nhas_adult=true means age \&quot;adult\&quot;. has_child=true means age \&quot;child\&quot;. If both are false, age \&quot;unknown\&quot;.\naction_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.&quot;,
+  &quot;prompt&quot;: &quot;Task: extract one CKC IR JSON row from the provided Japanese source span.\nOutput only JSON. Do not decide whether any source pair conflicts.\nsource label: B\nprimary sentence: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。\nexception sentence: none\nprimary direction cue: 投与しないこと\nField meanings:\nChoose direction from the primary sentence only.\nIf the primary sentence contains 推奨する, direction is for even when the exception sentence contains 除く.\n推奨する =&gt; direction for.\n投与しないこと or 禁忌 =&gt; direction contraindicate.\n成人 or 18歳以上 =&gt; age adult. 小児 or 18歳未満 =&gt; age child.\n敗血症 =&gt; sepsis true. 妊娠中 =&gt; pregnancy true.\n重度腎機能障害 plus 除く in the exception sentence =&gt; renal_severe_exception true.\nA rule about 抗菌薬A administration has action_abx_a true, including 投与しないこと and 禁忌 rules.\nThe exception sentence never changes direction.&quot;,
   &quot;response&quot;: &quot;{\n  \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n  \&quot;action_abx_a\&quot;: true,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;sepsis\&quot;: true,\n  \&quot;pregnancy\&quot;: true,\n  \&quot;renal_severe_exception\&quot;: false\n}&quot;
 }</pre>
           <h3>Response</h3>
@@ -954,7 +1024,7 @@ action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_
   &quot;A&quot;: {
     &quot;action_abx_a&quot;: true,
     &quot;age&quot;: &quot;adult&quot;,
-    &quot;direction&quot;: &quot;for&quot;,
+    &quot;direction&quot;: &quot;contraindicate&quot;,
     &quot;pregnancy&quot;: false,
     &quot;renal_severe_exception&quot;: true,
     &quot;sepsis&quot;: true
@@ -970,52 +1040,67 @@ action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_
 }</pre>
           <h3>Scored row</h3>
           <pre>{
-  &quot;admitted&quot;: true,
-  &quot;candidate_verdict_correct&quot;: true,
-  &quot;diagnostics&quot;: [],
+  &quot;admitted&quot;: false,
+  &quot;candidate_verdict_correct&quot;: false,
+  &quot;diagnostics&quot;: [
+    &quot;ai_hallucinated_source&quot;,
+    &quot;false_negative_conflict&quot;
+  ],
   &quot;expected&quot;: &quot;semantic_contradiction&quot;,
   &quot;group_id&quot;: &quot;group.m1_conflict&quot;,
   &quot;route_id&quot;: &quot;route.single_ir&quot;,
   &quot;seed&quot;: 33,
   &quot;syntax_valid&quot;: true,
-  &quot;verdict&quot;: &quot;semantic_contradiction&quot;,
-  &quot;verdict_correct&quot;: true
+  &quot;verdict&quot;: &quot;semantic_no_conflict&quot;,
+  &quot;verdict_correct&quot;: false
 }</pre>
         </details>        <details>
-          <summary><code>route.single_ir</code> / <code>group.m1_null</code> / seed 33 / admitted</summary>
+          <summary><code>route.single_ir</code> / <code>group.m1_null</code> / seed 33 / not admitted</summary>
           <h3>Prompt</h3>
           <pre># source A
-Task: convert evidence flags into one CKC IR JSON row.
-Output only JSON. Do not infer any field not shown by the evidence flags.
+Task: extract one CKC IR JSON row from the provided Japanese source span.
+Output only JSON. Do not decide whether any source pair conflicts.
 source label: A
 primary sentence: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
 exception sentence: ただし、重度腎機能障害のある患者を除く。
-evidence flags: has_recommend=true; has_contra=false; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=false; has_renal_exception=true; has_abx_a=true
-Use these exact conversions:
-has_recommend=true means direction &quot;for&quot;. has_contra=true means direction &quot;contraindicate&quot;. If both are false, direction &quot;unknown&quot;. The exception sentence never changes direction.
-has_adult=true means age &quot;adult&quot;. has_child=true means age &quot;child&quot;. If both are false, age &quot;unknown&quot;.
-action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.
+primary direction cue: 推奨する
+Field meanings:
+Choose direction from the primary sentence only.
+If the primary sentence contains 推奨する, direction is for even when the exception sentence contains 除く.
+推奨する =&gt; direction for.
+投与しないこと or 禁忌 =&gt; direction contraindicate.
+成人 or 18歳以上 =&gt; age adult. 小児 or 18歳未満 =&gt; age child.
+敗血症 =&gt; sepsis true. 妊娠中 =&gt; pregnancy true.
+重度腎機能障害 plus 除く in the exception sentence =&gt; renal_severe_exception true.
+A rule about 抗菌薬A administration has action_abx_a true, including 投与しないこと and 禁忌 rules.
+The exception sentence never changes direction.
 
 # source C
-Task: convert evidence flags into one CKC IR JSON row.
-Output only JSON. Do not infer any field not shown by the evidence flags.
+Task: extract one CKC IR JSON row from the provided Japanese source span.
+Output only JSON. Do not decide whether any source pair conflicts.
 source label: C
 primary sentence: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。
 exception sentence: none
-evidence flags: has_recommend=false; has_contra=true; has_adult=false; has_child=true; has_sepsis=true; has_pregnancy=false; has_renal_exception=false; has_abx_a=true
-Use these exact conversions:
-has_recommend=true means direction &quot;for&quot;. has_contra=true means direction &quot;contraindicate&quot;. If both are false, direction &quot;unknown&quot;. The exception sentence never changes direction.
-has_adult=true means age &quot;adult&quot;. has_child=true means age &quot;child&quot;. If both are false, age &quot;unknown&quot;.
-action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.</pre>
+primary direction cue: 禁忌
+Field meanings:
+Choose direction from the primary sentence only.
+If the primary sentence contains 推奨する, direction is for even when the exception sentence contains 除く.
+推奨する =&gt; direction for.
+投与しないこと or 禁忌 =&gt; direction contraindicate.
+成人 or 18歳以上 =&gt; age adult. 小児 or 18歳未満 =&gt; age child.
+敗血症 =&gt; sepsis true. 妊娠中 =&gt; pregnancy true.
+重度腎機能障害 plus 除く in the exception sentence =&gt; renal_severe_exception true.
+A rule about 抗菌薬A administration has action_abx_a true, including 投与しないこと and 禁忌 rules.
+The exception sentence never changes direction.</pre>
           <h3>Source-local calls</h3>
           <pre>{
   &quot;label&quot;: &quot;A&quot;,
-  &quot;prompt&quot;: &quot;Task: convert evidence flags into one CKC IR JSON row.\nOutput only JSON. Do not infer any field not shown by the evidence flags.\nsource label: A\nprimary sentence: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nexception sentence: ただし、重度腎機能障害のある患者を除く。\nevidence flags: has_recommend=true; has_contra=false; has_adult=true; has_child=false; has_sepsis=true; has_pregnancy=false; has_renal_exception=true; has_abx_a=true\nUse these exact conversions:\nhas_recommend=true means direction \&quot;for\&quot;. has_contra=true means direction \&quot;contraindicate\&quot;. If both are false, direction \&quot;unknown\&quot;. The exception sentence never changes direction.\nhas_adult=true means age \&quot;adult\&quot;. has_child=true means age \&quot;child\&quot;. If both are false, age \&quot;unknown\&quot;.\naction_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.&quot;,
-  &quot;response&quot;: &quot;{\n  \&quot;direction\&quot;: \&quot;for\&quot;,\n  \&quot;action_abx_a\&quot;: true,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;sepsis\&quot;: true,\n  \&quot;pregnancy\&quot;: false,\n  \&quot;renal_severe_exception\&quot;: true\n}&quot;
+  &quot;prompt&quot;: &quot;Task: extract one CKC IR JSON row from the provided Japanese source span.\nOutput only JSON. Do not decide whether any source pair conflicts.\nsource label: A\nprimary sentence: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nexception sentence: ただし、重度腎機能障害のある患者を除く。\nprimary direction cue: 推奨する\nField meanings:\nChoose direction from the primary sentence only.\nIf the primary sentence contains 推奨する, direction is for even when the exception sentence contains 除く.\n推奨する =&gt; direction for.\n投与しないこと or 禁忌 =&gt; direction contraindicate.\n成人 or 18歳以上 =&gt; age adult. 小児 or 18歳未満 =&gt; age child.\n敗血症 =&gt; sepsis true. 妊娠中 =&gt; pregnancy true.\n重度腎機能障害 plus 除く in the exception sentence =&gt; renal_severe_exception true.\nA rule about 抗菌薬A administration has action_abx_a true, including 投与しないこと and 禁忌 rules.\nThe exception sentence never changes direction.&quot;,
+  &quot;response&quot;: &quot;{\n  \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n  \&quot;action_abx_a\&quot;: true,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;sepsis\&quot;: true,\n  \&quot;pregnancy\&quot;: false,\n  \&quot;renal_severe_exception\&quot;: true\n}&quot;
 }</pre>
           <pre>{
   &quot;label&quot;: &quot;C&quot;,
-  &quot;prompt&quot;: &quot;Task: convert evidence flags into one CKC IR JSON row.\nOutput only JSON. Do not infer any field not shown by the evidence flags.\nsource label: C\nprimary sentence: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。\nexception sentence: none\nevidence flags: has_recommend=false; has_contra=true; has_adult=false; has_child=true; has_sepsis=true; has_pregnancy=false; has_renal_exception=false; has_abx_a=true\nUse these exact conversions:\nhas_recommend=true means direction \&quot;for\&quot;. has_contra=true means direction \&quot;contraindicate\&quot;. If both are false, direction \&quot;unknown\&quot;. The exception sentence never changes direction.\nhas_adult=true means age \&quot;adult\&quot;. has_child=true means age \&quot;child\&quot;. If both are false, age \&quot;unknown\&quot;.\naction_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_severe_exception = has_renal_exception.&quot;,
+  &quot;prompt&quot;: &quot;Task: extract one CKC IR JSON row from the provided Japanese source span.\nOutput only JSON. Do not decide whether any source pair conflicts.\nsource label: C\nprimary sentence: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。\nexception sentence: none\nprimary direction cue: 禁忌\nField meanings:\nChoose direction from the primary sentence only.\nIf the primary sentence contains 推奨する, direction is for even when the exception sentence contains 除く.\n推奨する =&gt; direction for.\n投与しないこと or 禁忌 =&gt; direction contraindicate.\n成人 or 18歳以上 =&gt; age adult. 小児 or 18歳未満 =&gt; age child.\n敗血症 =&gt; sepsis true. 妊娠中 =&gt; pregnancy true.\n重度腎機能障害 plus 除く in the exception sentence =&gt; renal_severe_exception true.\nA rule about 抗菌薬A administration has action_abx_a true, including 投与しないこと and 禁忌 rules.\nThe exception sentence never changes direction.&quot;,
   &quot;response&quot;: &quot;{\n  \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n  \&quot;action_abx_a\&quot;: true,\n  \&quot;age\&quot;: \&quot;child\&quot;,\n  \&quot;sepsis\&quot;: true,\n  \&quot;pregnancy\&quot;: false,\n  \&quot;renal_severe_exception\&quot;: false\n}&quot;
 }</pre>
           <h3>Response</h3>
@@ -1023,7 +1108,7 @@ action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_
   &quot;A&quot;: {
     &quot;action_abx_a&quot;: true,
     &quot;age&quot;: &quot;adult&quot;,
-    &quot;direction&quot;: &quot;for&quot;,
+    &quot;direction&quot;: &quot;contraindicate&quot;,
     &quot;pregnancy&quot;: false,
     &quot;renal_severe_exception&quot;: true,
     &quot;sepsis&quot;: true
@@ -1039,16 +1124,18 @@ action_abx_a = has_abx_a. sepsis = has_sepsis. pregnancy = has_pregnancy. renal_
 }</pre>
           <h3>Scored row</h3>
           <pre>{
-  &quot;admitted&quot;: true,
+  &quot;admitted&quot;: false,
   &quot;candidate_verdict_correct&quot;: true,
-  &quot;diagnostics&quot;: [],
+  &quot;diagnostics&quot;: [
+    &quot;ai_hallucinated_source&quot;
+  ],
   &quot;expected&quot;: &quot;semantic_no_conflict&quot;,
   &quot;group_id&quot;: &quot;group.m1_null&quot;,
   &quot;route_id&quot;: &quot;route.single_ir&quot;,
   &quot;seed&quot;: 33,
   &quot;syntax_valid&quot;: true,
   &quot;verdict&quot;: &quot;semantic_no_conflict&quot;,
-  &quot;verdict_correct&quot;: true
+  &quot;verdict_correct&quot;: false
 }</pre>
         </details>
     </section>
