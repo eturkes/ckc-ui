@@ -68,10 +68,14 @@
     .flow-step:not(:last-child)::after { content: "->"; position: absolute; top: 18px; right: -16px; color: var(--muted); font-weight: 800; z-index: 1; }
     .flow-step strong { display: block; font-size: .82rem; margin-bottom: 6px; }
     .flow-step span { display: block; color: var(--muted); font-size: .76rem; line-height: 1.35; overflow-wrap: anywhere; }
+    .rank-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+    .rank-fact { border-left: 3px solid var(--line); padding: 2px 0 2px 10px; min-width: 0; }
+    .rank-fact strong { display: block; font-size: .82rem; margin-bottom: 5px; }
+    .rank-fact span { display: block; color: var(--muted); font-size: .76rem; line-height: 1.35; overflow-wrap: anywhere; }
     .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: #fff; margin-top: 10px; }
     table { width: 100%; border-collapse: collapse; min-width: 760px; }
     table.wide { min-width: 980px; }
-    table.extra-wide { min-width: 1180px; }
+    table.extra-wide { min-width: 1320px; }
     th, td { border-bottom: 1px solid var(--line); padding: 8px 9px; text-align: left; vertical-align: top; font-size: .81rem; line-height: 1.32; }
     tr:last-child th, tr:last-child td { border-bottom: 0; }
     th { color: var(--muted); background: #f7fafc; font-weight: 800; }
@@ -99,6 +103,7 @@
       .lanes { grid-template-columns: 1fr; }
       .flow { grid-template-columns: 1fr; }
       .flow-step:not(:last-child)::after { display: none; }
+      .rank-strip { grid-template-columns: 1fr; }
       .artifact-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 680px) {
@@ -218,13 +223,29 @@
     <section class="band">
       <div class="wrap">
         <h2>M3 Route Ranking</h2>
-        <p><code>runs/m3-routes/ranking.csv</code> classifies the latest route comparison as <code>target_syntax_delta_only</code>. No route has admitted lift; non-direct routes produce parseable targets more reliably than direct SMT.</p>
+        <p><code>runs/m3-routes/ranking.csv</code> classifies the latest route comparison as <code>target_syntax_delta_only</code>. No route has admitted lift; non-direct routes produce parseable targets more reliably than direct SMT. The table separates the gated performance rank, the audit-only candidate performance rank, and a structural complexity rank.</p>
+        <div class="rank-strip" aria-label="Route ranking summary">
+          <div class="rank-fact">
+            <strong>Gated performance</strong>
+            <span><code>route.ckc_layered</code> is rank 1 in the CSV sort, but every route has <code>0/4</code> admitted accuracy and <code>0/4</code> admission.</span>
+          </div>
+          <div class="rank-fact">
+            <strong>Best candidate performance</strong>
+            <span><code>route.ir_hop_chain</code> leads the rejected-output diagnostic view at <code>3/4</code> candidate verdict accuracy.</span>
+          </div>
+          <div class="rank-fact">
+            <strong>Relative complexity</strong>
+            <span><code>route.direct_smt</code> is complexity rank <code>1</code>, the least complex route; <code>route.ckc_layered</code> is rank <code>5</code>.</span>
+          </div>
+        </div>
         <div class="table-wrap">
           <table class="extra-wide">
             <thead>
               <tr>
-                <th>Rank</th>
+                <th>Gated perf rank</th>
                 <th>Route</th>
+                <th>Candidate perf rank</th>
+                <th>Complexity rank</th>
                 <th>Model calls</th>
                 <th>Target syntax</th>
                 <th>Admission</th>
@@ -238,6 +259,8 @@
               <tr>
                 <td class="num">1</td>
                 <td><code>route.ckc_layered</code></td>
+                <td class="num">2</td>
+                <td class="num">5</td>
                 <td class="num">24</td>
                 <td><span class="ratio"><span class="track"><span class="fill green" style="width:100%"></span></span><code>4/4</code></span></td>
                 <td><code>0/4</code></td>
@@ -249,6 +272,8 @@
               <tr>
                 <td class="num">2</td>
                 <td><code>route.ir_hop_chain</code></td>
+                <td class="num">1</td>
+                <td class="num">4</td>
                 <td class="num">12</td>
                 <td><span class="ratio"><span class="track"><span class="fill green" style="width:100%"></span></span><code>4/4</code></span></td>
                 <td><code>0/4</code></td>
@@ -260,6 +285,8 @@
               <tr>
                 <td class="num">3</td>
                 <td><code>route.single_ir</code></td>
+                <td class="num">2</td>
+                <td class="num">2</td>
                 <td class="num">4</td>
                 <td><span class="ratio"><span class="track"><span class="fill green" style="width:100%"></span></span><code>4/4</code></span></td>
                 <td><code>0/4</code></td>
@@ -271,6 +298,8 @@
               <tr>
                 <td class="num">4</td>
                 <td><code>route.stacked_ir</code></td>
+                <td class="num">2</td>
+                <td class="num">3</td>
                 <td class="num">4</td>
                 <td><span class="ratio"><span class="track"><span class="fill green" style="width:100%"></span></span><code>4/4</code></span></td>
                 <td><code>0/4</code></td>
@@ -282,6 +311,8 @@
               <tr>
                 <td class="num">5</td>
                 <td><code>route.direct_smt</code></td>
+                <td class="num">3</td>
+                <td class="num">1</td>
                 <td class="num">4</td>
                 <td><span class="ratio"><span class="track"><span class="fill red" style="width:25%"></span></span><code>1/4</code></span></td>
                 <td><code>0/4</code></td>
@@ -294,7 +325,7 @@
           </table>
         </div>
         <div class="note">
-          <p>Ranking policy: <code>route_lexicographic_exact_v0</code>. Sort keys are admitted verdict accuracy, admission rate, target syntax validity, and k-sample stability. Candidate verdict accuracy is retained for rejected-output diagnostics and is not used to claim admitted improvement.</p>
+          <p>Ranking policy: <code>route_lexicographic_exact_v0</code>. Sort keys are admitted verdict accuracy, admission rate, target syntax validity, and k-sample stability. Candidate verdict rank is audit-only. Complexity rank is structural, lower is simpler, and is based on the current route shape and model/bridge stages rather than a quality metric.</p>
         </div>
       </div>
     </section>
