@@ -52,8 +52,13 @@
     .trace-step { position: relative; border: 1px solid var(--line); border-radius: 6px; background: #fbfdfe; padding: 10px; min-width: 0; }
     .trace-step:not(:last-child)::after { content: "->"; position: absolute; top: 18px; right: -17px; color: var(--muted); font-weight: 700; z-index: 1; }
     .trace-head { display: grid; gap: 3px; min-height: 42px; }
+    .trace-title { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; }
     .trace-head strong { font-size: .82rem; }
     .trace-head span { color: var(--muted); font-size: .74rem; overflow-wrap: anywhere; }
+    .trace-head small { color: var(--muted); font-size: .68rem; overflow-wrap: anywhere; }
+    .use-badge { display: inline-flex; align-items: center; min-height: 22px; border-radius: 999px; padding: 2px 7px; border: 1px solid var(--line); font-size: .7rem; font-weight: 700; white-space: nowrap; }
+    .use-badge.llm { color: var(--warn); background: #fff1cf; border-color: #e7cf91; }
+    .use-badge.det { color: var(--ok); background: #e4f2ec; border-color: #b9ddcf; }
     .trace-step pre { max-height: 240px; margin-top: 8px; font-size: .72rem; line-height: 1.35; }
     .split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
     .lane { border: 1px solid var(--line); border-radius: 6px; padding: 10px; min-width: 0; }
@@ -146,8 +151,12 @@
 
         <div class="trace-step">
           <div class="trace-head">
-            <strong>1 Source spans</strong>
+            <div class="trace-title">
+              <strong>1 Source spans</strong>
+              <span class="use-badge det">No LLM</span>
+            </div>
             <span>fixture regions</span>
+            <small>committed fixture text</small>
           </div>
           <pre>A primary: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。
 A exception: ただし、重度腎機能障害のある患者を除く。
@@ -156,8 +165,12 @@ B primary: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬
         </div>
         <div class="trace-step">
           <div class="trace-head">
-            <strong>2 Lexical cues</strong>
+            <div class="trace-title">
+              <strong>2 Lexical cues</strong>
+              <span class="use-badge det">No LLM</span>
+            </div>
             <span>lexical_cue_v1</span>
+            <small>deterministic cue extractor</small>
           </div>
           <pre>A
 direction_cue=推奨する
@@ -179,8 +192,12 @@ resolved={&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adu
         </div>
         <div class="trace-step">
           <div class="trace-head">
-            <strong>3 Model JSON</strong>
+            <div class="trace-title">
+              <strong>3 Model JSON</strong>
+              <span class="use-badge llm">LLM</span>
+            </div>
             <span>12 constrained field calls</span>
+            <small>Qwen2.5-0.5B-Instruct-Q2_K:9ee36184e616dfc7</small>
           </div>
           <pre>{
   &quot;A&quot;: {
@@ -203,8 +220,12 @@ resolved={&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adu
         </div>
         <div class="trace-step">
           <div class="trace-head">
-            <strong>4 route_rule_ir.v0</strong>
+            <div class="trace-title">
+              <strong>4 route_rule_ir.v0</strong>
+              <span class="use-badge det">No LLM</span>
+            </div>
             <span>route_rule_ir_v0_to_smt_v0</span>
+            <small>deterministic bridge</small>
           </div>
           <pre>route.rule.a
 direction=for
@@ -218,8 +239,12 @@ context={&quot;age_years&quot;:{&quot;ge&quot;:18},&quot;prohibited&quot;:[],&qu
         </div>
         <div class="trace-step">
           <div class="trace-head">
-            <strong>5 SMT-LIB</strong>
+            <div class="trace-title">
+              <strong>5 SMT-LIB</strong>
+              <span class="use-badge det">No LLM</span>
+            </div>
             <span>2 query files</span>
+            <small>deterministic compiler/verifier</small>
           </div>
           <pre>route_targets/route.single_ir/group.m1_conflict/seed-11/smt/q.overlap.smt2
 logic=QF_LRA
@@ -250,6 +275,44 @@ sha256=4080509bae7b3482...8e1823
 (check-sat)
 (get-unsat-core)</pre>
         </div>
+      </div>
+      <h3>LLM use map</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Stage</th><th>LLM use</th><th>Evidence boundary</th></tr></thead>
+          <tbody>
+          <tr>
+            <td>Source spans</td>
+            <td><span class="use-badge det">No LLM</span></td>
+            <td>committed fixture/source text</td>
+          </tr>
+          <tr>
+            <td>Lexical cue extraction</td>
+            <td><span class="use-badge det">No LLM</span></td>
+            <td>deterministic lexical_cue_v1</td>
+          </tr>
+          <tr>
+            <td>route.single_ir field emission</td>
+            <td><span class="use-badge llm">LLM</span></td>
+            <td>12 constrained calls to Qwen2.5-0.5B-Instruct-Q2_K:9ee36184e616dfc7</td>
+          </tr>
+          <tr>
+            <td>route_rule_ir.v0 bridge</td>
+            <td><span class="use-badge det">No LLM</span></td>
+            <td>deterministic JSON-to-rule transform</td>
+          </tr>
+          <tr>
+            <td>SMT-LIB emission and verifier scoring</td>
+            <td><span class="use-badge det">No LLM</span></td>
+            <td>deterministic compiler/verifier</td>
+          </tr>
+          <tr>
+            <td>route.direct_smt baseline</td>
+            <td><span class="use-badge llm">LLM</span></td>
+            <td>LLM emits target SMT-LIB directly for comparison</td>
+          </tr>
+          </tbody>
+        </table>
       </div>
       <h3>What changed</h3>
       <div class="table-wrap">

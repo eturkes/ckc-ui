@@ -1888,36 +1888,69 @@ function renderBasicUi(data) {
     {
       label: "1 Source spans",
       transform: "fixture regions",
+      actor: "No LLM",
+      actorKind: "det",
+      actorDetail: "committed fixture text",
       body: traceSourceText
     },
     {
       label: "2 Lexical cues",
       transform: data.source_cue_layer.extractor_id,
+      actor: "No LLM",
+      actorKind: "det",
+      actorDetail: "deterministic cue extractor",
       body: traceCueText
     },
     {
       label: "3 Model JSON",
       transform: `${irConflictFieldCallCount} constrained field calls`,
+      actor: "LLM",
+      actorKind: "llm",
+      actorDetail: report.model_identity,
       body: traceModelJson
     },
     {
       label: "4 route_rule_ir.v0",
       transform: irConflictTarget?.compiler_id ?? "route_rule_ir_v0_to_smt_v0",
+      actor: "No LLM",
+      actorKind: "det",
+      actorDetail: "deterministic bridge",
       body: traceRouteIr
     },
     {
       label: "5 SMT-LIB",
       transform: `${irConflictTarget?.smt_files?.length ?? 0} query files`,
+      actor: "No LLM",
+      actorKind: "det",
+      actorDetail: "deterministic compiler/verifier",
       body: traceSmtText
     }
-  ].map((step) => `
+  ];
+  const transformationStepsHtml = transformationSteps.map((step) => `
         <div class="trace-step">
           <div class="trace-head">
-            <strong>${escapeHtml(step.label)}</strong>
+            <div class="trace-title">
+              <strong>${escapeHtml(step.label)}</strong>
+              <span class="use-badge ${escapeHtml(step.actorKind)}">${escapeHtml(step.actor)}</span>
+            </div>
             <span>${escapeHtml(step.transform)}</span>
+            <small>${escapeHtml(step.actorDetail)}</small>
           </div>
           <pre>${escapePre(step.body)}</pre>
         </div>`).join("");
+  const llmUseRows = [
+    ["Source spans", "no", "committed fixture/source text"],
+    ["Lexical cue extraction", "no", "deterministic lexical_cue_v1"],
+    ["route.single_ir field emission", "yes", `${irConflictFieldCallCount} constrained calls to ${report.model_identity}`],
+    ["route_rule_ir.v0 bridge", "no", "deterministic JSON-to-rule transform"],
+    ["SMT-LIB emission and verifier scoring", "no", "deterministic compiler/verifier"],
+    ["route.direct_smt baseline", "yes", "LLM emits target SMT-LIB directly for comparison"]
+  ].map(([stage, usesLlm, detail]) => `
+          <tr>
+            <td>${escapeHtml(stage)}</td>
+            <td><span class="use-badge ${usesLlm === "yes" ? "llm" : "det"}">${usesLlm === "yes" ? "LLM" : "No LLM"}</span></td>
+            <td>${escapeHtml(detail)}</td>
+          </tr>`).join("");
   const irTargetSummary = irConflictTarget
     ? `${irConflictTarget.target_profile}; ${irConflictTarget.smt_files.length} query file(s); ${shortDigest(irConflictTarget.target_hash)}`
     : "missing";
@@ -2115,8 +2148,13 @@ function renderBasicUi(data) {
     .trace-step { position: relative; border: 1px solid var(--line); border-radius: 6px; background: #fbfdfe; padding: 10px; min-width: 0; }
     .trace-step:not(:last-child)::after { content: "->"; position: absolute; top: 18px; right: -17px; color: var(--muted); font-weight: 700; z-index: 1; }
     .trace-head { display: grid; gap: 3px; min-height: 42px; }
+    .trace-title { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; }
     .trace-head strong { font-size: .82rem; }
     .trace-head span { color: var(--muted); font-size: .74rem; overflow-wrap: anywhere; }
+    .trace-head small { color: var(--muted); font-size: .68rem; overflow-wrap: anywhere; }
+    .use-badge { display: inline-flex; align-items: center; min-height: 22px; border-radius: 999px; padding: 2px 7px; border: 1px solid var(--line); font-size: .7rem; font-weight: 700; white-space: nowrap; }
+    .use-badge.llm { color: var(--warn); background: #fff1cf; border-color: #e7cf91; }
+    .use-badge.det { color: var(--ok); background: #e4f2ec; border-color: #b9ddcf; }
     .trace-step pre { max-height: 240px; margin-top: 8px; font-size: .72rem; line-height: 1.35; }
     .split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
     .lane { border: 1px solid var(--line); border-radius: 6px; padding: 10px; min-width: 0; }
@@ -2206,7 +2244,15 @@ function renderBasicUi(data) {
       <h3>Text to SMT trace</h3>
       <p>Representative admitted row: <code>route.single_ir</code> / <code>group.m1_conflict</code> / seed 11. Each step is a recorded artifact or deterministic transform used for the scored route row.</p>
       <div class="trace-viz">
-${transformationSteps}
+${transformationStepsHtml}
+      </div>
+      <h3>LLM use map</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Stage</th><th>LLM use</th><th>Evidence boundary</th></tr></thead>
+          <tbody>${llmUseRows}
+          </tbody>
+        </table>
       </div>
       <h3>What changed</h3>
       <div class="table-wrap">
