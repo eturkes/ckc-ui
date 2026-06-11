@@ -1559,6 +1559,11 @@ function shortDigest(value) {
   return text.length > 24 ? `${text.slice(0, 16)}...${text.slice(-6)}` : text;
 }
 
+function irFieldSummary(label, row) {
+  if (!row) return `${label}: missing`;
+  return `${label}: direction=${row.direction}; action=${row.action_abx_a}; age=${row.age}; sepsis=${row.sepsis}; pregnancy=${row.pregnancy}; renal_exception=${row.renal_exception}`;
+}
+
 function routeRecord(data, routeId, groupId, seed) {
   return data.model_io.find((record) => (
     record.route_id === routeId
@@ -1572,13 +1577,13 @@ function renderBasicUi(data) {
   const direct = data.route_metrics.find((entry) => entry.route_id === "route.direct_smt");
   const single = data.route_metrics.find((entry) => entry.route_id === "route.single_ir");
   const irConclusion = single.admission_rate.numerator > 0
-    ? `IR route admitted ${single.admission_rate.exact}; admitted accuracy ${single.admitted_verdict_accuracy.exact}.`
+    ? `IR path: ${single.admission_rate.exact} admitted rows and ${single.admitted_verdict_accuracy.exact} admitted accuracy after deterministic bridge checks.`
     : "IR route produced no admitted rows; rejected candidate verdicts are audit data only.";
   const comparisonConclusion = direct.admitted_verdict_accuracy.numerator >= single.admitted_verdict_accuracy.numerator
     ? `Direct SMT is ${direct.admitted_verdict_accuracy.exact} on admitted accuracy here, so this run does not show IR lift.`
-    : `Direct SMT remains below IR admitted accuracy under the shared cue layer.`;
+    : `Plain result: with the same source cues, the IR path produced accepted correct rows where direct SMT produced none.`;
   const directAudit = data.direct_smt_audit;
-  const directAuditConclusion = `Direct audit: exact templates ${directAudit.exact_template_match_rate.exact}; no named assertions ${directAudit.missing_named_assertion_rate.exact}; negated sepsis ${directAudit.negated_sepsis_assertion_rate.exact}.`;
+  const directAuditConclusion = `Direct failure mode: ${directAudit.missing_named_assertion_rate.exact} direct outputs lacked named assertions, and admitted accuracy stayed ${direct.admitted_verdict_accuracy.exact}.`;
   const liftRows = data.lift_table.map((row) => `
           <tr>
             <td><code>${escapeHtml(row.metric)}</code></td>
@@ -1624,6 +1629,7 @@ function renderBasicUi(data) {
   const directDiagnostics = directExample?.row?.diagnostics?.join(", ") || "none";
   const irConflictBridge = irConflictExample?.parsed_response?.deterministic_bridge ?? null;
   const irConflictCandidate = irConflictExample?.parsed_response?.candidate ?? null;
+  const irFieldSummaries = ["A", "B"].map((label) => irFieldSummary(label, irConflictCandidate?.[label]));
   const irConflictFieldCalls = (irConflictExample?.source_calls ?? [])
     .reduce((count, call) => count + (call.field_calls?.length ?? 0), 0);
   const irCallRows = (irConflictExample?.source_calls ?? []).map((call) => `
@@ -1653,6 +1659,18 @@ function renderBasicUi(data) {
             <td>${escapeHtml(rule.direction)}</td>
             <td><code>${escapeHtml(rule.action_key)}</code></td>
             <td><code>${escapeHtml(compactJson(rule.context))}</code></td>
+          </tr>`).join("");
+  const routeBurdenRows = [
+    ["Model input", "same source cues", "same source cues"],
+    ["Model output", "one executable SMT-LIB target", "one small JSON field per call"],
+    ["Target syntax burden", "model-owned", "deterministic code-owned"],
+    ["Representative row", `rejected: ${directDiagnostics}`, `admitted: ${irConflictBridge?.verdict ?? "missing"}`],
+    ["Full run", `${direct.admitted_verdict_accuracy.exact} admitted accuracy`, `${single.admitted_verdict_accuracy.exact} admitted accuracy`]
+  ].map(([label, directValue, irValue]) => `
+          <tr>
+            <th>${escapeHtml(label)}</th>
+            <td>${escapeHtml(directValue)}</td>
+            <td>${escapeHtml(irValue)}</td>
           </tr>`).join("");
   const realGuideline = data.real_guideline_intake;
   const realGuidelineRows = realGuideline.sources.map((source) => `
@@ -1774,8 +1792,11 @@ function renderBasicUi(data) {
     .metric { border: 1px solid var(--line); border-radius: 6px; padding: 12px; }
     .metric strong { display: block; font-size: 1.45rem; line-height: 1; }
     .metric span { display: block; color: var(--muted); margin-top: 6px; font-size: .82rem; }
+    .takeaway { border: 1px solid #b9ddcf; border-left: 4px solid var(--ok); border-radius: 6px; padding: 10px 12px; background: #f2faf6; margin: 10px 0; }
+    .takeaway strong { display: block; margin-bottom: 4px; }
+    .takeaway p { margin-top: 0; color: var(--ink); }
     .flow { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px; }
-    .flow-step { border-left: 3px solid var(--line); padding: 2px 0 2px 10px; min-height: 92px; }
+    .flow-step { border-left: 3px solid var(--line); padding: 2px 0 2px 10px; min-height: 78px; }
     .flow-step strong { display: block; font-size: .86rem; }
     .flow-step span { display: block; color: var(--muted); margin-top: 6px; font-size: .8rem; line-height: 1.35; }
     .flow-step.ok { border-left-color: var(--ok); }
@@ -1794,6 +1815,10 @@ function renderBasicUi(data) {
     .extra-wide { min-width: 1080px; }
     th, td { border-bottom: 1px solid var(--line); padding: 8px; text-align: left; vertical-align: top; font-size: .82rem; }
     th { color: var(--muted); background: #f7fafb; }
+    .compare { min-width: 640px; }
+    .compare th { width: 170px; color: var(--ink); }
+    .compare td:nth-child(2) { border-left: 3px solid var(--warn); }
+    .compare td:nth-child(3) { border-left: 3px solid var(--ok); }
     .table-wrap { overflow-x: auto; }
     .quote { border-left: 3px solid var(--ok); background: #e4f2ec; padding: 8px 10px; margin-top: 8px; line-height: 1.45; }
     details { border: 1px solid var(--line); border-radius: 6px; padding: 9px 10px; margin-top: 8px; }
@@ -1802,6 +1827,15 @@ function renderBasicUi(data) {
       main { padding: 10px; }
       .grid { grid-template-columns: 1fr; }
       .flow, .split { grid-template-columns: 1fr; }
+      .compare { min-width: 0; }
+      .compare thead { display: none; }
+      .compare, .compare tbody, .compare tr, .compare th, .compare td { display: block; width: 100%; }
+      .compare tr { border-bottom: 1px solid var(--line); padding: 6px 0; }
+      .compare th, .compare td { border-bottom: 0; padding: 4px 8px; }
+      .compare th { background: transparent; color: var(--ink); }
+      .compare td:nth-child(2), .compare td:nth-child(3) { border-left: 0; }
+      .compare td:nth-child(2)::before { content: "direct_smt: "; color: var(--warn); font-weight: 650; }
+      .compare td:nth-child(3)::before { content: "single_ir: "; color: var(--ok); font-weight: 650; }
     }
   </style>
 </head>
@@ -1832,24 +1866,36 @@ function renderBasicUi(data) {
 
     <section>
       <h2>How IR improves this pipeline</h2>
-      <p>Both routes receive the same <code>${escapeHtml(data.source_cue_layer.extractor_id)}</code> cue layer (cue hash <code>${escapeHtml(shortDigest(report.source_cue_layer.cue_hash))}</code>). The lift comes from changing the model's job from whole target-program composition to bounded IR field copying, then letting deterministic code compile and verify the rule rows.</p>
+      <div class="takeaway">
+        <strong>Short version</strong>
+        <p>The IR does not add new source evidence. It makes the weak model do a smaller job: copy bounded fields from the same cues. Deterministic code then builds rule rows and runs the verifier.</p>
+      </div>
+      <p>Both routes use <code>${escapeHtml(data.source_cue_layer.extractor_id)}</code> (cue hash <code>${escapeHtml(shortDigest(report.source_cue_layer.cue_hash))}</code>). The difference is where target-language composition happens.</p>
       <div class="flow">
         <div class="flow-step">
-          <strong>1. Shared cue input</strong>
-          <span>Source spans are reduced to direction, action, age, condition, pregnancy, and exception cues before either route runs.</span>
+          <strong>1. Same input</strong>
+          <span>Japanese fixture spans become shared source cues before either route runs.</span>
         </div>
         <div class="flow-step warn">
-          <strong>2. Direct SMT route</strong>
-          <span>The weak model must emit declarations, named assertions, valid SMT-LIB syntax, and the query in one target-language output.</span>
+          <strong>2. Hard model job</strong>
+          <span><code>route.direct_smt</code> asks the model to write a whole executable SMT-LIB target.</span>
         </div>
         <div class="flow-step ok">
-          <strong>3. IR-mediated route</strong>
-          <span>The weak model emits one schema-constrained cue field at a time; deterministic bridge code forms CKC rules and verdicts.</span>
+          <strong>3. Smaller model job</strong>
+          <span><code>route.single_ir</code> asks for tiny JSON fields; deterministic code owns the formal target.</span>
         </div>
+      </div>
+      <h3>What changed</h3>
+      <div class="table-wrap">
+        <table class="compare">
+          <thead><tr><th></th><th>direct_smt</th><th>single_ir</th></tr></thead>
+          <tbody>${routeBurdenRows}
+          </tbody>
+        </table>
       </div>
       <div class="split">
         <div class="lane">
-          <h3>Direct target composition</h3>
+          <h3>Direct route example</h3>
           <span class="status warn">not admitted in representative conflict row</span>
           <dl>
             <dt>group</dt><dd><code>${escapeHtml(directExample?.group_id ?? "missing")}</code> / seed ${escapeHtml(directExample?.seed ?? "missing")}</dd>
@@ -1860,7 +1906,7 @@ function renderBasicUi(data) {
           <pre>${escapePre(directExample?.response ?? "missing direct response")}</pre>
         </div>
         <div class="lane">
-          <h3>IR short-hop composition</h3>
+          <h3>IR route example</h3>
           <span class="status ok">admitted in representative conflict row</span>
           <dl>
             <dt>group</dt><dd><code>${escapeHtml(irConflictExample?.group_id ?? "missing")}</code> / seed ${escapeHtml(irConflictExample?.seed ?? "missing")}</dd>
@@ -1868,7 +1914,8 @@ function renderBasicUi(data) {
             <dt>admitted</dt><dd>${escapeHtml(yesNo(irConflictExample?.row?.admitted))}</dd>
             <dt>bridge verdict</dt><dd><code>${escapeHtml(irConflictBridge?.verdict ?? "missing")}</code></dd>
           </dl>
-          <pre>${escapePre(JSON.stringify(irConflictCandidate ?? {}, null, 2))}</pre>
+          <p>${escapeHtml(irFieldSummaries[0])}</p>
+          <p>${escapeHtml(irFieldSummaries[1])}</p>
         </div>
       </div>
       <h3>Lift location</h3>
@@ -1879,24 +1926,24 @@ function renderBasicUi(data) {
           </tbody>
         </table>
       </div>
-      <h3>Shared source cues</h3>
-      <div class="table-wrap">
-        <table class="extra-wide">
-          <thead><tr><th>Source</th><th>Direction cue</th><th>Age cue</th><th>Action cue</th><th>Sepsis</th><th>Pregnancy</th><th>Renal exception</th><th>Resolved IR fields</th></tr></thead>
-          <tbody>${cueRows}
-          </tbody>
-        </table>
-      </div>
-      <h3>IR bridge checks</h3>
-      <div class="table-wrap">
-        <table class="wide">
-          <thead><tr><th>Group</th><th>Seed</th><th>Same action</th><th>Opposed direction</th><th>Context overlap</th><th>Reasons</th><th>Verdict</th></tr></thead>
-          <tbody>${bridgeRows}
-          </tbody>
-        </table>
-      </div>
       <details>
-        <summary>Representative IR route internals</summary>
+        <summary>Evidence details: shared cues, bridge checks, and IR internals</summary>
+        <h3>Shared source cues</h3>
+        <div class="table-wrap">
+          <table class="extra-wide">
+            <thead><tr><th>Source</th><th>Direction cue</th><th>Age cue</th><th>Action cue</th><th>Sepsis</th><th>Pregnancy</th><th>Renal exception</th><th>Resolved IR fields</th></tr></thead>
+            <tbody>${cueRows}
+            </tbody>
+          </table>
+        </div>
+        <h3>IR bridge checks</h3>
+        <div class="table-wrap">
+          <table class="wide">
+            <thead><tr><th>Group</th><th>Seed</th><th>Same action</th><th>Opposed direction</th><th>Context overlap</th><th>Reasons</th><th>Verdict</th></tr></thead>
+            <tbody>${bridgeRows}
+            </tbody>
+          </table>
+        </div>
         <h3>Source-local call rollup</h3>
         <div class="table-wrap">
           <table>

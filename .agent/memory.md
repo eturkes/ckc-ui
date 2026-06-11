@@ -1,6 +1,7 @@
 # Agent Memory
 
 - CKC UI framing: present a research/evidence workbench over canonical artifacts, not a clinical UI. Primary surfaces are run state, findings/null results, lineage from source span to solver verdict, artifact hashes, replay, metrics, and autoresearch ledger rows.
+- IR-lift UI readability lesson: lead with the plain mechanism "same inputs, smaller model job, deterministic bridge/verifier owns target syntax"; keep raw cue rows, bridge predicates, hashes, and model I/O behind expandable evidence details.
 - Keep operating instructions grounded in tools and files actually present in this repository. Avoid carrying over tool-specific directories, fixed context-window protocols, or missing maintenance scripts unless the repo later adds them explicitly.
 - Browser/screenshot verification: `chromiumfish` 0.1.3 / browser 150.0.7844 is on PATH. Its Linux cache originally unpacked without `chrome_crashpad_handler`; direct headless Chrome failed before rendering. Repaired on 2026-06-11 by copying the existing Chrome-for-Testing 142 handler from `/var/home/eturkes/debian/.local/share/choreographer/deps/chrome-linux64/chrome_crashpad_handler` into `/var/home/eturkes/debian/.cache/chromiumfish/150.0.7844/linux-x64/chromiumfish-linux-x64/`. Current UI screenshot target is root `index.html`.
 - Codex custom prompts under `~/.codex/prompts` are user-global. Project-local command-like workflows belong under `.agents/skills`; `$session-prompt <TASK>` is a repo skill and parses the task text from the invoking message.

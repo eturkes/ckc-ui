@@ -39,8 +39,11 @@
     .metric { border: 1px solid var(--line); border-radius: 6px; padding: 12px; }
     .metric strong { display: block; font-size: 1.45rem; line-height: 1; }
     .metric span { display: block; color: var(--muted); margin-top: 6px; font-size: .82rem; }
+    .takeaway { border: 1px solid #b9ddcf; border-left: 4px solid var(--ok); border-radius: 6px; padding: 10px 12px; background: #f2faf6; margin: 10px 0; }
+    .takeaway strong { display: block; margin-bottom: 4px; }
+    .takeaway p { margin-top: 0; color: var(--ink); }
     .flow { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px; }
-    .flow-step { border-left: 3px solid var(--line); padding: 2px 0 2px 10px; min-height: 92px; }
+    .flow-step { border-left: 3px solid var(--line); padding: 2px 0 2px 10px; min-height: 78px; }
     .flow-step strong { display: block; font-size: .86rem; }
     .flow-step span { display: block; color: var(--muted); margin-top: 6px; font-size: .8rem; line-height: 1.35; }
     .flow-step.ok { border-left-color: var(--ok); }
@@ -59,6 +62,10 @@
     .extra-wide { min-width: 1080px; }
     th, td { border-bottom: 1px solid var(--line); padding: 8px; text-align: left; vertical-align: top; font-size: .82rem; }
     th { color: var(--muted); background: #f7fafb; }
+    .compare { min-width: 640px; }
+    .compare th { width: 170px; color: var(--ink); }
+    .compare td:nth-child(2) { border-left: 3px solid var(--warn); }
+    .compare td:nth-child(3) { border-left: 3px solid var(--ok); }
     .table-wrap { overflow-x: auto; }
     .quote { border-left: 3px solid var(--ok); background: #e4f2ec; padding: 8px 10px; margin-top: 8px; line-height: 1.45; }
     details { border: 1px solid var(--line); border-radius: 6px; padding: 9px 10px; margin-top: 8px; }
@@ -67,6 +74,15 @@
       main { padding: 10px; }
       .grid { grid-template-columns: 1fr; }
       .flow, .split { grid-template-columns: 1fr; }
+      .compare { min-width: 0; }
+      .compare thead { display: none; }
+      .compare, .compare tbody, .compare tr, .compare th, .compare td { display: block; width: 100%; }
+      .compare tr { border-bottom: 1px solid var(--line); padding: 6px 0; }
+      .compare th, .compare td { border-bottom: 0; padding: 4px 8px; }
+      .compare th { background: transparent; color: var(--ink); }
+      .compare td:nth-child(2), .compare td:nth-child(3) { border-left: 0; }
+      .compare td:nth-child(2)::before { content: "direct_smt: "; color: var(--warn); font-weight: 650; }
+      .compare td:nth-child(3)::before { content: "single_ir: "; color: var(--ok); font-weight: 650; }
     }
   </style>
 </head>
@@ -90,31 +106,68 @@
         <div class="metric"><strong>1</strong><span>null result: age_intervals_disjoint</span></div>
         <div class="metric"><strong>0/6 -&gt; 6/6</strong><span>admitted verdict accuracy</span></div>
       </div>
-      <p>Direct SMT remains below IR admitted accuracy under the shared cue layer.</p>
-      <p>Direct audit: exact templates 0/6; no named assertions 6/6; negated sepsis 0/6.</p>
-      <p>IR route admitted 6/6; admitted accuracy 6/6.</p>
+      <p>Plain result: with the same source cues, the IR path produced accepted correct rows where direct SMT produced none.</p>
+      <p>Direct failure mode: 6/6 direct outputs lacked named assertions, and admitted accuracy stayed 0/6.</p>
+      <p>IR path: 6/6 admitted rows and 6/6 admitted accuracy after deterministic bridge checks.</p>
     </section>
 
     <section>
       <h2>How IR improves this pipeline</h2>
-      <p>Both routes receive the same <code>lexical_cue_v1</code> cue layer (cue hash <code>4a2f00546f6a0ce6...2496b4</code>). The lift comes from changing the model's job from whole target-program composition to bounded IR field copying, then letting deterministic code compile and verify the rule rows.</p>
+      <div class="takeaway">
+        <strong>Short version</strong>
+        <p>The IR does not add new source evidence. It makes the weak model do a smaller job: copy bounded fields from the same cues. Deterministic code then builds rule rows and runs the verifier.</p>
+      </div>
+      <p>Both routes use <code>lexical_cue_v1</code> (cue hash <code>4a2f00546f6a0ce6...2496b4</code>). The difference is where target-language composition happens.</p>
       <div class="flow">
         <div class="flow-step">
-          <strong>1. Shared cue input</strong>
-          <span>Source spans are reduced to direction, action, age, condition, pregnancy, and exception cues before either route runs.</span>
+          <strong>1. Same input</strong>
+          <span>Japanese fixture spans become shared source cues before either route runs.</span>
         </div>
         <div class="flow-step warn">
-          <strong>2. Direct SMT route</strong>
-          <span>The weak model must emit declarations, named assertions, valid SMT-LIB syntax, and the query in one target-language output.</span>
+          <strong>2. Hard model job</strong>
+          <span><code>route.direct_smt</code> asks the model to write a whole executable SMT-LIB target.</span>
         </div>
         <div class="flow-step ok">
-          <strong>3. IR-mediated route</strong>
-          <span>The weak model emits one schema-constrained cue field at a time; deterministic bridge code forms CKC rules and verdicts.</span>
+          <strong>3. Smaller model job</strong>
+          <span><code>route.single_ir</code> asks for tiny JSON fields; deterministic code owns the formal target.</span>
         </div>
+      </div>
+      <h3>What changed</h3>
+      <div class="table-wrap">
+        <table class="compare">
+          <thead><tr><th></th><th>direct_smt</th><th>single_ir</th></tr></thead>
+          <tbody>
+          <tr>
+            <th>Model input</th>
+            <td>same source cues</td>
+            <td>same source cues</td>
+          </tr>
+          <tr>
+            <th>Model output</th>
+            <td>one executable SMT-LIB target</td>
+            <td>one small JSON field per call</td>
+          </tr>
+          <tr>
+            <th>Target syntax burden</th>
+            <td>model-owned</td>
+            <td>deterministic code-owned</td>
+          </tr>
+          <tr>
+            <th>Representative row</th>
+            <td>rejected: target_parse_error, ai_schema_violation</td>
+            <td>admitted: semantic_contradiction</td>
+          </tr>
+          <tr>
+            <th>Full run</th>
+            <td>0/6 admitted accuracy</td>
+            <td>6/6 admitted accuracy</td>
+          </tr>
+          </tbody>
+        </table>
       </div>
       <div class="split">
         <div class="lane">
-          <h3>Direct target composition</h3>
+          <h3>Direct route example</h3>
           <span class="status warn">not admitted in representative conflict row</span>
           <dl>
             <dt>group</dt><dd><code>group.m1_conflict</code> / seed 11</dd>
@@ -126,7 +179,7 @@
 assert (not (contraindicated))  # 禁忌</pre>
         </div>
         <div class="lane">
-          <h3>IR short-hop composition</h3>
+          <h3>IR route example</h3>
           <span class="status ok">admitted in representative conflict row</span>
           <dl>
             <dt>group</dt><dd><code>group.m1_conflict</code> / seed 11</dd>
@@ -134,24 +187,8 @@ assert (not (contraindicated))  # 禁忌</pre>
             <dt>admitted</dt><dd>yes</dd>
             <dt>bridge verdict</dt><dd><code>semantic_contradiction</code></dd>
           </dl>
-          <pre>{
-  &quot;A&quot;: {
-    &quot;action_abx_a&quot;: &quot;present&quot;,
-    &quot;age&quot;: &quot;adult&quot;,
-    &quot;direction&quot;: &quot;for&quot;,
-    &quot;pregnancy&quot;: &quot;absent&quot;,
-    &quot;renal_exception&quot;: &quot;yes&quot;,
-    &quot;sepsis&quot;: &quot;present&quot;
-  },
-  &quot;B&quot;: {
-    &quot;action_abx_a&quot;: &quot;present&quot;,
-    &quot;age&quot;: &quot;adult&quot;,
-    &quot;direction&quot;: &quot;contraindicate&quot;,
-    &quot;pregnancy&quot;: &quot;present&quot;,
-    &quot;renal_exception&quot;: &quot;no&quot;,
-    &quot;sepsis&quot;: &quot;present&quot;
-  }
-}</pre>
+          <p>A: direction=for; action=present; age=adult; sepsis=present; pregnancy=absent; renal_exception=yes</p>
+          <p>B: direction=contraindicate; action=present; age=adult; sepsis=present; pregnancy=present; renal_exception=no</p>
         </div>
       </div>
       <h3>Lift location</h3>
@@ -186,11 +223,13 @@ assert (not (contraindicated))  # 禁忌</pre>
           </tbody>
         </table>
       </div>
-      <h3>Shared source cues</h3>
-      <div class="table-wrap">
-        <table class="extra-wide">
-          <thead><tr><th>Source</th><th>Direction cue</th><th>Age cue</th><th>Action cue</th><th>Sepsis</th><th>Pregnancy</th><th>Renal exception</th><th>Resolved IR fields</th></tr></thead>
-          <tbody>
+      <details>
+        <summary>Evidence details: shared cues, bridge checks, and IR internals</summary>
+        <h3>Shared source cues</h3>
+        <div class="table-wrap">
+          <table class="extra-wide">
+            <thead><tr><th>Source</th><th>Direction cue</th><th>Age cue</th><th>Action cue</th><th>Sepsis</th><th>Pregnancy</th><th>Renal exception</th><th>Resolved IR fields</th></tr></thead>
+            <tbody>
           <tr>
             <td><code>A</code></td>
             <td>推奨する</td>
@@ -221,14 +260,14 @@ assert (not (contraindicated))  # 禁忌</pre>
             <td>no_exception</td>
             <td><code>{&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;child&quot;,&quot;direction&quot;:&quot;contraindicate&quot;,&quot;pregnancy&quot;:&quot;absent&quot;,&quot;renal_exception&quot;:&quot;no&quot;,&quot;sepsis&quot;:&quot;present&quot;}</code></td>
           </tr>
-          </tbody>
-        </table>
-      </div>
-      <h3>IR bridge checks</h3>
-      <div class="table-wrap">
-        <table class="wide">
-          <thead><tr><th>Group</th><th>Seed</th><th>Same action</th><th>Opposed direction</th><th>Context overlap</th><th>Reasons</th><th>Verdict</th></tr></thead>
-          <tbody>
+            </tbody>
+          </table>
+        </div>
+        <h3>IR bridge checks</h3>
+        <div class="table-wrap">
+          <table class="wide">
+            <thead><tr><th>Group</th><th>Seed</th><th>Same action</th><th>Opposed direction</th><th>Context overlap</th><th>Reasons</th><th>Verdict</th></tr></thead>
+            <tbody>
           <tr>
             <td><code>group.m1_conflict</code></td>
             <td>11</td>
@@ -247,11 +286,9 @@ assert (not (contraindicated))  # 禁忌</pre>
             <td>age_intervals_disjoint, concepts_compatible</td>
             <td><code>semantic_no_conflict</code></td>
           </tr>
-          </tbody>
-        </table>
-      </div>
-      <details>
-        <summary>Representative IR route internals</summary>
+            </tbody>
+          </table>
+        </div>
         <h3>Source-local call rollup</h3>
         <div class="table-wrap">
           <table>
