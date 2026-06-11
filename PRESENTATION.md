@@ -67,11 +67,15 @@ guidance, CDS runtime behavior, SaMD evidence, or regulatory approval.
 
 ## Mockup Inventory
 
-`mockups/ckc-human-overview.html` is the digestible entry concept. Existing specialized views
-remain useful drill-downs:
+`mockups/ckc-human-overview-lite.html` is the first-read concept. It keeps only the plain
+explanation, one fixture story, three proof objects, the claim boundary, and a few next clicks.
+`mockups/ckc-human-overview.html` is the denser multi-mode overview for readers who need more
+audit/build context. Existing specialized views remain useful drill-downs:
 
 | File | Role |
 | --- | --- |
+| `mockups/ckc-human-overview-lite.html` | Sparse first-read overview. |
+| `mockups/ckc-human-overview.html` | Denser multi-mode human overview. |
 | `mockups/ckc-evidence-workbench.html` | General evidence workbench. |
 | `mockups/ckc-exp-v2-compare.html` | Layered versus direct comparison. |
 | `mockups/ckc-exp-v3-routes.html` | Weak-model route and amortization evidence. |
