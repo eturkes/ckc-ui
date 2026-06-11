@@ -1,5 +1,9 @@
 {
   "artifact_kind": "ManuscriptFigureManifest",
+  "bundle_pdf_export": "deterministic_pdf_writer_v0",
+  "bundle_pdf_hash": "24b14b9263a70c19f4b0c2e3353149d955e0ee2ba31e4478f80070540e4bc940",
+  "bundle_pdf_page_count": 4,
+  "bundle_pdf_path": "manuscript_figures.pdf",
   "figure_count": 4,
   "figures": [
     {

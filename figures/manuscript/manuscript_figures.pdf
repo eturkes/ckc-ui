@@ -1,0 +1,773 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R 5 0 R 7 0 R 9 0 R] /Count 4 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1600 900] /Resources << /Font << /F1 11 0 R /F2 12 0 R /F3 13 0 R >> >> /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 5251 >>
+stream
+0.067 0.094 0.153 rg
+BT /F2 32 Tf 54 842 Td (Route mechanics and evidence boundaries) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 19 Tf 54 808 Td (M2 compares direct SMT emission with a bounded IR hop over identical fixture groups.) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1416.4 842 Td (run m2-one-shot) Tj ET
+1 1 1 rg
+0.208 0.361 0.604 RG
+3 w
+70 580 285 170 re
+B
+0.067 0.094 0.153 rg
+BT /F2 22 Tf 88 718 Td (Fixture evidence) Tj ET
+0.933 0.953 0.984 rg
+0.722 0.784 0.902 RG
+1 w
+273 708 67.2 28 re
+B
+0.208 0.361 0.604 rg
+BT /F2 16 Tf 285 717 Td (input) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 88 684 Td (Groups: conflict, null,) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 88 661 Td (holdout conflict.) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 88 638 Td (Gold verdicts and source) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 88 615 Td (spans remain fixed.) Tj ET
+1 1 1 rg
+0.184 0.42 0.31 RG
+3 w
+455 580 285 170 re
+B
+0.067 0.094 0.153 rg
+BT /F2 22 Tf 473 718 Td (Shared cue layer) Tj ET
+0.918 0.957 0.933 rg
+0.725 0.839 0.773 RG
+1 w
+666 708 49.92 28 re
+B
+0.184 0.42 0.31 rg
+BT /F2 16 Tf 678 717 Td (det) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 473 684 Td (lexical_cue_v1 derives) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 473 661 Td (source cues for evaluator) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 473 638 Td (grounding.) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 473 615 Td (The cue layer is experiment) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 473 592 Td (scaffolding.) Tj ET
+0.349 0.384 0.451 RG
+2 w
+355 665 m 455 665 l S
+0.349 0.384 0.451 rg
+0 0 0 RG
+455 665 m
+444.608 659 l
+444.608 671 l
+h f
+1 1 1 rg
+0.706 0.361 0.216 RG
+3 w
+845 590 310 190 re
+B
+0.067 0.094 0.153 rg
+BT /F2 22 Tf 863 748 Td (Direct route) Tj ET
+1 0.941 0.91 rg
+0.898 0.714 0.616 RG
+1 w
+1079 738 49.92 28 re
+B
+0.706 0.361 0.216 rg
+BT /F2 16 Tf 1091 747 Td (LLM) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 863 714 Td (The model emits one SMT-LIB) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 863 691 Td (target.) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 863 668 Td (Target syntax: 3/9.) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 863 645 Td (Admission: 0/9.) Tj ET
+1 1 1 rg
+0.122 0.435 0.545 RG
+3 w
+845 305 310 205 re
+B
+0.067 0.094 0.153 rg
+BT /F2 22 Tf 863 478 Td (IR route) Tj ET
+0.91 0.961 0.973 rg
+0.663 0.812 0.855 RG
+1 w
+1037 468 101.76 28 re
+B
+0.122 0.435 0.545 rg
+BT /F2 16 Tf 1049 477 Td (LLM + det) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 863 444 Td (The model emits bounded pair) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 863 421 Td (JSON.) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 863 398 Td (A deterministic bridge) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 863 375 Td (constructs route_rule_ir.v0.) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 863 352 Td (Target syntax: 9/9.) Tj ET
+0.349 0.384 0.451 RG
+2 w
+740 665 m 845 688 l S
+0.349 0.384 0.451 rg
+0 0 0 RG
+845 688 m
+836.132 679.915 l
+833.565 691.637 l
+h f
+0.349 0.384 0.451 RG
+2 w
+740 665 m 845 408 l S
+0.349 0.384 0.451 rg
+0 0 0 RG
+845 408 m
+835.515 415.351 l
+846.624 419.89 l
+h f
+1 1 1 rg
+0.784 0.816 0.855 RG
+3 w
+1260 590 270 190 re
+B
+0.067 0.094 0.153 rg
+BT /F2 22 Tf 1278 748 Td (Target checks) Tj ET
+0.961 0.969 0.98 rg
+0.784 0.816 0.855 RG
+1 w
+1452 738 58.56 28 re
+B
+0.349 0.384 0.451 rg
+BT /F2 16 Tf 1464 747 Td (gate) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 1278 714 Td (Syntactic target checks) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 1278 691 Td (and route admission run) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 1278 668 Td (before accuracy claims.) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 1278 645 Td (Admitted accuracy: 0/9.) Tj ET
+1 1 1 rg
+0.184 0.42 0.31 RG
+3 w
+1260 305 270 205 re
+B
+0.067 0.094 0.153 rg
+BT /F2 22 Tf 1278 478 Td (Compiler gate) Tj ET
+0.918 0.957 0.933 rg
+0.725 0.839 0.773 RG
+1 w
+1456 468 49.92 28 re
+B
+0.184 0.42 0.31 rg
+BT /F2 16 Tf 1468 477 Td (det) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 1278 444 Td (Complete IR rows compile) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 1278 421 Td (to SMT-LIB and are scored) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 1278 398 Td (by the same evaluator.) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 1278 375 Td (Admission: 0/9.) Tj ET
+0.349 0.384 0.451 RG
+2 w
+1155 688 m 1260 688 l S
+0.349 0.384 0.451 rg
+0 0 0 RG
+1260 688 m
+1249.608 682 l
+1249.608 694 l
+h f
+0.349 0.384 0.451 RG
+2 w
+1155 408 m 1260 408 l S
+0.349 0.384 0.451 rg
+0 0 0 RG
+1260 408 m
+1249.608 402 l
+1249.608 414 l
+h f
+0.984 0.988 0.992 rg
+0.898 0.914 0.937 RG
+2 w
+70 125 1460 110 re
+B
+0.067 0.094 0.153 rg
+BT /F2 22 Tf 96 195 Td (Current R3 result) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 18 Tf 96 165 Td (The run shows a target-syntax lift \(3/9 -> 9/9\) but no admitted lift: both routes have 0/9 admission and 0/9 admitted verdict accuracy.) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 18 Tf 96 140 Td (Candidate verdict accuracy for single_ir is 3/9 and remains rejected evidence.) Tj ET
+0.898 0.914 0.937 RG
+1 w
+54 56 m 1546 56 l S
+0.349 0.384 0.451 rg
+BT /F1 15 Tf 54 32 Td (Scope: research harness,source-grounded,schema-valid,verifier-checked,replayable,locked measurement,synthetic fixture measurement,real guideline source intake candidate,documented null) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 15 Tf 54 12 Td (result; scaffolded_cue_translation_test. This figure makes no clinical, patient-care, deployment, or regulatory claim.) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1600 900] /Resources << /Font << /F1 11 0 R /F2 12 0 R /F3 13 0 R >> >> /Contents 6 0 R >>
+endobj
+6 0 obj
+<< /Length 3833 >>
+stream
+0.067 0.094 0.153 rg
+BT /F2 32 Tf 54 842 Td (M2 route metrics) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 19 Tf 54 808 Td (Exact-ratio measurements over three groups and three seeds per route.) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1373.2 842 Td (n = 9 rows per route) Tj ET
+0.898 0.914 0.937 RG
+1 w
+120 210 m 1300 210 l S
+0.349 0.384 0.451 rg
+BT /F1 15 Tf 85.8 204 Td (0%) Tj ET
+0.898 0.914 0.937 RG
+1 w
+120 340 m 1300 340 l S
+0.349 0.384 0.451 rg
+BT /F1 15 Tf 77.7 334 Td (25%) Tj ET
+0.898 0.914 0.937 RG
+1 w
+120 470 m 1300 470 l S
+0.349 0.384 0.451 rg
+BT /F1 15 Tf 77.7 464 Td (50%) Tj ET
+0.898 0.914 0.937 RG
+1 w
+120 600 m 1300 600 l S
+0.349 0.384 0.451 rg
+BT /F1 15 Tf 77.7 594 Td (75%) Tj ET
+0.898 0.914 0.937 RG
+1 w
+120 730 m 1300 730 l S
+0.349 0.384 0.451 rg
+BT /F1 15 Tf 69.6 724 Td (100%) Tj ET
+0.784 0.816 0.855 RG
+2 w
+120 730 m 120 210 l S
+0.784 0.816 0.855 RG
+2 w
+120 210 m 1300 210 l S
+0.706 0.361 0.216 rg
+0.706 0.361 0.216 RG
+1 w
+177 210 54 173.333 re
+B
+0.122 0.435 0.545 rg
+0.122 0.435 0.545 RG
+1 w
+245 210 54 520 re
+B
+0.706 0.361 0.216 rg
+BT /F2 15 Tf 191.85 393.333 Td (3/9) Tj ET
+0.122 0.435 0.545 rg
+BT /F2 15 Tf 259.85 740 Td (9/9) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 16 Tf 103.84 176 Td (Target syntax) Tj ET
+0.706 0.361 0.216 rg
+0.706 0.361 0.216 RG
+1 w
+413 210 54 0 re
+B
+0.122 0.435 0.545 rg
+0.122 0.435 0.545 RG
+1 w
+481 210 54 0 re
+B
+0.706 0.361 0.216 rg
+BT /F2 15 Tf 427.85 220 Td (0/9) Tj ET
+0.122 0.435 0.545 rg
+BT /F2 15 Tf 495.85 220 Td (0/9) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 16 Tf 357.12 176 Td (Admission) Tj ET
+0.706 0.361 0.216 rg
+0.706 0.361 0.216 RG
+1 w
+649 210 54 0 re
+B
+0.122 0.435 0.545 rg
+0.122 0.435 0.545 RG
+1 w
+717 210 54 0 re
+B
+0.706 0.361 0.216 rg
+BT /F2 15 Tf 663.85 220 Td (0/9) Tj ET
+0.122 0.435 0.545 rg
+BT /F2 15 Tf 731.85 220 Td (0/9) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 16 Tf 558.56 176 Td (Admitted accuracy) Tj ET
+0.706 0.361 0.216 rg
+0.706 0.361 0.216 RG
+1 w
+885 210 54 0 re
+B
+0.122 0.435 0.545 rg
+0.122 0.435 0.545 RG
+1 w
+953 210 54 173.333 re
+B
+0.706 0.361 0.216 rg
+BT /F2 15 Tf 899.85 220 Td (0/9) Tj ET
+0.122 0.435 0.545 rg
+BT /F2 15 Tf 967.85 393.333 Td (3/9) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 16 Tf 790.24 176 Td (Candidate accuracy) Tj ET
+0.706 0.361 0.216 rg
+0.706 0.361 0.216 RG
+1 w
+1121 210 54 0 re
+B
+0.122 0.435 0.545 rg
+0.122 0.435 0.545 RG
+1 w
+1189 210 54 0 re
+B
+0.706 0.361 0.216 rg
+BT /F2 15 Tf 1135.85 220 Td (0/3) Tj ET
+0.122 0.435 0.545 rg
+BT /F2 15 Tf 1203.85 220 Td (0/3) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 16 Tf 1043.52 176 Td (Seed stability) Tj ET
+1 0.941 0.91 rg
+0.898 0.714 0.616 RG
+1 w
+1360 691 115.8 29 re
+B
+0.706 0.361 0.216 rg
+BT /F2 17 Tf 1372 700 Td (direct_smt) Tj ET
+0.91 0.961 0.973 rg
+0.663 0.812 0.855 RG
+1 w
+1360 649 106.62 29 re
+B
+0.122 0.435 0.545 rg
+BT /F2 17 Tf 1372 658 Td (single_ir) Tj ET
+0.984 0.988 0.992 rg
+0.898 0.914 0.937 RG
+2 w
+1340 300 205 300 re
+B
+0.067 0.094 0.153 rg
+BT /F2 21 Tf 1360 562 Td (Interpretation) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1360 528 Td (The IR route) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1360 506 Td (preserves) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1360 484 Td (machine-readable) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1360 462 Td (target syntax, but) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1360 440 Td (grounding checks) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1360 418 Td (reject all rows in) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1360 396 Td (this run.) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1360 374 Td (Candidate accuracy) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1360 352 Td (is shown only for) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1360 330 Td (rejected outputs.) Tj ET
+0.898 0.914 0.937 RG
+1 w
+54 56 m 1546 56 l S
+0.349 0.384 0.451 rg
+BT /F1 15 Tf 54 32 Td (Evaluator: source_derived_route_pair_evaluator.v2. Metric labels use exact numerator/denominator values from report.json.) Tj ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1600 900] /Resources << /Font << /F1 11 0 R /F2 12 0 R /F3 13 0 R >> >> /Contents 8 0 R >>
+endobj
+8 0 obj
+<< /Length 3502 >>
+stream
+0.067 0.094 0.153 rg
+BT /F2 32 Tf 54 842 Td (Failure taxonomy by route) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 19 Tf 54 808 Td (Diagnostic categories are non-exclusive row hits over nine route rows.) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1399.12 842 Td (row-category hits) Tj ET
+0.898 0.914 0.937 RG
+1 w
+150 210 m 1270 210 l S
+0.349 0.384 0.451 rg
+BT /F1 15 Tf 123.9 204 Td (0) Tj ET
+0.898 0.914 0.937 RG
+1 w
+150 383.333 m 1270 383.333 l S
+0.349 0.384 0.451 rg
+BT /F1 15 Tf 123.9 377.333 Td (3) Tj ET
+0.898 0.914 0.937 RG
+1 w
+150 556.667 m 1270 556.667 l S
+0.349 0.384 0.451 rg
+BT /F1 15 Tf 123.9 550.667 Td (6) Tj ET
+0.898 0.914 0.937 RG
+1 w
+150 730 m 1270 730 l S
+0.349 0.384 0.451 rg
+BT /F1 15 Tf 123.9 724 Td (9) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 64 750 Td (row hits) Tj ET
+0.784 0.816 0.855 RG
+2 w
+150 730 m 150 210 l S
+0.784 0.816 0.855 RG
+2 w
+150 210 m 1270 210 l S
+0.706 0.361 0.216 rg
+0.706 0.361 0.216 RG
+1 w
+201 210 54 346.667 re
+B
+0.122 0.435 0.545 rg
+0.122 0.435 0.545 RG
+1 w
+269 210 54 0 re
+B
+0.706 0.361 0.216 rg
+BT /F2 15 Tf 215.85 566.667 Td (6/9) Tj ET
+0.122 0.435 0.545 rg
+BT /F2 15 Tf 283.85 220 Td (0/9) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 16 Tf 150.08 176 Td (syntax) Tj ET
+0.706 0.361 0.216 rg
+0.706 0.361 0.216 RG
+1 w
+425 210 54 173.333 re
+B
+0.122 0.435 0.545 rg
+0.122 0.435 0.545 RG
+1 w
+493 210 54 520 re
+B
+0.706 0.361 0.216 rg
+BT /F2 15 Tf 439.85 393.333 Td (3/9) Tj ET
+0.122 0.435 0.545 rg
+BT /F2 15 Tf 507.85 740 Td (9/9) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 16 Tf 361.12 176 Td (grounding) Tj ET
+0.706 0.361 0.216 rg
+0.706 0.361 0.216 RG
+1 w
+649 210 54 173.333 re
+B
+0.122 0.435 0.545 rg
+0.122 0.435 0.545 RG
+1 w
+717 210 54 0 re
+B
+0.706 0.361 0.216 rg
+BT /F2 15 Tf 663.85 393.333 Td (3/9) Tj ET
+0.122 0.435 0.545 rg
+BT /F2 15 Tf 731.85 220 Td (0/9) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 16 Tf 546.24 176 Td (unsupported schema) Tj ET
+0.706 0.361 0.216 rg
+0.706 0.361 0.216 RG
+1 w
+873 210 54 0 re
+B
+0.122 0.435 0.545 rg
+0.122 0.435 0.545 RG
+1 w
+941 210 54 346.667 re
+B
+0.706 0.361 0.216 rg
+BT /F2 15 Tf 887.85 220 Td (0/9) Tj ET
+0.122 0.435 0.545 rg
+BT /F2 15 Tf 955.85 566.667 Td (6/9) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 16 Tf 791.84 176 Td (wrong verdict) Tj ET
+0.706 0.361 0.216 rg
+0.706 0.361 0.216 RG
+1 w
+1097 210 54 0 re
+B
+0.122 0.435 0.545 rg
+0.122 0.435 0.545 RG
+1 w
+1165 210 54 0 re
+B
+0.706 0.361 0.216 rg
+BT /F2 15 Tf 1111.85 220 Td (0/9) Tj ET
+0.122 0.435 0.545 rg
+BT /F2 15 Tf 1179.85 220 Td (0/9) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 16 Tf 1041.76 176 Td (process) Tj ET
+1 0.941 0.91 rg
+0.898 0.714 0.616 RG
+1 w
+1330 693 115.8 29 re
+B
+0.706 0.361 0.216 rg
+BT /F2 17 Tf 1342 702 Td (direct_smt) Tj ET
+0.91 0.961 0.973 rg
+0.663 0.812 0.855 RG
+1 w
+1330 651 106.62 29 re
+B
+0.122 0.435 0.545 rg
+BT /F2 17 Tf 1342 660 Td (single_ir) Tj ET
+0.984 0.988 0.992 rg
+0.898 0.914 0.937 RG
+2 w
+1310 362 230 238 re
+B
+0.067 0.094 0.153 rg
+BT /F2 21 Tf 1330 562 Td (Residual audit) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1330 528 Td (Direct SMT: 9/9 rows) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1330 506 Td (lacked named) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1330 484 Td (assertions; exact) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1330 462 Td (template matches) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1330 440 Td (0/9.) Tj ET
+0.898 0.914 0.937 RG
+1 w
+54 56 m 1546 56 l S
+0.349 0.384 0.451 rg
+BT /F1 15 Tf 54 32 Td (Counts come from route_evaluation.route_category_counts. Categories can co-occur in one row, so columns are diagnostic burden rather than a partition of samples.) Tj ET
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1600 900] /Resources << /Font << /F1 11 0 R /F2 12 0 R /F3 13 0 R >> >> /Contents 10 0 R >>
+endobj
+10 0 obj
+<< /Length 4513 >>
+stream
+0.067 0.094 0.153 rg
+BT /F2 32 Tf 54 842 Td (Real guideline intake scope) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 19 Tf 54 808 Td (Public-source rows are candidate-only artifacts outside locked M1/M2 scoring.) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 16 Tf 1399.12 842 Td (no clinical claim) Tj ET
+1 1 1 rg
+0.208 0.361 0.604 RG
+3 w
+70 620 210 130 re
+B
+0.208 0.361 0.604 rg
+BT /F2 42 Tf 94 690 Td (2) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 18 Tf 94 656 Td (Sources) Tj ET
+1 1 1 rg
+0.122 0.435 0.545 RG
+3 w
+316 620 210 130 re
+B
+0.122 0.435 0.545 rg
+BT /F2 42 Tf 340 690 Td (7) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 18 Tf 340 656 Td (Candidate spans) Tj ET
+1 1 1 rg
+0.184 0.42 0.31 RG
+3 w
+562 620 210 130 re
+B
+0.184 0.42 0.31 rg
+BT /F2 42 Tf 586 690 Td (4) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 18 Tf 586 656 Td (Candidate rules) Tj ET
+1 1 1 rg
+0.706 0.361 0.216 RG
+3 w
+808 620 210 130 re
+B
+0.706 0.361 0.216 rg
+BT /F2 42 Tf 832 690 Td (3) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 18 Tf 832 656 Td (Rejected spans) Tj ET
+1 1 1 rg
+0.541 0.357 0 RG
+3 w
+1054 620 210 130 re
+B
+0.541 0.357 0 rg
+BT /F2 42 Tf 1078 690 Td (20) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 18 Tf 1078 656 Td (Residuals) Tj ET
+1 1 1 rg
+0.616 0.231 0.231 RG
+3 w
+1300 620 210 130 re
+B
+0.616 0.231 0.231 rg
+BT /F2 42 Tf 1324 690 Td (6) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 18 Tf 1324 656 Td (Blocking) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 18 Tf 1324 634 Td (residuals) Tj ET
+1 1 1 rg
+0.208 0.361 0.604 RG
+3 w
+130 355 260 155 re
+B
+0.067 0.094 0.153 rg
+BT /F2 22 Tf 148 478 Td (Registry) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 148 444 Td (2 public source records.) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 148 421 Td (Source and permission) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 148 398 Td (hashes are retained.) Tj ET
+1 1 1 rg
+0.122 0.435 0.545 RG
+3 w
+520 355 260 155 re
+B
+0.067 0.094 0.153 rg
+BT /F2 22 Tf 538 478 Td (Candidate spans) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 538 444 Td (7 quoted candidate) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 538 421 Td (regions.) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 538 398 Td (Machine hints seed) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 538 375 Td (provisional rows.) Tj ET
+1 1 1 rg
+0.184 0.42 0.31 RG
+3 w
+910 355 260 155 re
+B
+0.067 0.094 0.153 rg
+BT /F2 22 Tf 928 478 Td (Candidate IR) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 928 444 Td (4 candidate route-rule) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 928 421 Td (rows.) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 928 398 Td (Rows are not) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 928 375 Td (solver-score evidence.) Tj ET
+1 1 1 rg
+0.616 0.231 0.231 RG
+3 w
+1300 355 230 155 re
+B
+0.067 0.094 0.153 rg
+BT /F2 22 Tf 1318 478 Td (Gate) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 1318 444 Td (6 blocking residuals.) Tj ET
+0.349 0.384 0.451 rg
+BT /F1 17 Tf 1318 421 Td (Scope: none.) Tj ET
+0.349 0.384 0.451 RG
+2 w
+390 432 m 520 432 l S
+0.349 0.384 0.451 rg
+0 0 0 RG
+520 432 m
+509.608 426 l
+509.608 438 l
+h f
+0.349 0.384 0.451 RG
+2 w
+780 432 m 910 432 l S
+0.349 0.384 0.451 rg
+0 0 0 RG
+910 432 m
+899.608 426 l
+899.608 438 l
+h f
+0.349 0.384 0.451 RG
+2 w
+1170 432 m 1300 432 l S
+0.349 0.384 0.451 rg
+0 0 0 RG
+1300 432 m
+1289.608 426 l
+1289.608 438 l
+h f
+0.984 0.988 0.992 rg
+0.898 0.914 0.937 RG
+2 w
+135 130 1330 130 re
+B
+0.067 0.094 0.153 rg
+BT /F2 22 Tf 159 222 Td (Per-source candidate coverage) Tj ET
+0.349 0.384 0.451 rg
+BT /F2 15 Tf 159 190 Td (source) Tj ET
+0.349 0.384 0.451 rg
+BT /F2 15 Tf 925 190 Td (spans) Tj ET
+0.349 0.384 0.451 rg
+BT /F2 15 Tf 1065 190 Td (rules) Tj ET
+0.349 0.384 0.451 rg
+BT /F2 15 Tf 1205 190 Td (rejected) Tj ET
+0.349 0.384 0.451 rg
+BT /F2 15 Tf 1345 190 Td (raw cache) Tj ET
+0.067 0.094 0.153 rg
+BT /F3 14 Tf 159 162 Td (real.jstage.thyroid_tumor_2024.cq_recommendations) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 16 Tf 925 162 Td (4) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 16 Tf 1065 162 Td (4) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 16 Tf 1205 162 Td (0) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 16 Tf 1345 162 Td (complete) Tj ET
+0.067 0.094 0.153 rg
+BT /F3 14 Tf 159 134 Td (real.jstage.sepsis_dic_2025.guideline_article) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 16 Tf 925 134 Td (3) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 16 Tf 1065 134 Td (0) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 16 Tf 1205 134 Td (6) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 16 Tf 1345 134 Td (complete) Tj ET
+0.898 0.914 0.937 RG
+1 w
+54 56 m 1546 56 l S
+0.349 0.384 0.451 rg
+BT /F1 15 Tf 54 32 Td (Scoring scope: not_in_locked_m1_m2_measurement. These rows are source-intake candidate evidence only and are excluded from M1/M2 route metrics.) Tj ET
+endstream
+endobj
+11 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+12 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+13 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>
+endobj
+xref
+0 14
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000139 00000 n 
+0000000289 00000 n 
+0000005591 00000 n 
+0000005741 00000 n 
+0000009625 00000 n 
+0000009775 00000 n 
+0000013328 00000 n 
+0000013479 00000 n 
+0000018044 00000 n 
+0000018115 00000 n 
+0000018191 00000 n 
+trailer
+<< /Size 14 /Root 1 0 R >>
+startxref
+18260
+%%EOF
