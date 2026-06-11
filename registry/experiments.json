@@ -100,6 +100,65 @@
         }
       ],
       "sample_seeds": [11, 22, 33]
+    },
+    {
+      "id": "exp.m3_compare",
+      "basis": "exp.m3_routes",
+      "comparison_scope": "deterministic_layered_pipeline_against_direct_rule_to_smt_baseline",
+      "baseline_pipeline": "pipe.direct_rule_to_smt",
+      "layered_pipeline": "pipe.one_shot_js_ckcir_to_smt",
+      "pipelines": [
+        "pipe.direct_rule_to_smt",
+        "pipe.one_shot_js_ckcir_to_smt"
+      ],
+      "evaluation_groups": [
+        {
+          "id": "group.m1_conflict",
+          "fixtures": ["fixture.m1_guideline_a", "fixture.m1_guideline_b"],
+          "measurement_role": "locked_m1_conflict"
+        },
+        {
+          "id": "group.m1_null",
+          "fixtures": ["fixture.m1_guideline_a", "fixture.m1_control"],
+          "measurement_role": "locked_m1_null"
+        },
+        {
+          "id": "group.m2_holdout_conflict",
+          "fixtures": ["fixture.m1_guideline_a", "fixture.m2_guideline_d"],
+          "measurement_role": "holdout_mutation_conflict",
+          "mutation_note": "Contraindication source uses a new fixture label and phrasing with 禁忌とする instead of the original 投与しないこと sentence."
+        },
+        {
+          "id": "group.m3_metamorphic_conflict",
+          "fixtures": ["fixture.m3_guideline_a_metamorphic", "fixture.m3_guideline_b_metamorphic"],
+          "measurement_role": "m3_metamorphic_conflict",
+          "mutation_note": "Deterministic punctuation, section-order, and word-order variants preserve the original A/B deontic conflict."
+        },
+        {
+          "id": "group.m3_metamorphic_null",
+          "fixtures": ["fixture.m3_guideline_a_metamorphic", "fixture.m1_control"],
+          "measurement_role": "m3_metamorphic_null",
+          "mutation_note": "A2 preserves the A adult recommendation while the control source remains age-disjoint."
+        },
+        {
+          "id": "group.m3_threshold_conflict",
+          "fixtures": ["fixture.m3_threshold_adult", "fixture.m3_threshold_child"],
+          "measurement_role": "m3_threshold_conflict",
+          "mutation_note": "Toy-schema threshold pressure: same action and direction are asserted over disjoint age intervals."
+        },
+        {
+          "id": "group.m3_factual_conflict",
+          "fixtures": ["fixture.m3_factual_positive", "fixture.m3_factual_negative"],
+          "measurement_role": "m3_factual_conflict",
+          "mutation_note": "Toy-schema factual pressure: the same pregnancy high-risk predicate is asserted true and false."
+        },
+        {
+          "id": "group.m3_terminology_incoherence",
+          "fixtures": ["fixture.m3_factual_positive", "fixture.m3_factual_negative"],
+          "measurement_role": "m3_terminology_incoherence",
+          "mutation_note": "Toy-schema terminology pressure: the shared mention 妊娠中 maps to incompatible concept identifiers across the pair."
+        }
+      ]
     }
   ]
 }

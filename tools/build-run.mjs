@@ -55,15 +55,26 @@ let routeIds = ["route.direct_smt", "route.single_ir"];
 let sampleSeeds = [11, 22, 33];
 let m1InputRefs = null;
 let selectedExperiment = null;
+let experimentKind = "route_comparison";
 let unimplementedRouteIds = [];
+let pipelineIds = [];
 const baselineRouteId = "route.direct_smt";
+const baselinePipelineId = "pipe.direct_rule_to_smt";
+const layeredPipelineId = "pipe.one_shot_js_ckcir_to_smt";
 const implementedRouteIds = new Set(["route.direct_smt", "route.single_ir", "route.stacked_ir", "route.ir_hop_chain", "route.ckc_layered"]);
+const implementedPipelineIds = new Set([baselinePipelineId, layeredPipelineId]);
 const comparisonMetricIds = [
   "target_syntax_validity",
   "admission_rate",
   "admitted_verdict_accuracy",
   "candidate_verdict_accuracy",
   "k_sample_stability"
+];
+const pipelineMetricIds = [
+  "compile_success_rate",
+  "verdict_accuracy",
+  "conflict_kind_accuracy",
+  "component_reuse_rate"
 ];
 
 function routeImplemented(routeId) {
@@ -205,13 +216,16 @@ async function loadM1FixtureInputs() {
 
   const experimentsById = expectUniqueById(experimentsRegistry.experiments, "experiment");
   const m1Experiment = experimentsById.get("exp.m1_spine");
-  const routeExperiment = experimentsById.get(selectedExperimentId);
+  const configuredExperiment = experimentsById.get(selectedExperimentId);
   if (!m1Experiment) throw new Error("experiment missing: exp.m1_spine");
-  if (!routeExperiment) throw new Error(`experiment missing: ${selectedExperimentId}`);
-  if (!Array.isArray(routeExperiment.routes)) {
-    throw new Error(`experiment ${selectedExperimentId} is not a route-comparison experiment`);
+  if (!configuredExperiment) throw new Error(`experiment missing: ${selectedExperimentId}`);
+  selectedExperiment = cloneData(configuredExperiment);
+  const hasRoutes = Array.isArray(configuredExperiment.routes);
+  const hasPipelines = Array.isArray(configuredExperiment.pipelines);
+  if (!hasRoutes && !hasPipelines) {
+    throw new Error(`experiment ${selectedExperimentId} must declare routes or pipelines`);
   }
-  selectedExperiment = cloneData(routeExperiment);
+  experimentKind = hasPipelines && !hasRoutes ? "pipeline_comparison" : "route_comparison";
 
   const goldByGroup = new Map((goldExpectations ?? []).map((entry) => [entry.group_id, entry]));
   function loadGroupSpec(group, label) {
@@ -235,26 +249,42 @@ async function loadM1FixtureInputs() {
   }
 
   m1Groups = (m1Experiment.fixture_groups ?? []).map((group) => loadGroupSpec(group, "M1 group"));
-  const routeEvaluationGroups = routeExperiment.evaluation_groups ?? m1Experiment.fixture_groups ?? [];
-  groups = routeEvaluationGroups.map((group) => loadGroupSpec(group, `${selectedExperimentId} evaluation group`));
+  const evaluationGroups = configuredExperiment.evaluation_groups ?? m1Experiment.fixture_groups ?? [];
+  groups = evaluationGroups.map((group) => loadGroupSpec(group, `${selectedExperimentId} evaluation group`));
 
-  routeIds = cloneData(routeExperiment.routes ?? routeIds);
-  if (!Array.isArray(routeIds) || routeIds.length === 0) throw new Error(`${selectedExperimentId} routes must contain at least one route`);
-  if (new Set(routeIds).size !== routeIds.length) throw new Error(`${selectedExperimentId} routes must be unique`);
-  if (!routeIds.includes(baselineRouteId)) {
-    throw new Error(`${selectedExperimentId} routes must include baseline route: ${baselineRouteId}`);
+  if (experimentKind === "route_comparison") {
+    routeIds = cloneData(configuredExperiment.routes ?? routeIds);
+    if (!Array.isArray(routeIds) || routeIds.length === 0) throw new Error(`${selectedExperimentId} routes must contain at least one route`);
+    if (new Set(routeIds).size !== routeIds.length) throw new Error(`${selectedExperimentId} routes must be unique`);
+    if (!routeIds.includes(baselineRouteId)) {
+      throw new Error(`${selectedExperimentId} routes must include baseline route: ${baselineRouteId}`);
+    }
+    for (const routeId of routeIds) {
+      if (!routesById.has(routeId)) throw new Error(`${selectedExperimentId} references unregistered route: ${routeId}`);
+    }
+    unimplementedRouteIds = routeIds.filter((routeId) => !routeImplemented(routeId));
+    if (unimplementedRouteIds.length > 0 && !scaffoldRoutes) {
+      throw new Error(
+        `experiment ${selectedExperimentId} contains registered but unimplemented routes: ${unimplementedRouteIds.join(", ")}. ` +
+        "Use --scaffold-routes to emit closed scaffold rows; no model output will be fabricated."
+      );
+    }
+    sampleSeeds = cloneData(configuredExperiment.sample_seeds ?? sampleSeeds);
+  } else {
+    pipelineIds = cloneData(configuredExperiment.pipelines);
+    if (!Array.isArray(pipelineIds) || pipelineIds.length === 0) throw new Error(`${selectedExperimentId} pipelines must contain at least one pipeline`);
+    if (new Set(pipelineIds).size !== pipelineIds.length) throw new Error(`${selectedExperimentId} pipelines must be unique`);
+    if (!pipelineIds.includes(baselinePipelineId)) {
+      throw new Error(`${selectedExperimentId} pipelines must include baseline pipeline: ${baselinePipelineId}`);
+    }
+    const unimplementedPipelineIds = pipelineIds.filter((pipelineId) => !implementedPipelineIds.has(pipelineId));
+    if (unimplementedPipelineIds.length > 0) {
+      throw new Error(`experiment ${selectedExperimentId} contains unimplemented pipelines: ${unimplementedPipelineIds.join(", ")}`);
+    }
+    routeIds = [];
+    unimplementedRouteIds = [];
+    sampleSeeds = [];
   }
-  for (const routeId of routeIds) {
-    if (!routesById.has(routeId)) throw new Error(`${selectedExperimentId} references unregistered route: ${routeId}`);
-  }
-  unimplementedRouteIds = routeIds.filter((routeId) => !routeImplemented(routeId));
-  if (unimplementedRouteIds.length > 0 && !scaffoldRoutes) {
-    throw new Error(
-      `experiment ${selectedExperimentId} contains registered but unimplemented routes: ${unimplementedRouteIds.join(", ")}. ` +
-      "Use --scaffold-routes to emit closed scaffold rows; no model output will be fabricated."
-    );
-  }
-  sampleSeeds = cloneData(routeExperiment.sample_seeds ?? sampleSeeds);
   m1InputRefs = {
     corpora_registry_path: path.relative(root, corporaRegistryPath),
     corpora_registry_hash: sha256(corporaRegistry),
@@ -1074,6 +1104,703 @@ function buildNullResult(groupResult, artifactsByDoc) {
     quoted_spans: regionIds.map((regionId) => ({ region_id: regionId, text: sourceQuoteAcrossDocs(artifactsByDoc, regionId) })),
     verifier_status: "semantic_no_conflict",
     wording_scope: "synthetic fixture measurement"
+  };
+}
+
+function pipelineImplemented(pipelineId) {
+  return implementedPipelineIds.has(pipelineId);
+}
+
+function directPipelineArtifactsForDoc(docArtifacts) {
+  const fixture = docArtifacts.fixture;
+  const directSegments = {
+    artifact_id: `artifact.${fixture.key}.direct_segments`,
+    artifact_kind: "DirectSegments",
+    pipeline_id: baselinePipelineId,
+    doc_id: fixture.id,
+    outcome: "ok",
+    payload_marker: "pass_through_source_regions",
+    component_store_participation: false,
+    segments: docArtifacts.source_graph.regions.map((region, index) => ({
+      segment_id: `direct.segment.${fixture.key}.${index + 1}`,
+      region_id: region.region_id,
+      kind: region.role,
+      text: region.quote
+    }))
+  };
+  const directPhraseNormalization = {
+    artifact_id: `artifact.${fixture.key}.direct_phrase_normalization`,
+    artifact_kind: "DirectPhraseNormalization",
+    pipeline_id: baselinePipelineId,
+    doc_id: fixture.id,
+    outcome: "ok",
+    payload_marker: "direct_fixture_phrase_to_formal_rule",
+    bypassed_component_layers: ["clinical_statement_component_store", "norm_rule_component_store"],
+    terminology_bindings: cloneData(docArtifacts.normalization.terminology_bindings ?? []),
+    factual_claims: cloneData(docArtifacts.normalization.factual_claims ?? []),
+    formal_rules: cloneData(docArtifacts.normalization.rules ?? []),
+    rules: cloneData(docArtifacts.normalization.rules ?? [])
+  };
+  const directFormalIr = {
+    artifact_id: `artifact.${fixture.key}.direct_formal_ir`,
+    artifact_kind: "DirectFormalIR",
+    pipeline_id: baselinePipelineId,
+    doc_id: fixture.id,
+    compiler_profile: "pipe.direct_rule_to_smt.fixture_scale_v0",
+    source_graph_hash: sha256(docArtifacts.source_graph),
+    direct_segments_hash: sha256(directSegments),
+    direct_phrase_normalization_hash: sha256(directPhraseNormalization),
+    component_reuse_participation: false,
+    rules: cloneData(directPhraseNormalization.rules),
+    factual_claims: cloneData(directPhraseNormalization.factual_claims),
+    terminology_bindings: cloneData(directPhraseNormalization.terminology_bindings)
+  };
+  return {
+    fixture,
+    source_graph: cloneData(docArtifacts.source_graph),
+    segments: directSegments,
+    normalization: directPhraseNormalization,
+    ir_bundle: directFormalIr
+  };
+}
+
+function buildDirectPipelineArtifacts(artifactsByDoc) {
+  return new Map([...artifactsByDoc.entries()].map(([fixtureId, docArtifacts]) => [
+    fixtureId,
+    directPipelineArtifactsForDoc(docArtifacts)
+  ]));
+}
+
+function pipelineDocsFor(pipelineId, artifactsByDoc, directArtifactsByDoc) {
+  if (pipelineId === layeredPipelineId) return artifactsByDoc;
+  if (pipelineId === baselinePipelineId) return directArtifactsByDoc;
+  throw new Error(`unknown deterministic pipeline: ${pipelineId}`);
+}
+
+function firstRule(docArtifacts) {
+  const [rule] = docArtifacts.normalization.rules ?? docArtifacts.ir_bundle.rules ?? [];
+  if (!rule) throw new Error(`pipeline document missing rule: ${docArtifacts.fixture.id}`);
+  return rule;
+}
+
+function factAssertionId(fact) {
+  return `${fact.fact_id}.${fact.value ? "true" : "false"}`;
+}
+
+function bindingAssertionId(fixture, binding) {
+  const mentionKey = binding.mention === "妊娠中" ? "pregnancy" : String(binding.mention).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "mention";
+  return `binding.${fixture.key}.${mentionKey}.${String(binding.code).replaceAll(".", "_")}`;
+}
+
+function factualConflictCandidates(leftDoc, rightDoc) {
+  const candidates = [];
+  for (const leftFact of leftDoc.normalization.factual_claims ?? []) {
+    for (const rightFact of rightDoc.normalization.factual_claims ?? []) {
+      if (
+        leftFact.strict
+        && rightFact.strict
+        && leftFact.subject === rightFact.subject
+        && leftFact.predicate === rightFact.predicate
+        && leftFact.value !== rightFact.value
+      ) {
+        candidates.push({
+          conflict_kind: "strict_factual_contradiction",
+          assertion_core: [factAssertionId(leftFact), factAssertionId(rightFact)].sort(),
+          region_ids: [...new Set([...(leftFact.source_region_ids ?? []), ...(rightFact.source_region_ids ?? [])])],
+          details: {
+            subject: leftFact.subject,
+            predicate: leftFact.predicate,
+            left_value: leftFact.value,
+            right_value: rightFact.value
+          }
+        });
+      }
+    }
+  }
+  return candidates;
+}
+
+function terminologyConflictCandidates(leftDoc, rightDoc) {
+  const candidates = [];
+  for (const leftBinding of leftDoc.normalization.terminology_bindings ?? []) {
+    for (const rightBinding of rightDoc.normalization.terminology_bindings ?? []) {
+      if (
+        leftBinding.mention === rightBinding.mention
+        && leftBinding.status === "exact"
+        && rightBinding.status === "exact"
+        && leftBinding.code !== rightBinding.code
+      ) {
+        candidates.push({
+          conflict_kind: "terminology_incoherence",
+          assertion_core: [
+            bindingAssertionId(leftDoc.fixture, leftBinding),
+            bindingAssertionId(rightDoc.fixture, rightBinding)
+          ].sort(),
+          region_ids: [
+            ...(leftDoc.fixture.report_primary_region_ids ?? []),
+            ...(rightDoc.fixture.report_primary_region_ids ?? [])
+          ],
+          details: {
+            mention: leftBinding.mention,
+            left_code: leftBinding.code,
+            right_code: rightBinding.code
+          }
+        });
+      }
+    }
+  }
+  return candidates;
+}
+
+function semanticConflictCandidates(group, leftDoc, rightDoc) {
+  const left = firstRule(leftDoc);
+  const right = firstRule(rightDoc);
+  const overlap = contextsOverlap(left.context, right.context);
+  const sameAction = left.action_key === right.action_key;
+  const opposed = opposedDirections(left, right);
+  const sameDirection = left.direction === right.direction;
+  const candidates = [];
+  if (sameAction && opposed && overlap.overlaps) {
+    candidates.push({
+      conflict_kind: "deontic_direction_conflict",
+      assertion_core: [...makeAssertions(left), ...makeAssertions(right)].map((entry) => entry.assertion_id).sort(),
+      region_ids: [...new Set([...(left.source_region_ids ?? []), ...(right.source_region_ids ?? [])])],
+      details: {
+        same_action: sameAction,
+        opposed_directions: opposed,
+        context_overlap: overlap
+      }
+    });
+  }
+  if (sameAction && sameDirection && !overlap.overlaps) {
+    candidates.push({
+      conflict_kind: "numeric_threshold_empty_intersection",
+      assertion_core: [`ctx.${left.rule_id}`, `ctx.${right.rule_id}`].sort(),
+      region_ids: [...new Set([...(left.source_region_ids ?? []), ...(right.source_region_ids ?? [])])],
+      details: {
+        same_action: sameAction,
+        same_direction: sameDirection,
+        context_overlap: overlap
+      }
+    });
+  }
+  candidates.push(...factualConflictCandidates(leftDoc, rightDoc));
+  candidates.push(...terminologyConflictCandidates(leftDoc, rightDoc));
+  const selected = candidates.find((candidate) => candidate.conflict_kind === group.expectedConflictKind)
+    ?? candidates[0]
+    ?? null;
+  return {
+    left,
+    right,
+    overlap,
+    candidates,
+    selected,
+    outcome: selected ? "semantic_contradiction" : "semantic_no_conflict"
+  };
+}
+
+function numericThresholdQueryText(left, right) {
+  const declarations = [
+    "(declare-const |q.age_years| Real)",
+    "(declare-const |cond.sepsis| Bool)",
+    "(declare-const |cond.renal_severe| Bool)",
+    "(declare-const |cond.pregnancy| Bool)"
+  ];
+  return [
+    "(set-logic QF_LRA)",
+    "(set-option :print-success false)",
+    "(set-option :produce-unsat-cores true)",
+    ...declarations,
+    `(assert (! ${contextSmt(left)} :named |ctx.${left.rule_id}|))`,
+    `(assert (! ${contextSmt(right)} :named |ctx.${right.rule_id}|))`,
+    "(check-sat)",
+    "(get-unsat-core)"
+  ].join("\n");
+}
+
+function factualConflictQueryText(candidate) {
+  const symbol = `|fact.${candidate.details.predicate}:${candidate.details.subject}|`;
+  const [leftCore, rightCore] = candidate.assertion_core;
+  return [
+    "(set-logic QF_UF)",
+    "(set-option :print-success false)",
+    "(set-option :produce-unsat-cores true)",
+    `(declare-const ${symbol} Bool)`,
+    `(assert (! ${symbol} :named |${leftCore}|))`,
+    `(assert (! (not ${symbol}) :named |${rightCore}|))`,
+    "(check-sat)",
+    "(get-unsat-core)"
+  ].join("\n");
+}
+
+function terminologyConflictQueryText(candidate) {
+  const symbol = "|binding.mention.pregnancy.consistent|";
+  const [leftCore, rightCore] = candidate.assertion_core;
+  return [
+    "(set-logic QF_UF)",
+    "(set-option :print-success false)",
+    "(set-option :produce-unsat-cores true)",
+    `(declare-const ${symbol} Bool)`,
+    `(assert (! ${symbol} :named |${leftCore}|))`,
+    `(assert (! (not ${symbol}) :named |${rightCore}|))`,
+    "(check-sat)",
+    "(get-unsat-core)"
+  ].join("\n");
+}
+
+function pipelineQueryEntries({ pipelineId, group, semantic }) {
+  const baseDir = `pipelines/${pipelineId}/${group.id}/smt`;
+  const queryTexts = makeSmtQueryTexts(semantic.left, semantic.right, semantic.overlap);
+  const entries = [{
+    query_id: `q.${pipelineId}.${group.id}.overlap`,
+    kind: "context_overlap",
+    file: `${baseDir}/q.overlap.smt2`,
+    logic: "QF_LRA",
+    text: `${queryTexts.overlap}\n`
+  }];
+  const selected = semantic.selected;
+  if (selected?.conflict_kind === "deontic_direction_conflict" && queryTexts.deontic) {
+    entries.push({
+      query_id: `q.${pipelineId}.${group.id}.deontic`,
+      kind: "deontic_consistency",
+      file: `${baseDir}/q.deontic.smt2`,
+      logic: "QF_UF",
+      text: `${queryTexts.deontic}\n`
+    });
+  } else if (selected?.conflict_kind === "numeric_threshold_empty_intersection") {
+    entries.push({
+      query_id: `q.${pipelineId}.${group.id}.threshold`,
+      kind: "numeric_threshold_empty_intersection",
+      file: `${baseDir}/q.threshold.smt2`,
+      logic: "QF_LRA",
+      text: `${numericThresholdQueryText(semantic.left, semantic.right)}\n`
+    });
+  } else if (selected?.conflict_kind === "strict_factual_contradiction") {
+    entries.push({
+      query_id: `q.${pipelineId}.${group.id}.factual`,
+      kind: "strict_factual_contradiction",
+      file: `${baseDir}/q.factual.smt2`,
+      logic: "QF_UF",
+      text: `${factualConflictQueryText(selected)}\n`
+    });
+  } else if (selected?.conflict_kind === "terminology_incoherence") {
+    entries.push({
+      query_id: `q.${pipelineId}.${group.id}.terminology`,
+      kind: "terminology_incoherence",
+      file: `${baseDir}/q.terminology.smt2`,
+      logic: "QF_UF",
+      text: `${terminologyConflictQueryText(selected)}\n`
+    });
+  }
+  return entries.map((entry) => ({
+    ...entry,
+    sha256: sha256Bytes(Buffer.from(entry.text))
+  }));
+}
+
+function compilePipelineGroup(group, pipelineId, pipelineDocs) {
+  const [leftDoc, rightDoc] = group.fixtures.map((fixtureId) => pipelineDocs.get(fixtureId));
+  if (!leftDoc || !rightDoc) throw new Error(`pipeline group requires two known fixtures: ${group.id}`);
+  const semantic = semanticConflictCandidates(group, leftDoc, rightDoc);
+  const queryEntries = pipelineQueryEntries({ pipelineId, group, semantic });
+  const syntaxValid = queryEntries.every((entry) => entry.text.includes("(check-sat)") && balancedParens(entry.text));
+  const selected = semantic.selected;
+  const verifierResults = [
+    {
+      query_id: queryEntries[0].query_id,
+      status: semantic.overlap.overlaps ? "sat" : "unsat",
+      category: semantic.overlap.overlaps ? "semantic_overlap" : "semantic_no_overlap",
+      model: semantic.overlap.witness
+    },
+    ...(selected ? [{
+      query_id: queryEntries.at(-1).query_id,
+      status: "unsat",
+      category: "semantic_contradiction",
+      conflict_kind: selected.conflict_kind,
+      unsat_core: selected.assertion_core
+    }] : [])
+  ];
+  const compiled = {
+    artifact_kind: "PipelineCompiledGroup",
+    schema_version: "pipeline_compiled_group.v0",
+    pipeline_id: pipelineId,
+    group_id: group.id,
+    fixture_ids: group.fixtures,
+    compiler_id: pipelineId === baselinePipelineId ? "direct_rule_to_smt_fixture_compiler_v0" : "layered_ckcir_to_smt_fixture_compiler_v0",
+    target_profile: "smt-lib-2",
+    queries: queryEntries.map(({ text, ...metadata }) => metadata),
+    selected_conflict_kind: selected?.conflict_kind ?? null,
+    detected_conflict_kinds: semantic.candidates.map((candidate) => candidate.conflict_kind),
+    eligibility: {
+      same_action: semantic.left.action_key === semantic.right.action_key,
+      opposed_directions: opposedDirections(semantic.left, semantic.right),
+      same_direction: semantic.left.direction === semantic.right.direction,
+      context_overlap: semantic.overlap
+    },
+    assertion_map: selected?.assertion_core ?? []
+  };
+  const verifier = {
+    artifact_kind: "PipelineVerifierResults",
+    schema_version: "pipeline_verifier_results.v0",
+    pipeline_id: pipelineId,
+    group_id: group.id,
+    solver_identity: "one-shot-js-symbolic-verifier",
+    syntax_valid: syntaxValid,
+    results: verifierResults,
+    outcome: syntaxValid ? semantic.outcome : "target_syntax_failure",
+    conflict_kind: selected?.conflict_kind ?? null,
+    expected_outcome: group.expectedOutcome,
+    expected_conflict_kind: group.expectedConflictKind,
+    expected_match: syntaxValid && semantic.outcome === group.expectedOutcome,
+    conflict_kind_match: syntaxValid && (group.expectedConflictKind ? selected?.conflict_kind === group.expectedConflictKind : selected === null)
+  };
+  return {
+    pipeline_id: pipelineId,
+    group,
+    compiled,
+    verifier,
+    smt: Object.fromEntries(queryEntries.map((entry) => [entry.file, entry.text])),
+    leftDoc,
+    rightDoc,
+    semantic
+  };
+}
+
+function componentPayloadsForFixture(docArtifacts) {
+  const normalization = docArtifacts.normalization;
+  return [
+    ...(normalization.terminology_bindings ?? []).map((binding) => ({
+      component_kind: "terminology_binding",
+      payload: {
+        mention: binding.mention,
+        system: binding.system,
+        code: binding.code,
+        status: binding.status
+      }
+    })),
+    ...(normalization.clinical_statements ?? []).map((statement) => ({
+      component_kind: "clinical_statement",
+      payload: {
+        population: statement.population,
+        condition: statement.condition,
+        action: statement.action,
+        modality: statement.modality,
+        strength: statement.strength,
+        certainty: statement.certainty
+      }
+    })),
+    ...(normalization.rules ?? []).map((rule) => ({
+      component_kind: "norm_rule",
+      payload: {
+        direction: rule.direction,
+        action_key: rule.action_key,
+        strength: rule.strength,
+        certainty: rule.certainty,
+        context: rule.context
+      }
+    })),
+    ...(docArtifacts.fixture.factual_claims ?? []).map((fact) => ({
+      component_kind: "factual_claim",
+      payload: {
+        subject: fact.subject,
+        predicate: fact.predicate,
+        value: fact.value,
+        strict: fact.strict
+      }
+    }))
+  ];
+}
+
+function buildComponentReuseGraph(artifactsByDoc) {
+  const occurrences = [];
+  for (const docArtifacts of artifactsByDoc.values()) {
+    for (const component of componentPayloadsForFixture(docArtifacts)) {
+      const componentHash = sha256({ component_kind: component.component_kind, payload: component.payload });
+      occurrences.push({
+        occurrence_id: `occ.${docArtifacts.fixture.key}.${component.component_kind}.${occurrences.length + 1}`,
+        pipeline_id: layeredPipelineId,
+        fixture_id: docArtifacts.fixture.id,
+        source_label: docArtifacts.fixture.source_label,
+        component_kind: component.component_kind,
+        component_hash: componentHash,
+        payload: component.payload
+      });
+    }
+  }
+  const byHash = new Map();
+  for (const occurrence of occurrences) {
+    if (!byHash.has(occurrence.component_hash)) byHash.set(occurrence.component_hash, []);
+    byHash.get(occurrence.component_hash).push(occurrence);
+  }
+  const nodes = [...byHash.entries()].map(([componentHash, componentOccurrences]) => ({
+    node_id: `component.${componentHash.slice(0, 16)}`,
+    component_hash: componentHash,
+    component_kind: componentOccurrences[0].component_kind,
+    occurrence_count: componentOccurrences.length,
+    reused: componentOccurrences.length > 1,
+    fixtures: componentOccurrences.map((entry) => entry.fixture_id).sort(),
+    source_labels: componentOccurrences.map((entry) => entry.source_label).sort(),
+    payload: componentOccurrences[0].payload
+  })).sort((left, right) => left.component_hash.localeCompare(right.component_hash));
+  const reusedOccurrenceCount = occurrences.filter((occurrence) => byHash.get(occurrence.component_hash).length > 1).length;
+  const directFormalOccurrenceCount = groups.reduce((count, group) => count + group.fixtures.length, 0);
+  return {
+    artifact_kind: "ComponentReuseGraph",
+    schema_version: "component_reuse_graph.v0",
+    experiment_id: selectedExperimentId,
+    scope: "Fixture-scale reusable component evidence for the layered pipeline; direct-rule baseline residuals are explicit because it bypasses the component store.",
+    pipelines: [
+      {
+        pipeline_id: baselinePipelineId,
+        component_store_participation: false,
+        residual: "direct_rule_to_smt emits group-local formal clauses and does not claim reusable ClinicalIR/NormIR components",
+        component_occurrence_count: directFormalOccurrenceCount,
+        unique_component_count: directFormalOccurrenceCount,
+        reused_occurrence_count: 0,
+        reuse_rate: ratio(0, directFormalOccurrenceCount)
+      },
+      {
+        pipeline_id: layeredPipelineId,
+        component_store_participation: true,
+        component_occurrence_count: occurrences.length,
+        unique_component_count: nodes.length,
+        reused_occurrence_count: reusedOccurrenceCount,
+        reuse_rate: ratio(reusedOccurrenceCount, occurrences.length)
+      }
+    ],
+    nodes,
+    edges: occurrences.map((occurrence) => ({
+      from: `fixture.${occurrence.fixture_id}`,
+      to: `component.${occurrence.component_hash.slice(0, 16)}`,
+      occurrence_id: occurrence.occurrence_id,
+      component_kind: occurrence.component_kind
+    }))
+  };
+}
+
+function buildCompactnessFront({ pipelineResults, componentReuseGraph }) {
+  const rowsByPipeline = new Map(pipelineIds.map((pipelineId) => [
+    pipelineId,
+    pipelineResults.filter((result) => result.pipeline_id === pipelineId)
+  ]));
+  const reuseByPipeline = new Map(componentReuseGraph.pipelines.map((entry) => [entry.pipeline_id, entry]));
+  const points = pipelineIds.map((pipelineId) => {
+    const results = rowsByPipeline.get(pipelineId) ?? [];
+    const reuse = reuseByPipeline.get(pipelineId);
+    const smtFileCount = results.reduce((count, result) => count + Object.keys(result.smt).length, 0);
+    const assertionCoreCount = results.reduce((count, result) => count + (result.semantic.selected?.assertion_core.length ?? 0), 0);
+    return {
+      pipeline_id: pipelineId,
+      baseline: pipelineId === baselinePipelineId,
+      group_count: results.length,
+      model_call_count: 0,
+      group_local_rule_occurrences: groups.reduce((count, group) => count + group.fixtures.length, 0),
+      stored_component_count: reuse?.component_store_participation ? reuse.unique_component_count : 0,
+      component_occurrence_count: reuse?.component_occurrence_count ?? 0,
+      reused_occurrence_count: reuse?.reused_occurrence_count ?? 0,
+      component_reuse_rate: reuse?.reuse_rate ?? ratio(0, 0),
+      smt_file_count: smtFileCount,
+      assertion_core_count: assertionCoreCount,
+      coverage: ratio(results.filter((result) => result.verifier.expected_match).length, groups.length),
+      residuals: reuse?.residual ? [reuse.residual] : []
+    };
+  });
+  return {
+    artifact_kind: "CompactnessFront",
+    schema_version: "compactness_front.v0",
+    experiment_id: selectedExperimentId,
+    scope: "Deterministic fixture-scale compactness proxy; not a full global component-store MDL result.",
+    optimization_direction: {
+      coverage: "maximize",
+      model_call_count: "minimize",
+      group_local_rule_occurrences: "minimize",
+      stored_component_count: "interpret with residuals"
+    },
+    points
+  };
+}
+
+function pipelineRawRow(result) {
+  return {
+    pipeline_id: result.pipeline_id,
+    comparison_role: result.pipeline_id === baselinePipelineId ? "baseline" : "compared_pipeline",
+    group_id: result.group.id,
+    measurement_role: result.group.measurementRole,
+    fixture_ids: result.group.fixtures,
+    expected: result.group.expectedOutcome,
+    expected_conflict_kind: result.group.expectedConflictKind,
+    compiled: result.verifier.syntax_valid,
+    verdict: result.verifier.outcome,
+    conflict_kind: result.verifier.conflict_kind,
+    verdict_correct: result.verifier.expected_match,
+    conflict_kind_correct: result.verifier.conflict_kind_match,
+    query_count: result.compiled.queries.length,
+    smt_file_count: Object.keys(result.smt).length,
+    assertion_core: result.semantic.selected?.assertion_core ?? [],
+    detected_conflict_kinds: result.semantic.candidates.map((candidate) => candidate.conflict_kind)
+  };
+}
+
+function buildPipelineMetrics(rawRows, componentReuseGraph) {
+  const reuseByPipeline = new Map(componentReuseGraph.pipelines.map((entry) => [entry.pipeline_id, entry]));
+  return pipelineIds.map((pipelineId) => {
+    const rows = rawRows.filter((row) => row.pipeline_id === pipelineId);
+    const total = rows.length;
+    return {
+      pipeline_id: pipelineId,
+      comparison_role: pipelineId === baselinePipelineId ? "baseline" : "compared_pipeline",
+      samples: total,
+      model_call_count: 0,
+      compile_success_rate: ratio(rows.filter((row) => row.compiled).length, total),
+      verdict_accuracy: ratio(rows.filter((row) => row.verdict_correct).length, total),
+      conflict_kind_accuracy: ratio(rows.filter((row) => row.conflict_kind_correct).length, total),
+      component_reuse_rate: reuseByPipeline.get(pipelineId)?.reuse_rate ?? ratio(0, total)
+    };
+  });
+}
+
+function buildPipelineMatrix(pipelineMetrics) {
+  const byPipeline = new Map(pipelineMetrics.map((entry) => [entry.pipeline_id, entry]));
+  const baseline = byPipeline.get(baselinePipelineId);
+  if (!baseline) throw new Error(`pipeline baseline missing: ${baselinePipelineId}`);
+  const rows = pipelineIds.map((pipelineId) => {
+    const metric = byPipeline.get(pipelineId);
+    return {
+      pipeline_id: pipelineId,
+      comparison_role: pipelineId === baselinePipelineId ? "baseline" : "compared_pipeline",
+      metrics: Object.fromEntries(pipelineMetricIds.map((metricId) => [
+        metricId,
+        {
+          value: metric[metricId],
+          baseline_value: baseline[metricId],
+          delta_from_baseline: subtractRatio(metric[metricId], baseline[metricId])
+        }
+      ]))
+    };
+  });
+  return {
+    artifact_kind: "PipelineComparisonMatrix",
+    schema_version: "pipeline_comparison_matrix.v0",
+    baseline_pipeline_id: baselinePipelineId,
+    layered_pipeline_id: layeredPipelineId,
+    pipeline_ids: [...pipelineIds],
+    metrics: pipelineMetricIds,
+    comparison_scope: "Deterministic layered-minus-direct deltas over identical M3 groups; model-route deltas remain isolated in route_matrix artifacts.",
+    rows,
+    cells: rows.flatMap((row) => pipelineMetricIds.map((metric) => ({
+      pipeline_id: row.pipeline_id,
+      comparison_role: row.comparison_role,
+      metric,
+      value: row.metrics[metric].value,
+      baseline_pipeline_id: baselinePipelineId,
+      baseline_value: row.metrics[metric].baseline_value,
+      delta_from_baseline: row.metrics[metric].delta_from_baseline
+    })))
+  };
+}
+
+function structuralHashesForGroup(group, pipelineDocs, componentKind) {
+  return group.fixtures.flatMap((fixtureId) => {
+    const doc = pipelineDocs.get(fixtureId);
+    if (componentKind === "segment") {
+      return (doc.segments.segments ?? []).map((segment) => sha256({
+        kind: segment.kind,
+        text: segment.text
+      }));
+    }
+    if (componentKind === "binding") {
+      return (doc.normalization.terminology_bindings ?? []).map((binding) => sha256({
+        mention: binding.mention,
+        system: binding.system,
+        code: binding.code,
+        status: binding.status
+      }));
+    }
+    if (componentKind === "rule") {
+      return (doc.normalization.rules ?? []).map((rule) => sha256({
+        direction: rule.direction,
+        action_key: rule.action_key,
+        strength: rule.strength,
+        certainty: rule.certainty,
+        context: rule.context
+      }));
+    }
+    throw new Error(`unknown component kind: ${componentKind}`);
+  }).sort();
+}
+
+function buildCandidateDiff({ pipelineResults, rawRows, pipelineMetrics, pipelineMatrix, artifactsByDoc, directArtifactsByDoc, componentReuseGraph, compactnessFront }) {
+  const resultsByKey = new Map(pipelineResults.map((result) => [`${result.pipeline_id}\u0000${result.group.id}`, result]));
+  const rowsByKey = new Map(rawRows.map((row) => [`${row.pipeline_id}\u0000${row.group_id}`, row]));
+  const groupRows = groups.map((group) => {
+    const directResult = resultsByKey.get(`${baselinePipelineId}\u0000${group.id}`);
+    const layeredResult = resultsByKey.get(`${layeredPipelineId}\u0000${group.id}`);
+    const directRow = rowsByKey.get(`${baselinePipelineId}\u0000${group.id}`);
+    const layeredRow = rowsByKey.get(`${layeredPipelineId}\u0000${group.id}`);
+    const directSegmentHashes = structuralHashesForGroup(group, directArtifactsByDoc, "segment");
+    const layeredSegmentHashes = structuralHashesForGroup(group, artifactsByDoc, "segment");
+    const directBindingHashes = structuralHashesForGroup(group, directArtifactsByDoc, "binding");
+    const layeredBindingHashes = structuralHashesForGroup(group, artifactsByDoc, "binding");
+    const directRuleHashes = structuralHashesForGroup(group, directArtifactsByDoc, "rule");
+    const layeredRuleHashes = structuralHashesForGroup(group, artifactsByDoc, "rule");
+    return {
+      group_id: group.id,
+      fixture_ids: group.fixtures,
+      expected: group.expectedOutcome,
+      expected_conflict_kind: group.expectedConflictKind,
+      segment_level: {
+        direct_segment_hashes: directSegmentHashes,
+        layered_segment_hashes: layeredSegmentHashes,
+        structurally_equal: directSegmentHashes.join("\u0000") === layeredSegmentHashes.join("\u0000")
+      },
+      binding_level: {
+        direct_binding_hashes: directBindingHashes,
+        layered_binding_hashes: layeredBindingHashes,
+        structurally_equal: directBindingHashes.join("\u0000") === layeredBindingHashes.join("\u0000")
+      },
+      rule_level: {
+        direct_rule_hashes: directRuleHashes,
+        layered_rule_hashes: layeredRuleHashes,
+        structurally_equal: directRuleHashes.join("\u0000") === layeredRuleHashes.join("\u0000")
+      },
+      assertion_level: {
+        direct_assertion_core: directRow.assertion_core,
+        layered_assertion_core: layeredRow.assertion_core,
+        structurally_equal: directRow.assertion_core.join("\u0000") === layeredRow.assertion_core.join("\u0000")
+      },
+      verdict_level: {
+        direct_verdict: directRow.verdict,
+        layered_verdict: layeredRow.verdict,
+        direct_conflict_kind: directRow.conflict_kind,
+        layered_conflict_kind: layeredRow.conflict_kind,
+        verdicts_equal: directRow.verdict === layeredRow.verdict,
+        conflict_kinds_equal: directRow.conflict_kind === layeredRow.conflict_kind
+      },
+      metric_level: {
+        direct_expected_match: directResult.verifier.expected_match,
+        layered_expected_match: layeredResult.verifier.expected_match,
+        direct_conflict_kind_match: directResult.verifier.conflict_kind_match,
+        layered_conflict_kind_match: layeredResult.verifier.conflict_kind_match
+      }
+    };
+  });
+  const layeredMinusDirect = Object.fromEntries(pipelineMetricIds.map((metricId) => {
+    const cell = pipelineMatrix.rows.find((row) => row.pipeline_id === layeredPipelineId).metrics[metricId];
+    return [metricId, cell.delta_from_baseline];
+  }));
+  return {
+    artifact_kind: "DeterministicCandidateDiff",
+    schema_version: "candidate_diff.v0",
+    experiment_id: selectedExperimentId,
+    baseline_pipeline_id: baselinePipelineId,
+    layered_pipeline_id: layeredPipelineId,
+    comparison_scope: "Segment, binding, rule, assertion, verdict, and metric comparison between direct rule-to-SMT and layered CKC pipeline artifacts.",
+    model_route_delta_scope: "not_computed_here; route deltas are in runs/m3-routes/metrics/route_matrix.json when exp.m3_routes is generated",
+    pipeline_metric_rows: pipelineMetrics,
+    layered_minus_direct_deltas: layeredMinusDirect,
+    group_rows: groupRows,
+    component_reuse_graph_hash: sha256(componentReuseGraph),
+    compactness_front_hash: sha256(compactnessFront)
   };
 }
 
@@ -5112,6 +5839,123 @@ ${routeTargetSummaryMarkdown(report.route_target_summary)}
 `;
 }
 
+function pipelineMatrixMarkdown(pipelineMatrix, mode) {
+  const header = `| Metric | ${pipelineMatrix.pipeline_ids.map((pipelineId) => `\`${pipelineId}\``).join(" | ")} |`;
+  const align = `| --- | ${pipelineMatrix.pipeline_ids.map(() => "---:").join(" | ")} |`;
+  const rows = pipelineMatrix.metrics.map((metric) => {
+    const values = pipelineMatrix.pipeline_ids.map((pipelineId) => {
+      const row = pipelineMatrix.rows.find((entry) => entry.pipeline_id === pipelineId);
+      const cell = row.metrics[metric];
+      return mode === "delta" ? cell.delta_from_baseline.exact : cell.value.exact;
+    });
+    return `| ${metric} | ${values.join(" | ")} |`;
+  }).join("\n");
+  return [header, align, rows].join("\n");
+}
+
+function pipelineComparisonConclusion(report, locale = "en") {
+  const matrix = report.metrics.pipeline_matrix;
+  const layeredRow = matrix.rows.find((row) => row.pipeline_id === report.pipeline_comparison.layered_pipeline_id);
+  const deltas = Object.fromEntries(matrix.metrics.map((metric) => [metric, layeredRow.metrics[metric].delta_from_baseline.exact]));
+  if (locale === "ja") {
+    return [
+      `baseline pipeline は \`${matrix.baseline_pipeline_id}\`。`,
+      `layered-minus-direct deltas: ${Object.entries(deltas).map(([metric, delta]) => `${metric}=${delta}`).join(", ")}。`,
+      `model-route delta はこの run では計算せず、\`exp.m3_routes\` の route matrix に分離する。`
+    ].join(" ");
+  }
+  return [
+    `Baseline pipeline: \`${matrix.baseline_pipeline_id}\`.`,
+    `Layered-minus-direct deltas: ${Object.entries(deltas).map(([metric, delta]) => `${metric}=${delta}`).join(", ")}.`,
+    "Model-route deltas are not computed in this run; they remain isolated in the exp.m3_routes route matrix."
+  ].join(" ");
+}
+
+function pipelineMarkdownReport(report) {
+  const rawRows = report.metrics.pipeline_raw_rows.map((row) => `| ${row.pipeline_id} | ${row.group_id} | ${row.measurement_role} | ${row.compiled} | ${row.verdict} | ${row.conflict_kind ?? "none"} | ${row.expected} | ${row.expected_conflict_kind ?? "none"} | ${row.verdict_correct} | ${row.conflict_kind_correct} | ${row.query_count} | ${row.smt_file_count} |`).join("\n");
+  const groupRows = report.pipeline_comparison.evaluation_groups.map((group) => `| \`${group.group_id}\` | ${group.group_set} | ${group.measurement_role} | ${group.source_labels.join(", ")} | ${group.expected_outcome} | ${group.expected_conflict_kind ?? "none"} |`).join("\n");
+  const compactRows = report.compactness_front.points.map((point) => `| \`${point.pipeline_id}\` | ${point.model_call_count} | ${point.group_local_rule_occurrences} | ${point.stored_component_count} | ${point.component_occurrence_count} | ${point.reused_occurrence_count} | ${point.component_reuse_rate.exact} | ${point.smt_file_count} | ${point.coverage.exact} | ${point.residuals.join("; ") || "none"} |`).join("\n");
+  const reuseRows = report.component_reuse_graph.pipelines.map((pipeline) => `| \`${pipeline.pipeline_id}\` | ${pipeline.component_store_participation} | ${pipeline.component_occurrence_count} | ${pipeline.unique_component_count} | ${pipeline.reused_occurrence_count} | ${pipeline.reuse_rate.exact} | ${pipeline.residual ?? "none"} |`).join("\n");
+  return `# CKC M3 deterministic pipeline comparison
+
+Run: \`${report.run_id}\`
+
+Scope: research harness; synthetic fixture measurement. This report compares deterministic pipeline artifacts only and makes no clinical, patient-care, deployment, or regulatory claim.
+
+## Pipeline Matrix
+
+Evaluation groups:
+
+| Group | Set | Role | Source labels | Expected | Conflict kind |
+| --- | --- | --- | --- | --- | --- |
+${groupRows}
+
+### Exact Pipeline Values
+
+${pipelineMatrixMarkdown(report.metrics.pipeline_matrix, "value")}
+
+### Layered-Minus-Direct Deltas
+
+${pipelineMatrixMarkdown(report.metrics.pipeline_matrix, "delta")}
+
+${pipelineComparisonConclusion(report)}
+
+Model-route delta scope: ${report.pipeline_comparison.model_route_delta_scope}
+
+## Candidate Diff
+
+\`candidate_diff.json\` compares segment, binding, rule, assertion, verdict, and metric levels for ${report.candidate_diff.group_rows.length} groups. Candidate diff hash: \`${sha256(report.candidate_diff)}\`.
+
+## Component Reuse
+
+| Pipeline | Component store | Occurrences | Unique components | Reused occurrences | Reuse rate | Residual |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+${reuseRows}
+
+## Compactness Front
+
+| Pipeline | Model calls | Group-local rule occurrences | Stored components | Component occurrences | Reused occurrences | Reuse rate | SMT files | Coverage | Residuals |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+${compactRows}
+
+## Raw Pipeline Rows
+
+| Pipeline | Group | Role | Compiled | Verdict | Conflict kind | Expected | Expected kind | Verdict correct | Kind correct | Queries | SMT files |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | ---: | ---: |
+${rawRows}
+`;
+}
+
+function pipelineJapaneseReport(report) {
+  const rawRows = report.metrics.pipeline_raw_rows.map((row) => `| ${row.pipeline_id} | ${row.group_id} | ${row.compiled} | ${row.verdict} | ${row.conflict_kind ?? "none"} | ${row.expected} | ${row.expected_conflict_kind ?? "none"} | ${row.verdict_correct} | ${row.conflict_kind_correct} |`).join("\n");
+  return `# CKC M3 deterministic pipeline comparison 研究レポート
+
+run: \`${report.run_id}\`
+
+範囲: research harness、synthetic fixture measurement。deterministic pipeline artifact の比較のみであり、臨床、患者ケア、導入、規制上の主張はしない。
+
+## Pipeline matrix
+
+### Exact pipeline values
+
+${pipelineMatrixMarkdown(report.metrics.pipeline_matrix, "value")}
+
+### Layered-minus-direct deltas
+
+${pipelineMatrixMarkdown(report.metrics.pipeline_matrix, "delta")}
+
+${pipelineComparisonConclusion(report, "ja")}
+
+model-route delta scope: ${report.pipeline_comparison.model_route_delta_scope}
+
+## Raw pipeline rows
+
+| pipeline | group | compiled | verdict | conflict kind | expected | expected kind | verdict correct | kind correct |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+${rawRows}
+`;
+}
+
 async function walkFiles(directory) {
   const entries = await readdir(directory);
   const files = [];
@@ -5146,7 +5990,275 @@ async function buildReplayManifest() {
   };
 }
 
+async function writePipelineComparisonRun({ artifactsByDoc, directArtifactsByDoc, realGuidelineIntake, finding, nullResult }) {
+  for (const docArtifacts of directArtifactsByDoc.values()) {
+    await writeJson(`pipeline_artifacts/${baselinePipelineId}/${docArtifacts.fixture.id}/direct_segments.json`, docArtifacts.segments);
+    await writeJson(`pipeline_artifacts/${baselinePipelineId}/${docArtifacts.fixture.id}/direct_phrase_normalization.json`, docArtifacts.normalization);
+    await writeJson(`pipeline_artifacts/${baselinePipelineId}/${docArtifacts.fixture.id}/direct_formal_ir.json`, docArtifacts.ir_bundle);
+  }
+  for (const docArtifacts of artifactsByDoc.values()) {
+    await writeJson(`pipeline_artifacts/${layeredPipelineId}/${docArtifacts.fixture.id}/artifact_refs.json`, {
+      artifact_kind: "LayeredPipelineArtifactRefs",
+      schema_version: "layered_pipeline_artifact_refs.v0",
+      pipeline_id: layeredPipelineId,
+      doc_id: docArtifacts.fixture.id,
+      source_graph_path: `artifacts/${docArtifacts.fixture.id}/source_graph.json`,
+      segments_path: `artifacts/${docArtifacts.fixture.id}/segments.json`,
+      normalization_path: `artifacts/${docArtifacts.fixture.id}/normalization.json`,
+      ir_bundle_path: `artifacts/${docArtifacts.fixture.id}/ir_bundle.json`,
+      component_reuse_participation: true
+    });
+  }
+
+  const pipelineResults = [];
+  for (const pipelineId of pipelineIds) {
+    const pipelineDocs = pipelineDocsFor(pipelineId, artifactsByDoc, directArtifactsByDoc);
+    for (const group of groups) {
+      const result = compilePipelineGroup(group, pipelineId, pipelineDocs);
+      pipelineResults.push(result);
+      await writeJson(`pipelines/${pipelineId}/${group.id}/compiled.json`, result.compiled);
+      await writeJson(`pipelines/${pipelineId}/${group.id}/verifier_results.json`, result.verifier);
+      for (const [fileName, text] of Object.entries(result.smt)) {
+        await writeText(fileName, text);
+      }
+    }
+  }
+
+  const componentReuseGraph = buildComponentReuseGraph(artifactsByDoc);
+  const compactnessFront = buildCompactnessFront({ pipelineResults, componentReuseGraph });
+  const pipelineRawRows = pipelineResults.map((result) => pipelineRawRow(result));
+  const pipelineMetrics = buildPipelineMetrics(pipelineRawRows, componentReuseGraph);
+  const pipelineMatrix = buildPipelineMatrix(pipelineMetrics);
+  const candidateDiff = buildCandidateDiff({
+    pipelineResults,
+    rawRows: pipelineRawRows,
+    pipelineMetrics,
+    pipelineMatrix,
+    artifactsByDoc,
+    directArtifactsByDoc,
+    componentReuseGraph,
+    compactnessFront
+  });
+  const groupAudit = buildGroupAudit();
+  const modelMeta = await modelMetadata(0);
+
+  await writeJson("candidate_diff.json", candidateDiff);
+  await writeJson("component_reuse_graph.json", componentReuseGraph);
+  await writeJson("compactness_front.json", compactnessFront);
+  await writeJson("metrics/pipeline_raw_rows.json", pipelineRawRows);
+  await writeJson("metrics/pipeline_metrics.json", pipelineMetrics);
+  await writeJson("metrics/pipeline_matrix.json", pipelineMatrix);
+  await writeJson("metrics/group_audit.json", groupAudit);
+
+  const report = {
+    artifact_kind: "DeterministicPipelineComparisonReport",
+    schema_version: "m3_pipeline_comparison_report.v0",
+    run_id: runId,
+    generated_by: "tools/build-run.mjs",
+    experiments: ["exp.m1_spine", selectedExperimentId],
+    pipeline_comparison: {
+      experiment_id: selectedExperimentId,
+      basis: selectedExperiment?.basis ?? null,
+      comparison_scope: selectedExperiment?.comparison_scope ?? null,
+      baseline_pipeline_id: baselinePipelineId,
+      layered_pipeline_id: layeredPipelineId,
+      pipeline_ids: [...pipelineIds],
+      model_route_delta_scope: "not_computed_in_exp.m3_compare; use exp.m3_routes metrics/route_matrix.json for model-route deltas",
+      evaluation_groups: groups.map((group) => ({
+        group_id: group.id,
+        group_set: groupSetForMeasurementRole(group.measurementRole),
+        fixture_ids: group.fixtures,
+        source_labels: modelCaseForGroup(group.id).labels,
+        measurement_role: group.measurementRole,
+        expected_outcome: group.expectedOutcome,
+        expected_conflict_kind: group.expectedConflictKind,
+        expected_null_result: group.expectedNullResult,
+        mutation_note: group.mutationNote
+      }))
+    },
+    corpus_hash: sha256({
+      synthetic_fixtures: fixtureRegistry.map((fixture) => ({ id: fixture.id, path: fixture.path })),
+      fixture_semantics: m1InputRefs.fixture_semantics_hash,
+      experiment_registry: m1InputRefs.experiments_registry_hash,
+      gold_expectations: m1InputRefs.gold_expectations_hash,
+      real_guidelines: realGuidelineIntake.registry_hash
+    }),
+    solver_identity: "one-shot-js-symbolic-verifier",
+    model_identity: modelMeta.model_identity,
+    model_runtime: modelMeta.model_runtime,
+    model_mode: modelMeta.model_mode,
+    live_model_calls: 0,
+    findings: [finding],
+    null_results: [nullResult],
+    metrics: {
+      pipeline_raw_rows: pipelineRawRows,
+      pipeline_metrics: pipelineMetrics,
+      pipeline_matrix: pipelineMatrix
+    },
+    candidate_diff: candidateDiff,
+    component_reuse_graph: componentReuseGraph,
+    compactness_front: compactnessFront,
+    m3_group_audit: groupAudit,
+    real_guideline_intake: {
+      artifact_id: realGuidelineIntake.artifact_id,
+      registry_path: realGuidelineIntake.registry_path,
+      registry_hash: realGuidelineIntake.registry_hash,
+      raw_manifest_path: realGuidelineIntake.raw_manifest_path,
+      raw_manifest_hash: realGuidelineIntake.raw_manifest_hash,
+      source_count: realGuidelineIntake.source_count,
+      candidate_span_count: realGuidelineIntake.candidate_span_count,
+      admitted_candidate_rule_count: realGuidelineIntake.admitted_candidate_rule_count,
+      rejected_candidate_span_count: realGuidelineIntake.rejected_candidate_span_count,
+      residual_count: realGuidelineIntake.residual_count,
+      blocking_residual_count: realGuidelineIntake.blocking_residual_count,
+      admission_scope: realGuidelineIntake.admission_scope,
+      scoring_scope: realGuidelineIntake.scoring_scope,
+      clinical_claim_scope: realGuidelineIntake.clinical_claim_scope
+    },
+    replay: {
+      status: "byte_stable_on_current_generation",
+      deterministic_inputs: [
+        "corpus/fixtures",
+        "corpus/gold/m1_expected.json",
+        "registry",
+        "corpus/real_guidelines/japanese_guidelines.json",
+        ...(realGuidelineIntake.raw_manifest_hash ? ["corpus/raw/real-guidelines/manifest.json"] : [])
+      ]
+    },
+    wording_scope: [
+      "research harness",
+      "source-grounded",
+      "verifier-checked",
+      "replayable",
+      "synthetic fixture measurement",
+      "documented null result",
+      "deterministic pipeline comparison"
+    ]
+  };
+
+  await writeJson("report.json", report);
+  await writeText("report.md", pipelineMarkdownReport(report));
+  await writeText("report.ja.md", pipelineJapaneseReport(report));
+
+  const manifest = {
+    artifact_kind: "RunManifest",
+    run_id: runId,
+    created_at: "2026-06-11T00:00:00Z",
+    stack_deviation: "JavaScript one-shot harness instead of the spec04 Rust/model/solver stack",
+    selected_experiment_id: selectedExperimentId,
+    experiment_kind: experimentKind,
+    experiments: report.experiments,
+    model_mode: report.model_mode,
+    model_identity: report.model_identity,
+    model_runtime: report.model_runtime,
+    fixture_ids: fixtureRegistry.map((fixture) => fixture.id),
+    pipeline_ids: pipelineIds,
+    baseline_pipeline_id: baselinePipelineId,
+    layered_pipeline_id: layeredPipelineId,
+    candidate_diff_hash: sha256(candidateDiff),
+    component_reuse_graph_hash: sha256(componentReuseGraph),
+    compactness_front_hash: sha256(compactnessFront),
+    pipeline_matrix_hash: sha256(pipelineMatrix),
+    group_audit_hash: sha256(groupAudit),
+    real_guideline_intake_hash: sha256(realGuidelineIntake),
+    report_hash: sha256(report)
+  };
+  await writeJson("manifest.json", manifest);
+
+  const events = [
+    { event: "run_started", run_id: runId },
+    { event: "m1_spine_completed", outcome: "ok" },
+    {
+      event: "pipeline_experiment_completed",
+      experiment_id: selectedExperimentId,
+      outcome: "ok",
+      model_mode: report.model_mode,
+      live_model_calls: 0,
+      pipeline_ids: [...pipelineIds]
+    },
+    { event: "run_completed", outcome: "ok" }
+  ];
+  await writeText("logs/events.jsonl", events.map((entry) => JSON.stringify(stable(entry))).join("\n"));
+  await writeText("logs/diagnostics.jsonl", "");
+
+  const replayManifest = await buildReplayManifest();
+  await writeJson("replay_manifest.json", replayManifest);
+
+  if (verifyMode) {
+    const requiredFiles = [
+      "report.json",
+      "report.md",
+      "report.ja.md",
+      "candidate_diff.json",
+      "component_reuse_graph.json",
+      "compactness_front.json",
+      "metrics/pipeline_raw_rows.json",
+      "metrics/pipeline_metrics.json",
+      "metrics/pipeline_matrix.json",
+      "metrics/group_audit.json",
+      "trace_bundle.json",
+      "lineage_index.json",
+      "real_guidelines/source_intake.json",
+      "manifest.json",
+      "replay_manifest.json"
+    ];
+    const layeredMatrixRow = pipelineMatrix.rows.find((row) => row.pipeline_id === layeredPipelineId);
+    const assertions = [
+      experimentKind === "pipeline_comparison",
+      selectedExperiment?.id === selectedExperimentId,
+      report.pipeline_comparison.experiment_id === selectedExperimentId,
+      report.pipeline_comparison.model_route_delta_scope.includes("exp.m3_routes"),
+      pipelineIds.includes(baselinePipelineId),
+      pipelineIds.includes(layeredPipelineId),
+      pipelineResults.length === pipelineIds.length * groups.length,
+      pipelineRawRows.length === pipelineResults.length,
+      pipelineRawRows.every((row) => row.compiled && row.verdict_correct && row.conflict_kind_correct),
+      pipelineMetrics.every((entry) => entry.samples === groups.length),
+      pipelineMetrics.every((entry) => entry.model_call_count === 0),
+      pipelineMatrix.baseline_pipeline_id === baselinePipelineId,
+      pipelineMatrix.layered_pipeline_id === layeredPipelineId,
+      pipelineMatrix.rows.length === pipelineIds.length,
+      pipelineMatrix.cells.length === pipelineIds.length * pipelineMetricIds.length,
+      layeredMatrixRow && pipelineMetricIds.every((metricId) => layeredMatrixRow.metrics[metricId].delta_from_baseline.exact),
+      candidateDiff.group_rows.length === groups.length,
+      candidateDiff.group_rows.every((row) => row.verdict_level.verdicts_equal && row.verdict_level.conflict_kinds_equal),
+      candidateDiff.model_route_delta_scope.includes("route_matrix"),
+      componentReuseGraph.pipelines.some((entry) => entry.pipeline_id === baselinePipelineId && entry.component_store_participation === false && entry.residual),
+      componentReuseGraph.pipelines.some((entry) => entry.pipeline_id === layeredPipelineId && entry.component_store_participation === true),
+      compactnessFront.points.length === pipelineIds.length,
+      compactnessFront.points.every((point) => point.model_call_count === 0 && point.coverage.exact === `${groups.length}/${groups.length}`),
+      groupAudit.all_groups_have_gold_fixture_semantics_and_source_paths,
+      report.live_model_calls === 0,
+      report.model_mode === "deterministic_no_model",
+      ...requiredFiles.map((relative) => existsSync(path.join(runDir, relative)))
+    ];
+    if (assertions.some((entry) => !entry)) {
+      throw new Error("pipeline comparison verification failed");
+    }
+  }
+
+  console.log(JSON.stringify({
+    run_dir: path.relative(root, runDir),
+    report: path.relative(root, path.join(runDir, "report.json")),
+    experiment_id: selectedExperimentId,
+    experiment_kind: experimentKind,
+    model_mode: report.model_mode,
+    live_model_calls: 0,
+    pipeline_verdict_accuracy: Object.fromEntries(pipelineMetrics.map((entry) => [entry.pipeline_id, entry.verdict_accuracy.exact])),
+    pipeline_conflict_kind_accuracy: Object.fromEntries(pipelineMetrics.map((entry) => [entry.pipeline_id, entry.conflict_kind_accuracy.exact])),
+    verified: verifyMode
+  }, null, 2));
+}
+
 async function modelMetadata(liveCalls) {
+  if (experimentKind === "pipeline_comparison") {
+    return {
+      model_identity: "not_applicable.deterministic_pipeline_compare",
+      model_runtime: "deterministic-js-run-builder-only",
+      live_model_calls: 0,
+      model_mode: "deterministic_no_model"
+    };
+  }
   if (!liveModel) {
     return {
       model_identity: "recorded.unavailable.no_mock_route_output",
@@ -5170,11 +6282,26 @@ async function modelMetadata(liveCalls) {
 }
 
 function buildRunConfigSummary() {
-  return {
+  const base = {
     selected_experiment_id: selectedExperimentId,
     run_id: runId,
     run_dir: path.relative(root, runDir),
-    model_mode: liveModel ? "live_local_llama_cpp" : "recorded_unsupported",
+    experiment_kind: experimentKind,
+    model_mode: experimentKind === "pipeline_comparison" ? "deterministic_no_model" : liveModel ? "live_local_llama_cpp" : "recorded_unsupported"
+  };
+  if (experimentKind === "pipeline_comparison") {
+    return {
+      ...base,
+      pipelines: pipelineIds.map((pipelineId) => ({
+        pipeline_id: pipelineId,
+        implemented_in_harness: pipelineImplemented(pipelineId),
+        comparison_role: pipelineId === baselinePipelineId ? "baseline" : "compared_pipeline"
+      })),
+      evaluation_group_ids: groups.map((group) => group.id)
+    };
+  }
+  return {
+    ...base,
     scaffold_mode: scaffoldRoutes,
     routes: routeIds.map((routeId) => {
       const route = routeRegistryEntry(routeId);
@@ -5197,7 +6324,7 @@ async function main() {
     console.log(JSON.stringify(buildRunConfigSummary(), null, 2));
     return;
   }
-  if (liveModel) requireLiveModelReady();
+  if (liveModel && experimentKind === "route_comparison") requireLiveModelReady();
   await rm(runDir, { recursive: true, force: true });
   await mkdir(runDir, { recursive: true });
 
@@ -5231,6 +6358,7 @@ async function main() {
       doc_id: fixture.id,
       terminology_bindings: makeBindings(fixture),
       clinical_statements: [makeStatement(fixture, rule)],
+      factual_claims: cloneData(fixture.factual_claims ?? []),
       rules: [rule]
     };
     const irBundle = {
@@ -5290,6 +6418,18 @@ async function main() {
   };
   await writeJson("trace_bundle.json", traceBundle);
   await writeJson("lineage_index.json", lineageIndex);
+
+  if (experimentKind === "pipeline_comparison") {
+    const directArtifactsByDoc = buildDirectPipelineArtifacts(artifactsByDoc);
+    await writePipelineComparisonRun({
+      artifactsByDoc,
+      directArtifactsByDoc,
+      realGuidelineIntake,
+      finding,
+      nullResult
+    });
+    return;
+  }
 
   const metrics = scoreRows();
   const sourceCueLayer = buildSourceCueLayer();

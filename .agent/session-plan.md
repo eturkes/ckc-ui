@@ -166,7 +166,7 @@ Gate:
 - `npm run verify:figures`
 
 ### C7 Deterministic Pipeline Comparison
-status: pending
+status: done
 
 Intent: add the M3 claim-1 comparison between the layered pipeline and a direct
 rule-to-SMT deterministic baseline.
