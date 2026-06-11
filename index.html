@@ -50,6 +50,9 @@
     .use-badge.llm { color: var(--warn); background: #fff1cf; border-color: #e7cf91; }
     .use-badge.det { color: var(--ok); background: #e4f2ec; border-color: #b9ddcf; }
     .trace-step pre { max-height: 240px; margin-top: 8px; font-size: .72rem; line-height: 1.35; }
+    .mechanics { margin-top: 12px; display: grid; gap: 10px; }
+    .mechanics-note { border-left: 3px solid var(--line); padding: 2px 0 2px 10px; color: var(--muted); font-size: .82rem; line-height: 1.4; }
+    .rules-table td pre { max-height: 130px; padding: 8px; font-size: .72rem; line-height: 1.35; }
     .split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
     .lane { border: 1px solid var(--line); border-radius: 6px; padding: 10px; min-width: 0; }
     .lane h3 { margin-top: 0; }
@@ -75,6 +78,7 @@
       main { padding: 10px; }
       .flow, .split, .trace-viz { grid-template-columns: 1fr; }
       .trace-step:not(:last-child)::after { content: ""; display: none; }
+      .mechanics { gap: 8px; }
       .compare { min-width: 0; }
       .compare thead { display: none; }
       .compare, .compare tbody, .compare tr, .compare th, .compare td { display: block; width: 100%; }
@@ -108,6 +112,117 @@
         <div class="flow-step ok">
           <strong>3. IR route</strong>
           <span><code>route.single_ir</code> asks for one pair JSON object; this harness emits a per-row SMT-LIB target from the admitted route IR.</span>
+        </div>
+      </div>
+      <h3>Transformation rules</h3>
+      <div class="mechanics">
+        <div class="mechanics-note">There is no hidden semantic hop after the pair JSON. The model emits bounded fields; every later step is a deterministic table lookup, rule construction, compiler emission, and verifier check.</div>
+        <div class="table-wrap">
+          <table class="wide">
+            <thead><tr><th>Boundary</th><th>Transform</th><th>Guard</th></tr></thead>
+            <tbody>
+          <tr>
+            <td><code>source text -&gt; source_cue_layer</code></td>
+            <td>String/regexp checks extract raw cues from the fixture spans, then table-map them to normalized fields.</td>
+            <td>No model call; values live in metrics/source_cues.json.</td>
+          </tr>
+          <tr>
+            <td><code>source_cue_layer -&gt; model JSON</code></td>
+            <td>The single-IR prompt includes the resolved source-row fields and a JSON schema; the model copies one bounded object keyed by source label.</td>
+            <td>Schema diagnostics reject missing keys, extra fields, invalid enum tokens, or JSON parse failure.</td>
+          </tr>
+          <tr>
+            <td><code>model JSON -&gt; route_rule_ir.v0</code></td>
+            <td>routeRuleIrFromRows keeps each valid cue_row and ruleFromIrRow converts it into one NormRule-like route rule.</td>
+            <td>Grounding diagnostics reject a row when a copied field differs from the deterministic source cue.</td>
+          </tr>
+          <tr>
+            <td><code>route_rule_ir.v0 -&gt; SMT-LIB</code></td>
+            <td>compileRouteIrToSmt emits context-overlap SMT for every complete pair and deontic SMT only when the contexts overlap.</td>
+            <td>A complete target has known action, known direction, and a bounded age interval.</td>
+          </tr>
+          <tr>
+            <td><code>SMT-LIB -&gt; route verdict</code></td>
+            <td>The verifier checks same action, opposed deontic direction, age interval overlap, and required/prohibited concept compatibility.</td>
+            <td>same_action &amp;&amp; opposed_directions &amp;&amp; context_overlap becomes semantic_contradiction; otherwise semantic_no_conflict.</td>
+          </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-wrap">
+          <table class="wide">
+            <thead><tr><th>Model JSON field</th><th>route_rule_ir.v0 field</th><th>SMT/verifier effect</th></tr></thead>
+            <tbody>
+          <tr>
+            <td><code>direction=for</code></td>
+            <td>rule.direction=for</td>
+            <td><code>(assert (! |pos:act.administer:drug.abx_a| :named |assert.&lt;rule&gt;.pos|))</code></td>
+          </tr>
+          <tr>
+            <td><code>direction=contraindicate</code></td>
+            <td>rule.direction=contraindicate</td>
+            <td><code>(assert (! (not |pos:act.administer:drug.abx_a|) :named |assert.&lt;rule&gt;.neg|))</code></td>
+          </tr>
+          <tr>
+            <td><code>action_abx_a=present</code></td>
+            <td>rule.action_key=act.administer:drug.abx_a</td>
+            <td><code>same_action requires the compared rules to use the same action key</code></td>
+          </tr>
+          <tr>
+            <td><code>age=adult</code></td>
+            <td>rule.context.age_years={ge:18}</td>
+            <td><code>(&gt;= |q.age_years| 18)</code></td>
+          </tr>
+          <tr>
+            <td><code>age=child</code></td>
+            <td>rule.context.age_years={lt:18}</td>
+            <td><code>(&lt; |q.age_years| 18)</code></td>
+          </tr>
+          <tr>
+            <td><code>sepsis=present</code></td>
+            <td>append cond.sepsis to rule.context.required</td>
+            <td><code>|cond.sepsis|</code></td>
+          </tr>
+          <tr>
+            <td><code>pregnancy=present</code></td>
+            <td>append cond.pregnancy to rule.context.required</td>
+            <td><code>|cond.pregnancy|</code></td>
+          </tr>
+          <tr>
+            <td><code>renal_exception=yes</code></td>
+            <td>append cond.renal_severe to rule.context.prohibited</td>
+            <td><code>(not |cond.renal_severe|)</code></td>
+          </tr>
+          <tr>
+            <td><code>unknown value or incomplete rule</code></td>
+            <td>rule is retained as incomplete/unknown</td>
+            <td><code>no admitted SMT target; diagnostic unsupported_ir_fragment</code></td>
+          </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-wrap">
+          <table class="extra-wide rules-table">
+            <thead><tr><th>Source</th><th>Resolved cue input</th><th>Model JSON row</th><th>Route IR rule</th><th>Emitted fragments</th></tr></thead>
+            <tbody>
+          <tr>
+            <td><code>A</code></td>
+            <td>direction=推奨する; age=成人_or_18歳以上; sepsis=present; pregnancy=absent; renal_exception=has_exception</td>
+            <td><code>{&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;direction&quot;:&quot;for&quot;,&quot;pregnancy&quot;:&quot;absent&quot;,&quot;renal_exception&quot;:&quot;yes&quot;,&quot;sepsis&quot;:&quot;present&quot;}</code></td>
+            <td><code>route.rule.a; for; act.administer:drug.abx_a; {&quot;age_years&quot;:{&quot;ge&quot;:18},&quot;prohibited&quot;:[&quot;cond.renal_severe&quot;],&quot;required&quot;:[&quot;cond.sepsis&quot;]}</code></td>
+            <td><pre>context: (and |cond.sepsis| (&gt;= |q.age_years| 18) (not |cond.renal_severe|))
+deontic: |pos:act.administer:drug.abx_a| named assert.route.rule.a.pos</pre></td>
+          </tr>
+          <tr>
+            <td><code>B</code></td>
+            <td>direction=投与しないこと; age=成人_or_18歳以上; sepsis=present; pregnancy=present; renal_exception=no_exception</td>
+            <td><code>{&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;direction&quot;:&quot;contraindicate&quot;,&quot;pregnancy&quot;:&quot;present&quot;,&quot;renal_exception&quot;:&quot;no&quot;,&quot;sepsis&quot;:&quot;present&quot;}</code></td>
+            <td><code>route.rule.b; contraindicate; act.administer:drug.abx_a; {&quot;age_years&quot;:{&quot;ge&quot;:18},&quot;prohibited&quot;:[],&quot;required&quot;:[&quot;cond.sepsis&quot;,&quot;cond.pregnancy&quot;]}</code></td>
+            <td><pre>context: (and |cond.sepsis| (&gt;= |q.age_years| 18) |cond.pregnancy|)
+deontic: (not |pos:act.administer:drug.abx_a|) named assert.route.rule.b.neg</pre></td>
+          </tr>
+            </tbody>
+          </table>
         </div>
       </div>
       <h3>Text to SMT trace</h3>

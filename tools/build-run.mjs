@@ -1931,6 +1931,68 @@ function irFieldSummary(label, row) {
   return `${label}: direction=${row.direction}; action=${row.action_abx_a}; age=${row.age}; sepsis=${row.sepsis}; pregnancy=${row.pregnancy}; renal_exception=${row.renal_exception}`;
 }
 
+function fieldBridgeRows() {
+  return [
+    {
+      input: "direction=for",
+      routeIr: "rule.direction=for",
+      smt: "(assert (! |pos:act.administer:drug.abx_a| :named |assert.<rule>.pos|))"
+    },
+    {
+      input: "direction=contraindicate",
+      routeIr: "rule.direction=contraindicate",
+      smt: "(assert (! (not |pos:act.administer:drug.abx_a|) :named |assert.<rule>.neg|))"
+    },
+    {
+      input: "action_abx_a=present",
+      routeIr: "rule.action_key=act.administer:drug.abx_a",
+      smt: "same_action requires the compared rules to use the same action key"
+    },
+    {
+      input: "age=adult",
+      routeIr: "rule.context.age_years={ge:18}",
+      smt: "(>= |q.age_years| 18)"
+    },
+    {
+      input: "age=child",
+      routeIr: "rule.context.age_years={lt:18}",
+      smt: "(< |q.age_years| 18)"
+    },
+    {
+      input: "sepsis=present",
+      routeIr: "append cond.sepsis to rule.context.required",
+      smt: "|cond.sepsis|"
+    },
+    {
+      input: "pregnancy=present",
+      routeIr: "append cond.pregnancy to rule.context.required",
+      smt: "|cond.pregnancy|"
+    },
+    {
+      input: "renal_exception=yes",
+      routeIr: "append cond.renal_severe to rule.context.prohibited",
+      smt: "(not |cond.renal_severe|)"
+    },
+    {
+      input: "unknown value or incomplete rule",
+      routeIr: "rule is retained as incomplete/unknown",
+      smt: "no admitted SMT target; diagnostic unsupported_ir_fragment"
+    }
+  ];
+}
+
+function ruleSmtFragments(rule) {
+  if (!rule) return "missing rule";
+  const assertion = makeAssertions(rule).at(0);
+  const deontic = assertion?.polarity === "pos"
+    ? `deontic: |pos:act.administer:drug.abx_a| named ${assertion.assertion_id}`
+    : `deontic: (not |pos:act.administer:drug.abx_a|) named ${assertion?.assertion_id ?? "missing"}`;
+  return [
+    `context: ${contextSmt(rule)}`,
+    deontic
+  ].join("\n");
+}
+
 function routeRecord(data, routeId, groupId, seed) {
   return data.model_io.find((record) => (
     record.route_id === routeId
@@ -1976,6 +2038,8 @@ function renderBasicUi(data) {
   const irConflictCandidate = irConflictExample?.parsed_response?.candidate ?? null;
   const irConflictTarget = irConflictExample?.compiled_target ?? null;
   const irConflictPairCallCount = irConflictExample?.route_call ? 1 : 0;
+  const routeIrRulesByLabel = new Map((irConflictExample?.parsed_response?.route_ir?.rules ?? [])
+    .map((entry) => [entry.source_label, entry.rule]));
   const irTraceLabels = modelCaseForGroup("group.m1_conflict").labels;
   const traceSourceText = irTraceLabels.map(sourceTraceText).join("\n\n");
   const traceCueText = irTraceLabels
@@ -2057,6 +2121,63 @@ function renderBasicUi(data) {
             <td><span class="use-badge ${usesLlm === "yes" ? "llm" : "det"}">${usesLlm === "yes" ? "LLM" : "No LLM"}</span></td>
             <td>${escapeHtml(detail)}</td>
           </tr>`).join("");
+  const boundaryRows = [
+    [
+      "source text -> source_cue_layer",
+      "String/regexp checks extract raw cues from the fixture spans, then table-map them to normalized fields.",
+      "No model call; values live in metrics/source_cues.json."
+    ],
+    [
+      "source_cue_layer -> model JSON",
+      "The single-IR prompt includes the resolved source-row fields and a JSON schema; the model copies one bounded object keyed by source label.",
+      "Schema diagnostics reject missing keys, extra fields, invalid enum tokens, or JSON parse failure."
+    ],
+    [
+      "model JSON -> route_rule_ir.v0",
+      "routeRuleIrFromRows keeps each valid cue_row and ruleFromIrRow converts it into one NormRule-like route rule.",
+      "Grounding diagnostics reject a row when a copied field differs from the deterministic source cue."
+    ],
+    [
+      "route_rule_ir.v0 -> SMT-LIB",
+      "compileRouteIrToSmt emits context-overlap SMT for every complete pair and deontic SMT only when the contexts overlap.",
+      "A complete target has known action, known direction, and a bounded age interval."
+    ],
+    [
+      "SMT-LIB -> route verdict",
+      "The verifier checks same action, opposed deontic direction, age interval overlap, and required/prohibited concept compatibility.",
+      "same_action && opposed_directions && context_overlap becomes semantic_contradiction; otherwise semantic_no_conflict."
+    ]
+  ].map(([boundary, transform, guard]) => `
+          <tr>
+            <td><code>${escapeHtml(boundary)}</code></td>
+            <td>${escapeHtml(transform)}</td>
+            <td>${escapeHtml(guard)}</td>
+          </tr>`).join("");
+  const fieldRows = fieldBridgeRows().map((row) => `
+          <tr>
+            <td><code>${escapeHtml(row.input)}</code></td>
+            <td>${escapeHtml(row.routeIr)}</td>
+            <td><code>${escapeHtml(row.smt)}</code></td>
+          </tr>`).join("");
+  const representativeRows = irTraceLabels.map((label) => {
+    const cue = data.source_cue_layer.cues[label];
+    const row = irConflictCandidate?.[label];
+    const rule = routeIrRulesByLabel.get(label);
+    return `
+          <tr>
+            <td><code>${escapeHtml(label)}</code></td>
+            <td>${escapeHtml([
+              `direction=${cue?.direction_cue ?? "missing"}`,
+              `age=${cue?.age_cue ?? "missing"}`,
+              `sepsis=${cue?.sepsis_cue ?? "missing"}`,
+              `pregnancy=${cue?.pregnancy_cue ?? "missing"}`,
+              `renal_exception=${cue?.renal_exception_cue ?? "missing"}`
+            ].join("; "))}</td>
+            <td><code>${escapeHtml(compactJson(row))}</code></td>
+            <td><code>${escapeHtml(rule ? `${rule.rule_id}; ${rule.direction}; ${rule.action_key}; ${compactJson(rule.context)}` : "missing")}</code></td>
+            <td><pre>${escapePre(ruleSmtFragments(rule))}</pre></td>
+          </tr>`;
+  }).join("");
   const irTargetSummary = irConflictTarget
     ? `${irConflictTarget.target_profile}; ${irConflictTarget.smt_files.length} query file(s); deterministic verifier result`
     : "missing";
@@ -2162,6 +2283,9 @@ function renderBasicUi(data) {
     .use-badge.llm { color: var(--warn); background: #fff1cf; border-color: #e7cf91; }
     .use-badge.det { color: var(--ok); background: #e4f2ec; border-color: #b9ddcf; }
     .trace-step pre { max-height: 240px; margin-top: 8px; font-size: .72rem; line-height: 1.35; }
+    .mechanics { margin-top: 12px; display: grid; gap: 10px; }
+    .mechanics-note { border-left: 3px solid var(--line); padding: 2px 0 2px 10px; color: var(--muted); font-size: .82rem; line-height: 1.4; }
+    .rules-table td pre { max-height: 130px; padding: 8px; font-size: .72rem; line-height: 1.35; }
     .split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
     .lane { border: 1px solid var(--line); border-radius: 6px; padding: 10px; min-width: 0; }
     .lane h3 { margin-top: 0; }
@@ -2187,6 +2311,7 @@ function renderBasicUi(data) {
       main { padding: 10px; }
       .flow, .split, .trace-viz { grid-template-columns: 1fr; }
       .trace-step:not(:last-child)::after { content: ""; display: none; }
+      .mechanics { gap: 8px; }
       .compare { min-width: 0; }
       .compare thead { display: none; }
       .compare, .compare tbody, .compare tr, .compare th, .compare td { display: block; width: 100%; }
@@ -2220,6 +2345,31 @@ function renderBasicUi(data) {
         <div class="flow-step ok">
           <strong>3. IR route</strong>
           <span><code>route.single_ir</code> asks for one pair JSON object; this harness emits a per-row SMT-LIB target from the admitted route IR.</span>
+        </div>
+      </div>
+      <h3>Transformation rules</h3>
+      <div class="mechanics">
+        <div class="mechanics-note">There is no hidden semantic hop after the pair JSON. The model emits bounded fields; every later step is a deterministic table lookup, rule construction, compiler emission, and verifier check.</div>
+        <div class="table-wrap">
+          <table class="wide">
+            <thead><tr><th>Boundary</th><th>Transform</th><th>Guard</th></tr></thead>
+            <tbody>${boundaryRows}
+            </tbody>
+          </table>
+        </div>
+        <div class="table-wrap">
+          <table class="wide">
+            <thead><tr><th>Model JSON field</th><th>route_rule_ir.v0 field</th><th>SMT/verifier effect</th></tr></thead>
+            <tbody>${fieldRows}
+            </tbody>
+          </table>
+        </div>
+        <div class="table-wrap">
+          <table class="extra-wide rules-table">
+            <thead><tr><th>Source</th><th>Resolved cue input</th><th>Model JSON row</th><th>Route IR rule</th><th>Emitted fragments</th></tr></thead>
+            <tbody>${representativeRows}
+            </tbody>
+          </table>
         </div>
       </div>
       <h3>Text to SMT trace</h3>
@@ -2669,7 +2819,8 @@ async function main() {
     }))
   };
   await mkdir(path.dirname(webDataPath), { recursive: true });
-  await writeFile(webDataPath, renderBasicUi(stable(uiData)));
+  const renderedUi = renderBasicUi(stable(uiData));
+  await writeFile(webDataPath, renderedUi);
 
   if (verifyMode) {
     const direct = metrics.routeMetrics.find((entry) => entry.route_id === "route.direct_smt");
@@ -2706,6 +2857,9 @@ async function main() {
       metrics.ioRecords.every((record) => record.prompt_hash === sha256Text(record.prompt)),
       metrics.ioRecords.every((record) => !record.route_call || record.route_call.prompt_hash === sha256Text(record.route_call.prompt)),
       existsSync(webDataPath),
+      renderedUi.includes("Transformation rules"),
+      renderedUi.includes("Model JSON field"),
+      renderedUi.includes("same_action &amp;&amp; opposed_directions &amp;&amp; context_overlap"),
       ...requiredFiles.map((relative) => existsSync(path.join(runDir, relative)))
     ];
     const modelAssertions = liveModel
