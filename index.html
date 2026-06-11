@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>CKC live local model run</title>
+  <title>CKC research review run</title>
   <style>
     :root {
       color-scheme: light;
@@ -39,6 +39,13 @@
     .metric { border: 1px solid var(--line); border-radius: 6px; padding: 12px; }
     .metric strong { display: block; font-size: 1.45rem; line-height: 1; }
     .metric span { display: block; color: var(--muted); margin-top: 6px; font-size: .82rem; }
+    .review-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+    .review-card { border: 1px solid var(--line); border-left: 4px solid var(--line); border-radius: 6px; padding: 10px; min-width: 0; background: #fbfdfe; }
+    .review-card.ok { border-left-color: var(--ok); }
+    .review-card.warn { border-left-color: var(--warn); }
+    .review-card strong { display: block; font-size: .84rem; }
+    .review-card span { display: block; margin-top: 4px; color: var(--ink); font-weight: 700; }
+    .review-card p { margin-top: 6px; font-size: .82rem; }
     .takeaway { border: 1px solid #b9ddcf; border-left: 4px solid var(--ok); border-radius: 6px; padding: 10px 12px; background: #f2faf6; margin: 10px 0; }
     .takeaway strong { display: block; margin-bottom: 4px; }
     .takeaway p { margin-top: 0; color: var(--ink); }
@@ -87,7 +94,7 @@
     details dd { margin: 0; overflow-wrap: anywhere; }
     @media (max-width: 760px) {
       main { padding: 10px; }
-      .grid { grid-template-columns: 1fr; }
+      .grid, .review-grid { grid-template-columns: 1fr; }
       .flow, .split, .trace-viz { grid-template-columns: 1fr; }
       .trace-step:not(:last-child)::after { content: ""; display: none; }
       .compare { min-width: 0; }
@@ -105,26 +112,49 @@
 <body>
   <main>
     <header>
-      <h1>CKC live local model run</h1>
-      <p>Basic fixture-scale UI for the current weak local model experiment. This is a research harness view over synthetic fixtures; it makes no clinical, patient-care, deployment, or regulatory claim.</p>
+      <h1>CKC research review run</h1>
+      <p>Fixture-scale review view for source-grounded findings, documented null results, and model-route admission evidence. This makes no clinical, patient-care, deployment, or regulatory claim.</p>
       <div class="chips">
         <span class="chip ok">run m2-one-shot</span>
-        <span class="chip ok">live_local_llama_cpp</span>
-        <span class="chip warn">live model calls: 12</span>
-        <span class="chip">Qwen2.5-0.5B-Instruct-Q2_K:9ee36184e616dfc7</span>
+        <span class="chip ok">live local llama cpp</span>
+        <span class="chip warn">12 local model calls</span>
+        <span class="chip">Qwen2.5-0.5B-Instruct-Q2_K</span>
       </div>
     </header>
 
     <section>
-      <h2>Summary</h2>
+      <h2>Reviewer snapshot</h2>
       <div class="grid">
-        <div class="metric"><strong>1</strong><span>finding: deontic_direction_conflict</span></div>
-        <div class="metric"><strong>1</strong><span>null result: age_intervals_disjoint</span></div>
-        <div class="metric"><strong>0/6 -&gt; 6/6</strong><span>admitted verdict accuracy</span></div>
+        <div class="metric"><strong>1</strong><span>candidate conflict requiring adjudication</span></div>
+        <div class="metric"><strong>1</strong><span>documented no-conflict control</span></div>
+        <div class="metric"><strong>0/6 -&gt; 6/6</strong><span>direct SMT vs IR admitted accuracy</span></div>
       </div>
-      <p>Plain result: with the same source cues, the IR path produced accepted correct rows where direct SMT produced none.</p>
-      <p>Direct failure mode: 6/6 direct outputs lacked named assertions, and admitted accuracy stayed 0/6.</p>
-      <p>IR path: 6/6 admitted rows and 6/6 admitted accuracy after deterministic route_rule_ir.v0 -&gt; SMT-LIB compilation.</p>
+      <div class="review-grid">
+
+        <div class="review-card warn">
+          <strong>Candidate conflict</strong>
+          <span>Needs human adjudication</span>
+          <p>Adult sepsis rule recommends Antibiotic A; pregnancy subset rule contraindicates the same action. This is admitted research evidence, not a clinical recommendation.</p>
+        </div>
+        <div class="review-card ok">
+          <strong>Documented null result</strong>
+          <span>Control behaved as expected</span>
+          <p>Adult and child age ranges are disjoint, so the control pair is recorded as no conflict rather than ignored.</p>
+        </div>
+        <div class="review-card ok">
+          <strong>Route comparison</strong>
+          <span>0/6 -&gt; 6/6</span>
+          <p>The review signal is admission and verdict stability, not raw model text. Direct SMT failed admission; IR rows were accepted across all seeds.</p>
+        </div>
+        <div class="review-card warn">
+          <strong>Real source intake</strong>
+          <span>2 sources, 7 spans</span>
+          <p>Real Japanese guideline spans are cached as extraction candidates only. They are outside the locked M1/M2 score.</p>
+        </div>
+      </div>
+      <p>With the same source cues, the IR path produced accepted correct rows where direct SMT produced none.</p>
+      <p>Direct route review note: 6/6 direct outputs lacked named assertions, and admitted accuracy stayed 0/6.</p>
+      <p>IR path accepted 6/6 rows and matched the expected verdicts after deterministic route_rule_ir.v0 -&gt; SMT-LIB compilation.</p>
     </section>
 
     <section>
@@ -133,7 +163,7 @@
         <strong>Short version</strong>
         <p>Both M2 routes now finish at SMT-LIB. Direct asks the model to write SMT-LIB; IR asks the model for one bounded pair JSON object, bridges those rows into <code>route_rule_ir.v0</code>, then compiles that IR deterministically to SMT-LIB.</p>
       </div>
-      <p>Both routes use <code>lexical_cue_v1</code> (cue hash <code>92c20ba92a353c0e...5ecb68</code>). The current lift measurement is about moving formal-target burden away from the weak model while keeping the final target comparable.</p>
+      <p>Both routes use the same deterministic source-cue layer. The current lift measurement is about moving formal-target burden away from the weak model while keeping the final target comparable.</p>
       <div class="flow">
         <div class="flow-step">
           <strong>1. Same input</strong>
@@ -200,7 +230,7 @@ resolved={&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adu
               <span class="use-badge llm">LLM</span>
             </div>
             <span>1 constrained pair call</span>
-            <small>Qwen2.5-0.5B-Instruct-Q2_K:9ee36184e616dfc7</small>
+            <small>Qwen2.5-0.5B-Instruct-Q2_K</small>
           </div>
           <pre>{
   &quot;A&quot;: {
@@ -249,9 +279,8 @@ context={&quot;age_years&quot;:{&quot;ge&quot;:18},&quot;prohibited&quot;:[],&qu
             <span>2 query files</span>
             <small>deterministic compiler/verifier</small>
           </div>
-          <pre>route_targets/route.single_ir/group.m1_conflict/seed-11/smt/q.overlap.smt2
+          <pre>context_overlap
 logic=QF_LRA
-sha256=b30d53f3120bc0af...1052f3
 
 (set-logic QF_LRA)
 (set-option :print-success false)
@@ -265,9 +294,8 @@ sha256=b30d53f3120bc0af...1052f3
 (check-sat)
 (get-model)
 
-route_targets/route.single_ir/group.m1_conflict/seed-11/smt/q.deontic.smt2
+deontic_consistency
 logic=QF_UF
-sha256=4080509bae7b3482...8e1823
 
 (set-logic QF_UF)
 (set-option :print-success false)
@@ -297,7 +325,7 @@ sha256=4080509bae7b3482...8e1823
           <tr>
             <td>route.single_ir pair emission</td>
             <td><span class="use-badge llm">LLM</span></td>
-            <td>1 constrained call to Qwen2.5-0.5B-Instruct-Q2_K:9ee36184e616dfc7</td>
+            <td>1 constrained call to Qwen2.5-0.5B-Instruct-Q2_K</td>
           </tr>
           <tr>
             <td>route_rule_ir.v0 bridge</td>
@@ -349,7 +377,7 @@ sha256=4080509bae7b3482...8e1823
           </tr>
           <tr>
             <th>Representative row</th>
-            <td>rejected: unsupported_ir_fragment</td>
+            <td>rejected: not admitted: target text could not be interpreted</td>
             <td>admitted: semantic_contradiction</td>
           </tr>
           <tr>
@@ -368,7 +396,7 @@ sha256=4080509bae7b3482...8e1823
             <dt>group</dt><dd><code>group.m1_conflict</code> / seed 11</dd>
             <dt>target syntax</dt><dd>yes</dd>
             <dt>admitted</dt><dd>no</dd>
-            <dt>diagnostics</dt><dd><code>unsupported_ir_fragment</code></dd>
+            <dt>diagnostics</dt><dd><code>not admitted: target text could not be interpreted</code></dd>
           </dl>
           <pre>(check-sat)
 assert (not (not (age:age_years) 18)) (check-sat)
@@ -387,7 +415,7 @@ assert</pre>
             <dt>target syntax</dt><dd>yes</dd>
             <dt>admitted</dt><dd>yes</dd>
             <dt>bridge verdict</dt><dd><code>semantic_contradiction</code></dd>
-            <dt>SMT target</dt><dd><code>smt-lib-2; 2 query file(s); 6387ff217412f182...219257</code></dd>
+            <dt>SMT target</dt><dd><code>smt-lib-2; 2 query file(s); deterministic verifier result</code></dd>
           </dl>
           <p>A: direction=for; action=present; age=adult; sepsis=present; pregnancy=absent; renal_exception=yes</p>
           <p>B: direction=contraindicate; action=present; age=adult; sepsis=present; pregnancy=present; renal_exception=no</p>
@@ -399,25 +427,25 @@ assert</pre>
           <thead><tr><th>Metric</th><th>direct_smt</th><th>single_ir</th><th>delta</th></tr></thead>
           <tbody>
           <tr>
-            <td><code>target_syntax_validity</code></td>
+            <td>Target syntax valid</td>
             <td>6/6</td>
             <td>6/6</td>
             <td>0/1</td>
           </tr>
           <tr>
-            <td><code>admission_rate</code></td>
+            <td>Rows admitted</td>
             <td>0/6</td>
             <td>6/6</td>
             <td>1/1</td>
           </tr>
           <tr>
-            <td><code>admitted_verdict_accuracy</code></td>
+            <td>Admitted verdict accuracy</td>
             <td>0/6</td>
             <td>6/6</td>
             <td>1/1</td>
           </tr>
           <tr>
-            <td><code>k_sample_stability</code></td>
+            <td>Stable across seeds</td>
             <td>0/2</td>
             <td>2/2</td>
             <td>1/1</td>
@@ -494,19 +522,17 @@ assert</pre>
         <h3>Compiled route SMT target</h3>
         <div class="table-wrap">
           <table class="wide">
-            <thead><tr><th>Query</th><th>File</th><th>Logic</th><th>SHA-256</th></tr></thead>
+            <thead><tr><th>Query</th><th>File</th><th>Logic</th></tr></thead>
             <tbody>
           <tr>
             <td><code>context_overlap</code></td>
             <td><code>route_targets/route.single_ir/group.m1_conflict/seed-11/smt/q.overlap.smt2</code></td>
             <td>QF_LRA</td>
-            <td><code>b30d53f3120bc0af...1052f3</code></td>
           </tr>
           <tr>
             <td><code>deontic_consistency</code></td>
             <td><code>route_targets/route.single_ir/group.m1_conflict/seed-11/smt/q.deontic.smt2</code></td>
             <td>QF_UF</td>
-            <td><code>4080509bae7b3482...8e1823</code></td>
           </tr>
             </tbody>
           </table>
@@ -514,13 +540,12 @@ assert</pre>
         <h3>Pair-level call rollup</h3>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Source labels</th><th>Pair calls</th><th>Rows</th><th>Response hash</th></tr></thead>
+            <thead><tr><th>Source labels</th><th>Pair calls</th><th>Rows</th></tr></thead>
             <tbody>
           <tr>
             <td><code>A, B</code></td>
             <td>1</td>
             <td><code>A, B</code></td>
-            <td><code>2a8ec4f8c40f0b4ca204cf4b6f580d7670a1ff4f4f4d1d2422aa03e526137db0</code></td>
           </tr>
             </tbody>
           </table>
@@ -622,19 +647,17 @@ assert</pre>
           <h3>Raw cache</h3>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Artifact</th><th>Kind</th><th>Status</th><th>SHA-256</th></tr></thead>
+              <thead><tr><th>Artifact</th><th>Kind</th><th>Status</th></tr></thead>
               <tbody>
           <tr>
             <td><code>thyroid_tumor_2024_cq_article_html</code></td>
             <td>html</td>
             <td>fetched</td>
-            <td>ff4cc6a666ba70e9b97b00082abf0db3a512ce7a21ff9045bf79d83d924ce07a</td>
           </tr>
           <tr>
             <td><code>thyroid_tumor_2024_cq_pdf</code></td>
             <td>pdf</td>
             <td>fetched</td>
-            <td>07eda9e58807ee9868eea700bf91429579727a327ada8f9c2aac4d8f34e681ca</td>
           </tr>
               </tbody>
             </table>
@@ -674,19 +697,17 @@ assert</pre>
           <h3>Raw cache</h3>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Artifact</th><th>Kind</th><th>Status</th><th>SHA-256</th></tr></thead>
+              <thead><tr><th>Artifact</th><th>Kind</th><th>Status</th></tr></thead>
               <tbody>
           <tr>
             <td><code>sepsis_dic_2025_article_html</code></td>
             <td>html</td>
             <td>fetched</td>
-            <td>effffd9ccebf4b52fa59836388d3a358f58781730f19038e330de2db9ee329c0</td>
           </tr>
           <tr>
             <td><code>sepsis_dic_2025_pdf</code></td>
             <td>pdf</td>
             <td>fetched</td>
-            <td>b1a3922f9c10e948e662bfc8fc3947daed3ebc2b3b542fa478c941fd4ddd1321</td>
           </tr>
               </tbody>
             </table>
@@ -696,6 +717,7 @@ assert</pre>
 
     <section>
       <h2>Route metrics</h2>
+      <p>Admitted accuracy means the row passed admission checks and matched the locked expected verdict.</p>
       <div class="table-wrap">
         <table>
           <thead><tr><th>Route</th><th>Target syntax</th><th>Model syntax</th><th>Admission</th><th>Admitted accuracy</th><th>Candidate accuracy</th><th>Stability</th></tr></thead>
@@ -721,177 +743,178 @@ assert</pre>
           </tbody>
         </table>
       </div>
+      <details>
+        <summary>Route row audit by seed</summary>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Route</th><th>Group</th><th>Seed</th><th>Model syntax</th><th>Target syntax</th><th>Admitted</th><th>Verdict</th><th>Admitted correct</th><th>Candidate correct</th><th>Diagnostics</th></tr></thead>
+            <tbody>
+          <tr>
+            <td><code>route.direct_smt</code></td>
+            <td><code>group.m1_conflict</code></td>
+            <td>11</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>no</td>
+            <td>unknown</td>
+            <td>no</td>
+            <td>no</td>
+            <td>not admitted: target text could not be interpreted</td>
+          </tr>
+          <tr>
+            <td><code>route.direct_smt</code></td>
+            <td><code>group.m1_null</code></td>
+            <td>11</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>no</td>
+            <td>unknown</td>
+            <td>no</td>
+            <td>no</td>
+            <td>not admitted: target text could not be interpreted</td>
+          </tr>
+          <tr>
+            <td><code>route.direct_smt</code></td>
+            <td><code>group.m1_conflict</code></td>
+            <td>22</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>no</td>
+            <td>unknown</td>
+            <td>no</td>
+            <td>no</td>
+            <td>not admitted: target text could not be interpreted</td>
+          </tr>
+          <tr>
+            <td><code>route.direct_smt</code></td>
+            <td><code>group.m1_null</code></td>
+            <td>22</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>no</td>
+            <td>unknown</td>
+            <td>no</td>
+            <td>no</td>
+            <td>not admitted: target text could not be interpreted</td>
+          </tr>
+          <tr>
+            <td><code>route.direct_smt</code></td>
+            <td><code>group.m1_conflict</code></td>
+            <td>33</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>no</td>
+            <td>unknown</td>
+            <td>no</td>
+            <td>no</td>
+            <td>not admitted: target text could not be interpreted</td>
+          </tr>
+          <tr>
+            <td><code>route.direct_smt</code></td>
+            <td><code>group.m1_null</code></td>
+            <td>33</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>no</td>
+            <td>unknown</td>
+            <td>no</td>
+            <td>no</td>
+            <td>not admitted: target text could not be interpreted</td>
+          </tr>
+          <tr>
+            <td><code>route.single_ir</code></td>
+            <td><code>group.m1_conflict</code></td>
+            <td>11</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>semantic_contradiction</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>none</td>
+          </tr>
+          <tr>
+            <td><code>route.single_ir</code></td>
+            <td><code>group.m1_null</code></td>
+            <td>11</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>semantic_no_conflict</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>none</td>
+          </tr>
+          <tr>
+            <td><code>route.single_ir</code></td>
+            <td><code>group.m1_conflict</code></td>
+            <td>22</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>semantic_contradiction</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>none</td>
+          </tr>
+          <tr>
+            <td><code>route.single_ir</code></td>
+            <td><code>group.m1_null</code></td>
+            <td>22</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>semantic_no_conflict</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>none</td>
+          </tr>
+          <tr>
+            <td><code>route.single_ir</code></td>
+            <td><code>group.m1_conflict</code></td>
+            <td>33</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>semantic_contradiction</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>none</td>
+          </tr>
+          <tr>
+            <td><code>route.single_ir</code></td>
+            <td><code>group.m1_null</code></td>
+            <td>33</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>semantic_no_conflict</td>
+            <td>yes</td>
+            <td>yes</td>
+            <td>none</td>
+          </tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
     </section>
 
     <section>
-      <h2>Raw rows</h2>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Route</th><th>Group</th><th>Seed</th><th>Model syntax</th><th>Target syntax</th><th>Admitted</th><th>Verdict</th><th>Admitted correct</th><th>Candidate correct</th><th>Diagnostics</th></tr></thead>
-          <tbody>
-          <tr>
-            <td><code>route.direct_smt</code></td>
-            <td><code>group.m1_conflict</code></td>
-            <td>11</td>
-            <td>yes</td>
-            <td>yes</td>
-            <td>no</td>
-            <td>unknown</td>
-            <td>no</td>
-            <td>no</td>
-            <td>unsupported_ir_fragment</td>
-          </tr>
-          <tr>
-            <td><code>route.direct_smt</code></td>
-            <td><code>group.m1_null</code></td>
-            <td>11</td>
-            <td>yes</td>
-            <td>yes</td>
-            <td>no</td>
-            <td>unknown</td>
-            <td>no</td>
-            <td>no</td>
-            <td>unsupported_ir_fragment</td>
-          </tr>
-          <tr>
-            <td><code>route.direct_smt</code></td>
-            <td><code>group.m1_conflict</code></td>
-            <td>22</td>
-            <td>yes</td>
-            <td>yes</td>
-            <td>no</td>
-            <td>unknown</td>
-            <td>no</td>
-            <td>no</td>
-            <td>unsupported_ir_fragment</td>
-          </tr>
-          <tr>
-            <td><code>route.direct_smt</code></td>
-            <td><code>group.m1_null</code></td>
-            <td>22</td>
-            <td>yes</td>
-            <td>yes</td>
-            <td>no</td>
-            <td>unknown</td>
-            <td>no</td>
-            <td>no</td>
-            <td>unsupported_ir_fragment</td>
-          </tr>
-          <tr>
-            <td><code>route.direct_smt</code></td>
-            <td><code>group.m1_conflict</code></td>
-            <td>33</td>
-            <td>yes</td>
-            <td>yes</td>
-            <td>no</td>
-            <td>unknown</td>
-            <td>no</td>
-            <td>no</td>
-            <td>unsupported_ir_fragment</td>
-          </tr>
-          <tr>
-            <td><code>route.direct_smt</code></td>
-            <td><code>group.m1_null</code></td>
-            <td>33</td>
-            <td>yes</td>
-            <td>yes</td>
-            <td>no</td>
-            <td>unknown</td>
-            <td>no</td>
-            <td>no</td>
-            <td>unsupported_ir_fragment</td>
-          </tr>
-          <tr>
-            <td><code>route.single_ir</code></td>
-            <td><code>group.m1_conflict</code></td>
-            <td>11</td>
-            <td>yes</td>
-            <td>yes</td>
-            <td>yes</td>
-            <td>semantic_contradiction</td>
-            <td>yes</td>
-            <td>yes</td>
-            <td>none</td>
-          </tr>
-          <tr>
-            <td><code>route.single_ir</code></td>
-            <td><code>group.m1_null</code></td>
-            <td>11</td>
-            <td>yes</td>
-            <td>yes</td>
-            <td>yes</td>
-            <td>semantic_no_conflict</td>
-            <td>yes</td>
-            <td>yes</td>
-            <td>none</td>
-          </tr>
-          <tr>
-            <td><code>route.single_ir</code></td>
-            <td><code>group.m1_conflict</code></td>
-            <td>22</td>
-            <td>yes</td>
-            <td>yes</td>
-            <td>yes</td>
-            <td>semantic_contradiction</td>
-            <td>yes</td>
-            <td>yes</td>
-            <td>none</td>
-          </tr>
-          <tr>
-            <td><code>route.single_ir</code></td>
-            <td><code>group.m1_null</code></td>
-            <td>22</td>
-            <td>yes</td>
-            <td>yes</td>
-            <td>yes</td>
-            <td>semantic_no_conflict</td>
-            <td>yes</td>
-            <td>yes</td>
-            <td>none</td>
-          </tr>
-          <tr>
-            <td><code>route.single_ir</code></td>
-            <td><code>group.m1_conflict</code></td>
-            <td>33</td>
-            <td>yes</td>
-            <td>yes</td>
-            <td>yes</td>
-            <td>semantic_contradiction</td>
-            <td>yes</td>
-            <td>yes</td>
-            <td>none</td>
-          </tr>
-          <tr>
-            <td><code>route.single_ir</code></td>
-            <td><code>group.m1_null</code></td>
-            <td>33</td>
-            <td>yes</td>
-            <td>yes</td>
-            <td>yes</td>
-            <td>semantic_no_conflict</td>
-            <td>yes</td>
-            <td>yes</td>
-            <td>none</td>
-          </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <section>
-      <h2>LLM prompts</h2>
-      <p>Exact prompt texts passed to the local llama.cpp process. Prompt hashes use <code>sha256(utf8(prompt_text))</code>; each prompt also exists as a generated text artifact under <code>runs/m2-one-shot/prompts/</code>.</p>
-      <div class="table-wrap">
-        <table class="extra-wide">
-          <thead><tr><th>Prompt</th><th>Route</th><th>Groups</th><th>Seeds</th><th>Calls</th><th>SHA-256</th><th>Path</th></tr></thead>
-          <tbody>
+      <h2>Audit archive</h2>
+      <p>Prompt and response transcripts are retained for reproducibility and debugging. They are audit material, not the primary review signal.</p>
+      <details>
+        <summary>Prompt texts (4)</summary>
+        <p>Each prompt also exists as a generated text artifact under <code>runs/m2-one-shot/prompts/</code>.</p>
+        <div class="table-wrap">
+          <table class="extra-wide">
+            <thead><tr><th>Prompt</th><th>Route</th><th>Groups</th><th>Seeds</th><th>Calls</th><th>Path</th></tr></thead>
+            <tbody>
           <tr>
             <td><code>prompt.route_direct_smt.cds_ticket_smt_target.v2.group_m1_conflict</code></td>
             <td><code>route.direct_smt</code></td>
             <td><code>group.m1_conflict</code></td>
             <td>11, 22, 33</td>
             <td>3</td>
-            <td><code>c3b226df97c174c47d98cb02446cc17422e5a77ead3e5ee55e8d1926360bdc1f</code></td>
             <td><code>prompts/route.direct_smt/group.m1_conflict/prompt-c3b226df97c1.txt</code></td>
           </tr>
           <tr>
@@ -900,7 +923,6 @@ assert</pre>
             <td><code>group.m1_null</code></td>
             <td>11, 22, 33</td>
             <td>3</td>
-            <td><code>1e7f7e811208762b9bc3d56060022af1f3f0b13eecfe5c27a83aa6230209539b</code></td>
             <td><code>prompts/route.direct_smt/group.m1_null/prompt-1e7f7e811208.txt</code></td>
           </tr>
           <tr>
@@ -909,7 +931,6 @@ assert</pre>
             <td><code>group.m1_conflict</code></td>
             <td>11, 22, 33</td>
             <td>3</td>
-            <td><code>7cbc6b36da1ca9cea08a49ae9c27843d05dde2b4ff13b877c6477c6cda9dceb8</code></td>
             <td><code>prompts/route.single_ir/group.m1_conflict/prompt-7cbc6b36da1c.txt</code></td>
           </tr>
           <tr>
@@ -918,14 +939,13 @@ assert</pre>
             <td><code>group.m1_null</code></td>
             <td>11, 22, 33</td>
             <td>3</td>
-            <td><code>6395b159e0cc2cdc2dcfa216ca08c1b863b9564f84da709284590564f976db43</code></td>
             <td><code>prompts/route.single_ir/group.m1_null/prompt-6395b159e0cc.txt</code></td>
           </tr>
-          </tbody>
-        </table>
-      </div>
-      <details>
-          <summary><code>prompt.route_direct_smt.cds_ticket_smt_target.v2.group_m1_conflict</code> / <code>c3b226df97c174c4...0bdc1f</code></summary>
+            </tbody>
+          </table>
+        </div>
+        <details>
+          <summary><code>prompt.route_direct_smt.cds_ticket_smt_target.v2.group_m1_conflict</code></summary>
           <dl>
             <dt>template</dt><dd><code>prompt.route_direct_smt.cds_ticket_smt_target.v2</code></dd>
             <dt>output contract</dt><dd>self-contained SMT-LIB 2 program</dd>
@@ -935,28 +955,25 @@ assert</pre>
           <h3>Calls using this exact prompt</h3>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Model I/O record</th><th>Group</th><th>Seed</th><th>Granularity</th><th>Response hash</th></tr></thead>
+              <thead><tr><th>Model I/O record</th><th>Group</th><th>Seed</th><th>Granularity</th></tr></thead>
               <tbody>
           <tr>
             <td><code>io_route_direct_smt_group_m1_conflict_11</code></td>
             <td><code>group.m1_conflict</code></td>
             <td>11</td>
             <td>route</td>
-            <td><code>026721d44c96111fb7056427102b93a1da42b396bd7f18d2fdca0e481afd0a80</code></td>
           </tr>
           <tr>
             <td><code>io_route_direct_smt_group_m1_conflict_22</code></td>
             <td><code>group.m1_conflict</code></td>
             <td>22</td>
             <td>route</td>
-            <td><code>026721d44c96111fb7056427102b93a1da42b396bd7f18d2fdca0e481afd0a80</code></td>
           </tr>
           <tr>
             <td><code>io_route_direct_smt_group_m1_conflict_33</code></td>
             <td><code>group.m1_conflict</code></td>
             <td>33</td>
             <td>route</td>
-            <td><code>026721d44c96111fb7056427102b93a1da42b396bd7f18d2fdca0e481afd0a80</code></td>
           </tr>
               </tbody>
             </table>
@@ -994,7 +1011,7 @@ terminology cues B: direction=投与しないこと; age=成人_or_18歳以上; 
 normalized CDS fields B: {&quot;direction&quot;:&quot;contraindicate&quot;,&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;sepsis&quot;:&quot;present&quot;,&quot;pregnancy&quot;:&quot;present&quot;,&quot;renal_exception&quot;:&quot;no&quot;}</pre>
         </details>
         <details>
-          <summary><code>prompt.route_direct_smt.cds_ticket_smt_target.v2.group_m1_null</code> / <code>1e7f7e811208762b...09539b</code></summary>
+          <summary><code>prompt.route_direct_smt.cds_ticket_smt_target.v2.group_m1_null</code></summary>
           <dl>
             <dt>template</dt><dd><code>prompt.route_direct_smt.cds_ticket_smt_target.v2</code></dd>
             <dt>output contract</dt><dd>self-contained SMT-LIB 2 program</dd>
@@ -1004,28 +1021,25 @@ normalized CDS fields B: {&quot;direction&quot;:&quot;contraindicate&quot;,&quot
           <h3>Calls using this exact prompt</h3>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Model I/O record</th><th>Group</th><th>Seed</th><th>Granularity</th><th>Response hash</th></tr></thead>
+              <thead><tr><th>Model I/O record</th><th>Group</th><th>Seed</th><th>Granularity</th></tr></thead>
               <tbody>
           <tr>
             <td><code>io_route_direct_smt_group_m1_null_11</code></td>
             <td><code>group.m1_null</code></td>
             <td>11</td>
             <td>route</td>
-            <td><code>96bf812b0454ee848cc10218be1abf3b2c845bd9e4d6d798d0c57aeb0235a177</code></td>
           </tr>
           <tr>
             <td><code>io_route_direct_smt_group_m1_null_22</code></td>
             <td><code>group.m1_null</code></td>
             <td>22</td>
             <td>route</td>
-            <td><code>96bf812b0454ee848cc10218be1abf3b2c845bd9e4d6d798d0c57aeb0235a177</code></td>
           </tr>
           <tr>
             <td><code>io_route_direct_smt_group_m1_null_33</code></td>
             <td><code>group.m1_null</code></td>
             <td>33</td>
             <td>route</td>
-            <td><code>96bf812b0454ee848cc10218be1abf3b2c845bd9e4d6d798d0c57aeb0235a177</code></td>
           </tr>
               </tbody>
             </table>
@@ -1063,7 +1077,7 @@ terminology cues C: direction=禁忌; age=小児_or_18歳未満; sepsis=present;
 normalized CDS fields C: {&quot;direction&quot;:&quot;contraindicate&quot;,&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;child&quot;,&quot;sepsis&quot;:&quot;present&quot;,&quot;pregnancy&quot;:&quot;absent&quot;,&quot;renal_exception&quot;:&quot;no&quot;}</pre>
         </details>
         <details>
-          <summary><code>prompt.route_single_ir.cds_ticket_pair_json.v2.group_m1_conflict</code> / <code>7cbc6b36da1ca9ce...9dceb8</code></summary>
+          <summary><code>prompt.route_single_ir.cds_ticket_pair_json.v2.group_m1_conflict</code></summary>
           <dl>
             <dt>template</dt><dd><code>prompt.route_single_ir.cds_ticket_pair_json.v2</code></dd>
             <dt>output contract</dt><dd>CDS import JSON object keyed by source label; constrained by llama.cpp JSON schema</dd>
@@ -1073,28 +1087,25 @@ normalized CDS fields C: {&quot;direction&quot;:&quot;contraindicate&quot;,&quot
           <h3>Calls using this exact prompt</h3>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Model I/O record</th><th>Group</th><th>Seed</th><th>Granularity</th><th>Response hash</th></tr></thead>
+              <thead><tr><th>Model I/O record</th><th>Group</th><th>Seed</th><th>Granularity</th></tr></thead>
               <tbody>
           <tr>
             <td><code>io_route_single_ir_group_m1_conflict_11</code></td>
             <td><code>group.m1_conflict</code></td>
             <td>11</td>
             <td>source_pair</td>
-            <td><code>2a8ec4f8c40f0b4ca204cf4b6f580d7670a1ff4f4f4d1d2422aa03e526137db0</code></td>
           </tr>
           <tr>
             <td><code>io_route_single_ir_group_m1_conflict_22</code></td>
             <td><code>group.m1_conflict</code></td>
             <td>22</td>
             <td>source_pair</td>
-            <td><code>2a8ec4f8c40f0b4ca204cf4b6f580d7670a1ff4f4f4d1d2422aa03e526137db0</code></td>
           </tr>
           <tr>
             <td><code>io_route_single_ir_group_m1_conflict_33</code></td>
             <td><code>group.m1_conflict</code></td>
             <td>33</td>
             <td>source_pair</td>
-            <td><code>2a8ec4f8c40f0b4ca204cf4b6f580d7670a1ff4f4f4d1d2422aa03e526137db0</code></td>
           </tr>
               </tbody>
             </table>
@@ -1113,7 +1124,7 @@ Import payload:
 {&quot;A&quot;:{&quot;direction&quot;:&quot;for&quot;,&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;sepsis&quot;:&quot;present&quot;,&quot;pregnancy&quot;:&quot;absent&quot;,&quot;renal_exception&quot;:&quot;yes&quot;},&quot;B&quot;:{&quot;direction&quot;:&quot;contraindicate&quot;,&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;sepsis&quot;:&quot;present&quot;,&quot;pregnancy&quot;:&quot;present&quot;,&quot;renal_exception&quot;:&quot;no&quot;}}</pre>
         </details>
         <details>
-          <summary><code>prompt.route_single_ir.cds_ticket_pair_json.v2.group_m1_null</code> / <code>6395b159e0cc2cdc...76db43</code></summary>
+          <summary><code>prompt.route_single_ir.cds_ticket_pair_json.v2.group_m1_null</code></summary>
           <dl>
             <dt>template</dt><dd><code>prompt.route_single_ir.cds_ticket_pair_json.v2</code></dd>
             <dt>output contract</dt><dd>CDS import JSON object keyed by source label; constrained by llama.cpp JSON schema</dd>
@@ -1123,28 +1134,25 @@ Import payload:
           <h3>Calls using this exact prompt</h3>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Model I/O record</th><th>Group</th><th>Seed</th><th>Granularity</th><th>Response hash</th></tr></thead>
+              <thead><tr><th>Model I/O record</th><th>Group</th><th>Seed</th><th>Granularity</th></tr></thead>
               <tbody>
           <tr>
             <td><code>io_route_single_ir_group_m1_null_11</code></td>
             <td><code>group.m1_null</code></td>
             <td>11</td>
             <td>source_pair</td>
-            <td><code>6b0368093925ee7015223dd093bc3a3e9645b82cf872eb4422a4f7974339a69b</code></td>
           </tr>
           <tr>
             <td><code>io_route_single_ir_group_m1_null_22</code></td>
             <td><code>group.m1_null</code></td>
             <td>22</td>
             <td>source_pair</td>
-            <td><code>6b0368093925ee7015223dd093bc3a3e9645b82cf872eb4422a4f7974339a69b</code></td>
           </tr>
           <tr>
             <td><code>io_route_single_ir_group_m1_null_33</code></td>
             <td><code>group.m1_null</code></td>
             <td>33</td>
             <td>source_pair</td>
-            <td><code>6b0368093925ee7015223dd093bc3a3e9645b82cf872eb4422a4f7974339a69b</code></td>
           </tr>
               </tbody>
             </table>
@@ -1162,14 +1170,12 @@ normalized fields for C: {&quot;direction&quot;:&quot;contraindicate&quot;,&quot
 Import payload:
 {&quot;A&quot;:{&quot;direction&quot;:&quot;for&quot;,&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adult&quot;,&quot;sepsis&quot;:&quot;present&quot;,&quot;pregnancy&quot;:&quot;absent&quot;,&quot;renal_exception&quot;:&quot;yes&quot;},&quot;C&quot;:{&quot;direction&quot;:&quot;contraindicate&quot;,&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;child&quot;,&quot;sepsis&quot;:&quot;present&quot;,&quot;pregnancy&quot;:&quot;absent&quot;,&quot;renal_exception&quot;:&quot;no&quot;}}</pre>
         </details>
-    </section>
-
-    <section>
-      <h2>Model I/O</h2>
-              <details>
+      </details>
+      <details>
+        <summary>Per-call prompt and response transcripts (12)</summary>
+                <details>
           <summary><code>route.direct_smt</code> / <code>group.m1_conflict</code> / seed 11 / not admitted</summary>
           <h3>Prompt</h3>
-          <p>Prompt hash: <code>c3b226df97c174c47d98cb02446cc17422e5a77ead3e5ee55e8d1926360bdc1f</code></p>
           <pre>You are preparing a formal consistency-check script for a hospital CDS rules repository.
 The ticket is guideline-derived content for knowledge-base QA, not patient-specific care advice.
 Output one self-contained SMT-LIB 2 program only. No prose, no Markdown, no JSON, no verdict word.
@@ -1227,7 +1233,6 @@ assert</pre>
         </details>        <details>
           <summary><code>route.direct_smt</code> / <code>group.m1_null</code> / seed 11 / not admitted</summary>
           <h3>Prompt</h3>
-          <p>Prompt hash: <code>1e7f7e811208762b9bc3d56060022af1f3f0b13eecfe5c27a83aa6230209539b</code></p>
           <pre>You are preparing a formal consistency-check script for a hospital CDS rules repository.
 The ticket is guideline-derived content for knowledge-base QA, not patient-specific care advice.
 Output one self-contained SMT-LIB 2 program only. No prose, no Markdown, no JSON, no verdict word.
@@ -1280,7 +1285,6 @@ normalized CDS fields C: {&quot;direction&quot;:&quot;contraindicate&quot;,&quot
         </details>        <details>
           <summary><code>route.direct_smt</code> / <code>group.m1_conflict</code> / seed 22 / not admitted</summary>
           <h3>Prompt</h3>
-          <p>Prompt hash: <code>c3b226df97c174c47d98cb02446cc17422e5a77ead3e5ee55e8d1926360bdc1f</code></p>
           <pre>You are preparing a formal consistency-check script for a hospital CDS rules repository.
 The ticket is guideline-derived content for knowledge-base QA, not patient-specific care advice.
 Output one self-contained SMT-LIB 2 program only. No prose, no Markdown, no JSON, no verdict word.
@@ -1338,7 +1342,6 @@ assert</pre>
         </details>        <details>
           <summary><code>route.direct_smt</code> / <code>group.m1_null</code> / seed 22 / not admitted</summary>
           <h3>Prompt</h3>
-          <p>Prompt hash: <code>1e7f7e811208762b9bc3d56060022af1f3f0b13eecfe5c27a83aa6230209539b</code></p>
           <pre>You are preparing a formal consistency-check script for a hospital CDS rules repository.
 The ticket is guideline-derived content for knowledge-base QA, not patient-specific care advice.
 Output one self-contained SMT-LIB 2 program only. No prose, no Markdown, no JSON, no verdict word.
@@ -1391,7 +1394,6 @@ normalized CDS fields C: {&quot;direction&quot;:&quot;contraindicate&quot;,&quot
         </details>        <details>
           <summary><code>route.direct_smt</code> / <code>group.m1_conflict</code> / seed 33 / not admitted</summary>
           <h3>Prompt</h3>
-          <p>Prompt hash: <code>c3b226df97c174c47d98cb02446cc17422e5a77ead3e5ee55e8d1926360bdc1f</code></p>
           <pre>You are preparing a formal consistency-check script for a hospital CDS rules repository.
 The ticket is guideline-derived content for knowledge-base QA, not patient-specific care advice.
 Output one self-contained SMT-LIB 2 program only. No prose, no Markdown, no JSON, no verdict word.
@@ -1449,7 +1451,6 @@ assert</pre>
         </details>        <details>
           <summary><code>route.direct_smt</code> / <code>group.m1_null</code> / seed 33 / not admitted</summary>
           <h3>Prompt</h3>
-          <p>Prompt hash: <code>1e7f7e811208762b9bc3d56060022af1f3f0b13eecfe5c27a83aa6230209539b</code></p>
           <pre>You are preparing a formal consistency-check script for a hospital CDS rules repository.
 The ticket is guideline-derived content for knowledge-base QA, not patient-specific care advice.
 Output one self-contained SMT-LIB 2 program only. No prose, no Markdown, no JSON, no verdict word.
@@ -1502,7 +1503,6 @@ normalized CDS fields C: {&quot;direction&quot;:&quot;contraindicate&quot;,&quot
         </details>        <details>
           <summary><code>route.single_ir</code> / <code>group.m1_conflict</code> / seed 11 / admitted</summary>
           <h3>Prompt</h3>
-          <p>Prompt hash: <code>7cbc6b36da1ca9cea08a49ae9c27843d05dde2b4ff13b877c6477c6cda9dceb8</code></p>
           <pre>You are preparing an import payload for a hospital CDS knowledge-base maintenance queue.
 The excerpts are guideline-derived content for rules-engine review, not a patient-specific recommendation.
 A terminology review service has already normalized each source into the allowed field values below.
@@ -1548,7 +1548,6 @@ Import payload:
   },
   &quot;response&quot;: &quot;{\n  \&quot;A\&quot;: {\n    \&quot;direction\&quot;: \&quot;for\&quot;,\n    \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n    \&quot;age\&quot;: \&quot;adult\&quot;,\n    \&quot;sepsis\&quot;: \&quot;present\&quot;,\n    \&quot;pregnancy\&quot;: \&quot;absent\&quot;,\n    \&quot;renal_exception\&quot;: \&quot;yes\&quot;\n  },\n  \&quot;B\&quot;: {\n    \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n    \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n    \&quot;age\&quot;: \&quot;adult\&quot;,\n    \&quot;sepsis\&quot;: \&quot;present\&quot;,\n    \&quot;pregnancy\&quot;: \&quot;present\&quot;,\n    \&quot;renal_exception\&quot;: \&quot;no\&quot;\n  }\n}&quot;,
   &quot;call_granularity&quot;: &quot;source_pair&quot;,
-  &quot;prompt_hash&quot;: &quot;7cbc6b36da1ca9cea08a49ae9c27843d05dde2b4ff13b877c6477c6cda9dceb8&quot;,
   &quot;prompt&quot;: &quot;You are preparing an import payload for a hospital CDS knowledge-base maintenance queue.\nThe excerpts are guideline-derived content for rules-engine review, not a patient-specific recommendation.\nA terminology review service has already normalized each source into the allowed field values below.\nPrepare one JSON import payload keyed by source label. Copy the normalized fields exactly.\nKeep labels unchanged. Use only the listed enum tokens and fields. Return the payload only, with no prose.\nmaintenance ticket: pair.ab\nsource labels: A, B\nnormalized fields for A: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}\nnormalized fields for B: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}\nImport payload:\n{\&quot;A\&quot;:{\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;},\&quot;B\&quot;:{\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}}&quot;
 }</pre>
           <h3>Response</h3>
@@ -1575,22 +1574,22 @@ Import payload:
   &quot;compiler_id&quot;: &quot;route_rule_ir_v0_to_smt_v0&quot;,
   &quot;source_ir_schema_id&quot;: &quot;schema.route_rule_ir.v0&quot;,
   &quot;target_profile&quot;: &quot;smt-lib-2&quot;,
-  &quot;input_ir_hash&quot;: &quot;b7ce5e659fb74b5b14a4b07a4b643271e29392bef2b67c43a75d7d13e09fcb11&quot;,
-  &quot;target_hash&quot;: &quot;6387ff217412f18243f8e57656d9a277e21b7eaa9bb29cfba50f9e552a219257&quot;,
+  &quot;syntax_valid&quot;: true,
+  &quot;admitted&quot;: true,
+  &quot;verdict&quot;: &quot;semantic_contradiction&quot;,
+  &quot;diagnostics&quot;: [],
   &quot;smt_files&quot;: [
     {
       &quot;file&quot;: &quot;route_targets/route.single_ir/group.m1_conflict/seed-11/smt/q.overlap.smt2&quot;,
       &quot;kind&quot;: &quot;context_overlap&quot;,
       &quot;logic&quot;: &quot;QF_LRA&quot;,
-      &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_conflict.seed-11.overlap&quot;,
-      &quot;sha256&quot;: &quot;b30d53f3120bc0af1f31d099e08207e2cfb272452f3f3791d60b382eaa1052f3&quot;
+      &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_conflict.seed-11.overlap&quot;
     },
     {
       &quot;file&quot;: &quot;route_targets/route.single_ir/group.m1_conflict/seed-11/smt/q.deontic.smt2&quot;,
       &quot;kind&quot;: &quot;deontic_consistency&quot;,
       &quot;logic&quot;: &quot;QF_UF&quot;,
-      &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_conflict.seed-11.deontic&quot;,
-      &quot;sha256&quot;: &quot;4080509bae7b3482f6de08957b1d1dc7a3999145cd13a3284f6188c0ea8e1823&quot;
+      &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_conflict.seed-11.deontic&quot;
     }
   ],
   &quot;verifier&quot;: {
@@ -1639,7 +1638,6 @@ Import payload:
         </details>        <details>
           <summary><code>route.single_ir</code> / <code>group.m1_null</code> / seed 11 / admitted</summary>
           <h3>Prompt</h3>
-          <p>Prompt hash: <code>6395b159e0cc2cdc2dcfa216ca08c1b863b9564f84da709284590564f976db43</code></p>
           <pre>You are preparing an import payload for a hospital CDS knowledge-base maintenance queue.
 The excerpts are guideline-derived content for rules-engine review, not a patient-specific recommendation.
 A terminology review service has already normalized each source into the allowed field values below.
@@ -1685,7 +1683,6 @@ Import payload:
   },
   &quot;response&quot;: &quot;{\n  \&quot;A\&quot;: {\n    \&quot;direction\&quot;: \&quot;for\&quot;,\n    \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n    \&quot;age\&quot;: \&quot;adult\&quot;,\n    \&quot;sepsis\&quot;: \&quot;present\&quot;,\n    \&quot;pregnancy\&quot;: \&quot;absent\&quot;,\n    \&quot;renal_exception\&quot;: \&quot;yes\&quot;\n  },\n  \&quot;C\&quot;: {\n    \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n    \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n    \&quot;age\&quot;: \&quot;child\&quot;,\n    \&quot;sepsis\&quot;: \&quot;present\&quot;,\n    \&quot;pregnancy\&quot;: \&quot;absent\&quot;,\n    \&quot;renal_exception\&quot;: \&quot;no\&quot;\n  }\n}&quot;,
   &quot;call_granularity&quot;: &quot;source_pair&quot;,
-  &quot;prompt_hash&quot;: &quot;6395b159e0cc2cdc2dcfa216ca08c1b863b9564f84da709284590564f976db43&quot;,
   &quot;prompt&quot;: &quot;You are preparing an import payload for a hospital CDS knowledge-base maintenance queue.\nThe excerpts are guideline-derived content for rules-engine review, not a patient-specific recommendation.\nA terminology review service has already normalized each source into the allowed field values below.\nPrepare one JSON import payload keyed by source label. Copy the normalized fields exactly.\nKeep labels unchanged. Use only the listed enum tokens and fields. Return the payload only, with no prose.\nmaintenance ticket: pair.ac\nsource labels: A, C\nnormalized fields for A: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}\nnormalized fields for C: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}\nImport payload:\n{\&quot;A\&quot;:{\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;},\&quot;C\&quot;:{\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}}&quot;
 }</pre>
           <h3>Response</h3>
@@ -1712,15 +1709,16 @@ Import payload:
   &quot;compiler_id&quot;: &quot;route_rule_ir_v0_to_smt_v0&quot;,
   &quot;source_ir_schema_id&quot;: &quot;schema.route_rule_ir.v0&quot;,
   &quot;target_profile&quot;: &quot;smt-lib-2&quot;,
-  &quot;input_ir_hash&quot;: &quot;76dde253f18fabc55da8a783ff23def6dd2a72a9ffafc6c6e04d33a386528b65&quot;,
-  &quot;target_hash&quot;: &quot;c47d7541ac7736d3d64de715c82e8517048467f8b01cfcc09a2f7273fb567e7c&quot;,
+  &quot;syntax_valid&quot;: true,
+  &quot;admitted&quot;: true,
+  &quot;verdict&quot;: &quot;semantic_no_conflict&quot;,
+  &quot;diagnostics&quot;: [],
   &quot;smt_files&quot;: [
     {
       &quot;file&quot;: &quot;route_targets/route.single_ir/group.m1_null/seed-11/smt/q.overlap.smt2&quot;,
       &quot;kind&quot;: &quot;context_overlap&quot;,
       &quot;logic&quot;: &quot;QF_LRA&quot;,
-      &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_null.seed-11.overlap&quot;,
-      &quot;sha256&quot;: &quot;b90b13072b4f3b4876c471d135f0d05c2899a76c56fc76dde9d27da01f1b70bf&quot;
+      &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_null.seed-11.overlap&quot;
     }
   ],
   &quot;verifier&quot;: {
@@ -1754,7 +1752,6 @@ Import payload:
         </details>        <details>
           <summary><code>route.single_ir</code> / <code>group.m1_conflict</code> / seed 22 / admitted</summary>
           <h3>Prompt</h3>
-          <p>Prompt hash: <code>7cbc6b36da1ca9cea08a49ae9c27843d05dde2b4ff13b877c6477c6cda9dceb8</code></p>
           <pre>You are preparing an import payload for a hospital CDS knowledge-base maintenance queue.
 The excerpts are guideline-derived content for rules-engine review, not a patient-specific recommendation.
 A terminology review service has already normalized each source into the allowed field values below.
@@ -1800,7 +1797,6 @@ Import payload:
   },
   &quot;response&quot;: &quot;{\n  \&quot;A\&quot;: {\n    \&quot;direction\&quot;: \&quot;for\&quot;,\n    \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n    \&quot;age\&quot;: \&quot;adult\&quot;,\n    \&quot;sepsis\&quot;: \&quot;present\&quot;,\n    \&quot;pregnancy\&quot;: \&quot;absent\&quot;,\n    \&quot;renal_exception\&quot;: \&quot;yes\&quot;\n  },\n  \&quot;B\&quot;: {\n    \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n    \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n    \&quot;age\&quot;: \&quot;adult\&quot;,\n    \&quot;sepsis\&quot;: \&quot;present\&quot;,\n    \&quot;pregnancy\&quot;: \&quot;present\&quot;,\n    \&quot;renal_exception\&quot;: \&quot;no\&quot;\n  }\n}&quot;,
   &quot;call_granularity&quot;: &quot;source_pair&quot;,
-  &quot;prompt_hash&quot;: &quot;7cbc6b36da1ca9cea08a49ae9c27843d05dde2b4ff13b877c6477c6cda9dceb8&quot;,
   &quot;prompt&quot;: &quot;You are preparing an import payload for a hospital CDS knowledge-base maintenance queue.\nThe excerpts are guideline-derived content for rules-engine review, not a patient-specific recommendation.\nA terminology review service has already normalized each source into the allowed field values below.\nPrepare one JSON import payload keyed by source label. Copy the normalized fields exactly.\nKeep labels unchanged. Use only the listed enum tokens and fields. Return the payload only, with no prose.\nmaintenance ticket: pair.ab\nsource labels: A, B\nnormalized fields for A: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}\nnormalized fields for B: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}\nImport payload:\n{\&quot;A\&quot;:{\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;},\&quot;B\&quot;:{\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}}&quot;
 }</pre>
           <h3>Response</h3>
@@ -1827,22 +1823,22 @@ Import payload:
   &quot;compiler_id&quot;: &quot;route_rule_ir_v0_to_smt_v0&quot;,
   &quot;source_ir_schema_id&quot;: &quot;schema.route_rule_ir.v0&quot;,
   &quot;target_profile&quot;: &quot;smt-lib-2&quot;,
-  &quot;input_ir_hash&quot;: &quot;b7ce5e659fb74b5b14a4b07a4b643271e29392bef2b67c43a75d7d13e09fcb11&quot;,
-  &quot;target_hash&quot;: &quot;ecac65bbec0324707ae5a4a198817f8c74c3fb1a6b8858011b7e628c72454774&quot;,
+  &quot;syntax_valid&quot;: true,
+  &quot;admitted&quot;: true,
+  &quot;verdict&quot;: &quot;semantic_contradiction&quot;,
+  &quot;diagnostics&quot;: [],
   &quot;smt_files&quot;: [
     {
       &quot;file&quot;: &quot;route_targets/route.single_ir/group.m1_conflict/seed-22/smt/q.overlap.smt2&quot;,
       &quot;kind&quot;: &quot;context_overlap&quot;,
       &quot;logic&quot;: &quot;QF_LRA&quot;,
-      &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_conflict.seed-22.overlap&quot;,
-      &quot;sha256&quot;: &quot;b30d53f3120bc0af1f31d099e08207e2cfb272452f3f3791d60b382eaa1052f3&quot;
+      &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_conflict.seed-22.overlap&quot;
     },
     {
       &quot;file&quot;: &quot;route_targets/route.single_ir/group.m1_conflict/seed-22/smt/q.deontic.smt2&quot;,
       &quot;kind&quot;: &quot;deontic_consistency&quot;,
       &quot;logic&quot;: &quot;QF_UF&quot;,
-      &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_conflict.seed-22.deontic&quot;,
-      &quot;sha256&quot;: &quot;4080509bae7b3482f6de08957b1d1dc7a3999145cd13a3284f6188c0ea8e1823&quot;
+      &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_conflict.seed-22.deontic&quot;
     }
   ],
   &quot;verifier&quot;: {
@@ -1891,7 +1887,6 @@ Import payload:
         </details>        <details>
           <summary><code>route.single_ir</code> / <code>group.m1_null</code> / seed 22 / admitted</summary>
           <h3>Prompt</h3>
-          <p>Prompt hash: <code>6395b159e0cc2cdc2dcfa216ca08c1b863b9564f84da709284590564f976db43</code></p>
           <pre>You are preparing an import payload for a hospital CDS knowledge-base maintenance queue.
 The excerpts are guideline-derived content for rules-engine review, not a patient-specific recommendation.
 A terminology review service has already normalized each source into the allowed field values below.
@@ -1937,7 +1932,6 @@ Import payload:
   },
   &quot;response&quot;: &quot;{\n  \&quot;A\&quot;: {\n    \&quot;direction\&quot;: \&quot;for\&quot;,\n    \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n    \&quot;age\&quot;: \&quot;adult\&quot;,\n    \&quot;sepsis\&quot;: \&quot;present\&quot;,\n    \&quot;pregnancy\&quot;: \&quot;absent\&quot;,\n    \&quot;renal_exception\&quot;: \&quot;yes\&quot;\n  },\n  \&quot;C\&quot;: {\n    \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n    \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n    \&quot;age\&quot;: \&quot;child\&quot;,\n    \&quot;sepsis\&quot;: \&quot;present\&quot;,\n    \&quot;pregnancy\&quot;: \&quot;absent\&quot;,\n    \&quot;renal_exception\&quot;: \&quot;no\&quot;\n  }\n}&quot;,
   &quot;call_granularity&quot;: &quot;source_pair&quot;,
-  &quot;prompt_hash&quot;: &quot;6395b159e0cc2cdc2dcfa216ca08c1b863b9564f84da709284590564f976db43&quot;,
   &quot;prompt&quot;: &quot;You are preparing an import payload for a hospital CDS knowledge-base maintenance queue.\nThe excerpts are guideline-derived content for rules-engine review, not a patient-specific recommendation.\nA terminology review service has already normalized each source into the allowed field values below.\nPrepare one JSON import payload keyed by source label. Copy the normalized fields exactly.\nKeep labels unchanged. Use only the listed enum tokens and fields. Return the payload only, with no prose.\nmaintenance ticket: pair.ac\nsource labels: A, C\nnormalized fields for A: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}\nnormalized fields for C: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}\nImport payload:\n{\&quot;A\&quot;:{\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;},\&quot;C\&quot;:{\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}}&quot;
 }</pre>
           <h3>Response</h3>
@@ -1964,15 +1958,16 @@ Import payload:
   &quot;compiler_id&quot;: &quot;route_rule_ir_v0_to_smt_v0&quot;,
   &quot;source_ir_schema_id&quot;: &quot;schema.route_rule_ir.v0&quot;,
   &quot;target_profile&quot;: &quot;smt-lib-2&quot;,
-  &quot;input_ir_hash&quot;: &quot;76dde253f18fabc55da8a783ff23def6dd2a72a9ffafc6c6e04d33a386528b65&quot;,
-  &quot;target_hash&quot;: &quot;d8c2853cc4c456c0eaed9b4bf53a4f6d28c1eea91311192e1722439c1e63ad50&quot;,
+  &quot;syntax_valid&quot;: true,
+  &quot;admitted&quot;: true,
+  &quot;verdict&quot;: &quot;semantic_no_conflict&quot;,
+  &quot;diagnostics&quot;: [],
   &quot;smt_files&quot;: [
     {
       &quot;file&quot;: &quot;route_targets/route.single_ir/group.m1_null/seed-22/smt/q.overlap.smt2&quot;,
       &quot;kind&quot;: &quot;context_overlap&quot;,
       &quot;logic&quot;: &quot;QF_LRA&quot;,
-      &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_null.seed-22.overlap&quot;,
-      &quot;sha256&quot;: &quot;b90b13072b4f3b4876c471d135f0d05c2899a76c56fc76dde9d27da01f1b70bf&quot;
+      &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_null.seed-22.overlap&quot;
     }
   ],
   &quot;verifier&quot;: {
@@ -2006,7 +2001,6 @@ Import payload:
         </details>        <details>
           <summary><code>route.single_ir</code> / <code>group.m1_conflict</code> / seed 33 / admitted</summary>
           <h3>Prompt</h3>
-          <p>Prompt hash: <code>7cbc6b36da1ca9cea08a49ae9c27843d05dde2b4ff13b877c6477c6cda9dceb8</code></p>
           <pre>You are preparing an import payload for a hospital CDS knowledge-base maintenance queue.
 The excerpts are guideline-derived content for rules-engine review, not a patient-specific recommendation.
 A terminology review service has already normalized each source into the allowed field values below.
@@ -2052,7 +2046,6 @@ Import payload:
   },
   &quot;response&quot;: &quot;{\n  \&quot;A\&quot;: {\n    \&quot;direction\&quot;: \&quot;for\&quot;,\n    \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n    \&quot;age\&quot;: \&quot;adult\&quot;,\n    \&quot;sepsis\&quot;: \&quot;present\&quot;,\n    \&quot;pregnancy\&quot;: \&quot;absent\&quot;,\n    \&quot;renal_exception\&quot;: \&quot;yes\&quot;\n  },\n  \&quot;B\&quot;: {\n    \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n    \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n    \&quot;age\&quot;: \&quot;adult\&quot;,\n    \&quot;sepsis\&quot;: \&quot;present\&quot;,\n    \&quot;pregnancy\&quot;: \&quot;present\&quot;,\n    \&quot;renal_exception\&quot;: \&quot;no\&quot;\n  }\n}&quot;,
   &quot;call_granularity&quot;: &quot;source_pair&quot;,
-  &quot;prompt_hash&quot;: &quot;7cbc6b36da1ca9cea08a49ae9c27843d05dde2b4ff13b877c6477c6cda9dceb8&quot;,
   &quot;prompt&quot;: &quot;You are preparing an import payload for a hospital CDS knowledge-base maintenance queue.\nThe excerpts are guideline-derived content for rules-engine review, not a patient-specific recommendation.\nA terminology review service has already normalized each source into the allowed field values below.\nPrepare one JSON import payload keyed by source label. Copy the normalized fields exactly.\nKeep labels unchanged. Use only the listed enum tokens and fields. Return the payload only, with no prose.\nmaintenance ticket: pair.ab\nsource labels: A, B\nnormalized fields for A: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}\nnormalized fields for B: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}\nImport payload:\n{\&quot;A\&quot;:{\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;},\&quot;B\&quot;:{\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}}&quot;
 }</pre>
           <h3>Response</h3>
@@ -2079,22 +2072,22 @@ Import payload:
   &quot;compiler_id&quot;: &quot;route_rule_ir_v0_to_smt_v0&quot;,
   &quot;source_ir_schema_id&quot;: &quot;schema.route_rule_ir.v0&quot;,
   &quot;target_profile&quot;: &quot;smt-lib-2&quot;,
-  &quot;input_ir_hash&quot;: &quot;b7ce5e659fb74b5b14a4b07a4b643271e29392bef2b67c43a75d7d13e09fcb11&quot;,
-  &quot;target_hash&quot;: &quot;b9f33dc7bfb7ef9d49d5861b68928d56efcde3e4922ea8709d5877ff7a352893&quot;,
+  &quot;syntax_valid&quot;: true,
+  &quot;admitted&quot;: true,
+  &quot;verdict&quot;: &quot;semantic_contradiction&quot;,
+  &quot;diagnostics&quot;: [],
   &quot;smt_files&quot;: [
     {
       &quot;file&quot;: &quot;route_targets/route.single_ir/group.m1_conflict/seed-33/smt/q.overlap.smt2&quot;,
       &quot;kind&quot;: &quot;context_overlap&quot;,
       &quot;logic&quot;: &quot;QF_LRA&quot;,
-      &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_conflict.seed-33.overlap&quot;,
-      &quot;sha256&quot;: &quot;b30d53f3120bc0af1f31d099e08207e2cfb272452f3f3791d60b382eaa1052f3&quot;
+      &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_conflict.seed-33.overlap&quot;
     },
     {
       &quot;file&quot;: &quot;route_targets/route.single_ir/group.m1_conflict/seed-33/smt/q.deontic.smt2&quot;,
       &quot;kind&quot;: &quot;deontic_consistency&quot;,
       &quot;logic&quot;: &quot;QF_UF&quot;,
-      &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_conflict.seed-33.deontic&quot;,
-      &quot;sha256&quot;: &quot;4080509bae7b3482f6de08957b1d1dc7a3999145cd13a3284f6188c0ea8e1823&quot;
+      &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_conflict.seed-33.deontic&quot;
     }
   ],
   &quot;verifier&quot;: {
@@ -2143,7 +2136,6 @@ Import payload:
         </details>        <details>
           <summary><code>route.single_ir</code> / <code>group.m1_null</code> / seed 33 / admitted</summary>
           <h3>Prompt</h3>
-          <p>Prompt hash: <code>6395b159e0cc2cdc2dcfa216ca08c1b863b9564f84da709284590564f976db43</code></p>
           <pre>You are preparing an import payload for a hospital CDS knowledge-base maintenance queue.
 The excerpts are guideline-derived content for rules-engine review, not a patient-specific recommendation.
 A terminology review service has already normalized each source into the allowed field values below.
@@ -2189,7 +2181,6 @@ Import payload:
   },
   &quot;response&quot;: &quot;{\n  \&quot;A\&quot;: {\n    \&quot;direction\&quot;: \&quot;for\&quot;,\n    \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n    \&quot;age\&quot;: \&quot;adult\&quot;,\n    \&quot;sepsis\&quot;: \&quot;present\&quot;,\n    \&quot;pregnancy\&quot;: \&quot;absent\&quot;,\n    \&quot;renal_exception\&quot;: \&quot;yes\&quot;\n  },\n  \&quot;C\&quot;: {\n    \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n    \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n    \&quot;age\&quot;: \&quot;child\&quot;,\n    \&quot;sepsis\&quot;: \&quot;present\&quot;,\n    \&quot;pregnancy\&quot;: \&quot;absent\&quot;,\n    \&quot;renal_exception\&quot;: \&quot;no\&quot;\n  }\n}&quot;,
   &quot;call_granularity&quot;: &quot;source_pair&quot;,
-  &quot;prompt_hash&quot;: &quot;6395b159e0cc2cdc2dcfa216ca08c1b863b9564f84da709284590564f976db43&quot;,
   &quot;prompt&quot;: &quot;You are preparing an import payload for a hospital CDS knowledge-base maintenance queue.\nThe excerpts are guideline-derived content for rules-engine review, not a patient-specific recommendation.\nA terminology review service has already normalized each source into the allowed field values below.\nPrepare one JSON import payload keyed by source label. Copy the normalized fields exactly.\nKeep labels unchanged. Use only the listed enum tokens and fields. Return the payload only, with no prose.\nmaintenance ticket: pair.ac\nsource labels: A, C\nnormalized fields for A: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}\nnormalized fields for C: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}\nImport payload:\n{\&quot;A\&quot;:{\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;},\&quot;C\&quot;:{\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}}&quot;
 }</pre>
           <h3>Response</h3>
@@ -2216,15 +2207,16 @@ Import payload:
   &quot;compiler_id&quot;: &quot;route_rule_ir_v0_to_smt_v0&quot;,
   &quot;source_ir_schema_id&quot;: &quot;schema.route_rule_ir.v0&quot;,
   &quot;target_profile&quot;: &quot;smt-lib-2&quot;,
-  &quot;input_ir_hash&quot;: &quot;76dde253f18fabc55da8a783ff23def6dd2a72a9ffafc6c6e04d33a386528b65&quot;,
-  &quot;target_hash&quot;: &quot;49b666e8232bbc00c4d443e79c51b79621a8828d6d670ce85263bfc9b545ca4b&quot;,
+  &quot;syntax_valid&quot;: true,
+  &quot;admitted&quot;: true,
+  &quot;verdict&quot;: &quot;semantic_no_conflict&quot;,
+  &quot;diagnostics&quot;: [],
   &quot;smt_files&quot;: [
     {
       &quot;file&quot;: &quot;route_targets/route.single_ir/group.m1_null/seed-33/smt/q.overlap.smt2&quot;,
       &quot;kind&quot;: &quot;context_overlap&quot;,
       &quot;logic&quot;: &quot;QF_LRA&quot;,
-      &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_null.seed-33.overlap&quot;,
-      &quot;sha256&quot;: &quot;b90b13072b4f3b4876c471d135f0d05c2899a76c56fc76dde9d27da01f1b70bf&quot;
+      &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_null.seed-33.overlap&quot;
     }
   ],
   &quot;verifier&quot;: {
@@ -2256,6 +2248,7 @@ Import payload:
   &quot;verdict_correct&quot;: true
 }</pre>
         </details>
+      </details>
     </section>
   </main>
 </body>
