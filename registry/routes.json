@@ -40,8 +40,8 @@
     },
     {
       "id": "route.ckc_layered",
-      "shape": "model fills CKC-native stages aligned to the fixture spine: segment-like spans, statement-like normalized facts, then rule-like route IR",
-      "runtime": "project-local llama.cpp subprocess via tools/setup-local-model.mjs; three constrained JSON calls per route row",
+      "shape": "model fills CKC-native stages per source label aligned to the fixture spine: segment-like spans, statement-like normalized facts, then rule-like route IR",
+      "runtime": "project-local llama.cpp subprocess via tools/setup-local-model.mjs; one constrained JSON call per source label per CKC stage",
       "default_model": "Qwen2.5-0.5B-Instruct Q2_K GGUF",
       "implementation_status": "implemented_fixture_harness",
       "schema_notes": "schema.ckc_layered.v0 aggregate over segment, statement, and rule stage schemas aligned to the CKC fixture spine",
