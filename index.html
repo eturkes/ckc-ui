@@ -107,7 +107,7 @@
       <div class="chips">
         <span class="chip ok">run m2-one-shot</span>
         <span class="chip ok">live_local_llama_cpp</span>
-        <span class="chip warn">live model calls: 60</span>
+        <span class="chip warn">live model calls: 15</span>
         <span class="chip">Qwen2.5-0.5B-Instruct-Q2_K:9ee36184e616dfc7</span>
       </div>
     </header>
@@ -128,9 +128,9 @@
       <h2>How IR improves this pipeline</h2>
       <div class="takeaway">
         <strong>Short version</strong>
-        <p>Both M2 routes now finish at SMT-LIB. Direct asks the model to write SMT-LIB; IR asks the model for bounded JSON fields, bridges them into <code>route_rule_ir.v0</code>, then compiles that IR deterministically to SMT-LIB.</p>
+        <p>Both M2 routes now finish at SMT-LIB. Direct asks the model to write SMT-LIB; IR asks the model for one bounded source-row JSON object per source, bridges those rows into <code>route_rule_ir.v0</code>, then compiles that IR deterministically to SMT-LIB.</p>
       </div>
-      <p>Both routes use <code>lexical_cue_v1</code> (cue hash <code>536ddd8179ed37ec...ab428c</code>). The current lift measurement is about moving formal-target burden away from the weak model while keeping the final target comparable.</p>
+      <p>Both routes use <code>lexical_cue_v1</code> (cue hash <code>860c6eb5b790fdf8...1baea5</code>). The current lift measurement is about moving formal-target burden away from the weak model while keeping the final target comparable.</p>
       <div class="flow">
         <div class="flow-step">
           <strong>1. Same input</strong>
@@ -142,7 +142,7 @@
         </div>
         <div class="flow-step ok">
           <strong>3. IR route</strong>
-          <span><code>route.single_ir</code> asks for tiny JSON fields; this harness emits a per-row SMT-LIB target from the admitted route IR.</span>
+          <span><code>route.single_ir</code> asks for source-row JSON objects; this harness emits a per-row SMT-LIB target from the admitted route IR.</span>
         </div>
       </div>
       <h3>Text to SMT trace</h3>
@@ -196,7 +196,7 @@ resolved={&quot;action_abx_a&quot;:&quot;present&quot;,&quot;age&quot;:&quot;adu
               <strong>3 Model JSON</strong>
               <span class="use-badge llm">LLM</span>
             </div>
-            <span>12 constrained field calls</span>
+            <span>2 constrained source-row calls</span>
             <small>Qwen2.5-0.5B-Instruct-Q2_K:9ee36184e616dfc7</small>
           </div>
           <pre>{
@@ -292,9 +292,9 @@ sha256=4080509bae7b3482...8e1823
             <td>deterministic lexical_cue_v1</td>
           </tr>
           <tr>
-            <td>route.single_ir field emission</td>
+            <td>route.single_ir source-row emission</td>
             <td><span class="use-badge llm">LLM</span></td>
-            <td>12 constrained calls to Qwen2.5-0.5B-Instruct-Q2_K:9ee36184e616dfc7</td>
+            <td>2 constrained calls to Qwen2.5-0.5B-Instruct-Q2_K:9ee36184e616dfc7</td>
           </tr>
           <tr>
             <td>route_rule_ir.v0 bridge</td>
@@ -327,7 +327,7 @@ sha256=4080509bae7b3482...8e1823
           <tr>
             <th>Model output</th>
             <td>SMT-LIB text</td>
-            <td>bounded JSON cue fields</td>
+            <td>bounded source-row JSON object</td>
           </tr>
           <tr>
             <th>End of route in this harness</th>
@@ -375,7 +375,7 @@ assert (not (contraindicated))  # 禁忌</pre>
           <span class="status ok">admitted in representative conflict row</span>
           <dl>
             <dt>group</dt><dd><code>group.m1_conflict</code> / seed 11</dd>
-            <dt>field calls</dt><dd>12 source-local schema calls</dd>
+            <dt>source-row calls</dt><dd>2 source-local row-schema calls</dd>
             <dt>model syntax</dt><dd>yes</dd>
             <dt>target syntax</dt><dd>yes</dd>
             <dt>admitted</dt><dd>yes</dd>
@@ -508,17 +508,17 @@ assert (not (contraindicated))  # 禁忌</pre>
         <h3>Source-local call rollup</h3>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Source</th><th>Field calls</th><th>Fields</th><th>Response hash</th></tr></thead>
+            <thead><tr><th>Source</th><th>Source-row calls</th><th>Fields</th><th>Response hash</th></tr></thead>
             <tbody>
           <tr>
             <td><code>A</code></td>
-            <td>6</td>
+            <td>1</td>
             <td><code>action_abx_a, age, direction, pregnancy, renal_exception, sepsis</code></td>
             <td><code>0b1bc2fedf06075f4bb7d9392cfec3935c8b6a756a8e1c647f7479c9c12d5aa5</code></td>
           </tr>
           <tr>
             <td><code>B</code></td>
-            <td>6</td>
+            <td>1</td>
             <td><code>action_abx_a, age, direction, pregnancy, renal_exception, sepsis</code></td>
             <td><code>a75b9fabea4bf89acc134c2ca242509e15e4a2b9b623969f6c2ea35b3bb5418a</code></td>
           </tr>
@@ -1241,36 +1241,12 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
     &quot;source_label&quot;: &quot;A&quot;
   },
   &quot;response&quot;: &quot;{\n  \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;direction\&quot;: \&quot;for\&quot;,\n  \&quot;pregnancy\&quot;: \&quot;absent\&quot;,\n  \&quot;renal_exception\&quot;: \&quot;yes\&quot;,\n  \&quot;sepsis\&quot;: \&quot;present\&quot;\n}&quot;,
-  &quot;field_calls&quot;: [
+  &quot;call_granularity&quot;: &quot;source_row&quot;,
+  &quot;model_calls&quot;: [
     {
-      &quot;field&quot;: &quot;direction&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: direction\nsource cue: direction_cue=推奨する\nresolution rule: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\nresolved value: for\nJSON must be {\&quot;direction\&quot;:\&quot;for\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;for\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;action_abx_a&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: action_abx_a\nsource cue: action_abx_a_cue=present\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: present\nJSON must be {\&quot;action_abx_a\&quot;:\&quot;present\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;action_abx_a\&quot;:\&quot;present\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;age&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: age\nsource cue: age_cue=成人_or_18歳以上\nresolution rule: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nresolved value: adult\nJSON must be {\&quot;age\&quot;:\&quot;adult\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;age\&quot;:\&quot;adult\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;sepsis&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: sepsis\nsource cue: sepsis_cue=present\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: present\nJSON must be {\&quot;sepsis\&quot;:\&quot;present\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;sepsis\&quot;:\&quot;present\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;pregnancy&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: pregnancy\nsource cue: pregnancy_cue=absent\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: absent\nJSON must be {\&quot;pregnancy\&quot;:\&quot;absent\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;pregnancy\&quot;:\&quot;absent\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;renal_exception&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: renal_exception\nsource cue: renal_exception_cue=has_exception\nresolution rule: has_exception=&gt;yes. no_exception=&gt;no.\nresolved value: yes\nJSON must be {\&quot;renal_exception\&quot;:\&quot;yes\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;renal_exception\&quot;:\&quot;yes\&quot;}&quot;
+      &quot;granularity&quot;: &quot;source_row&quot;,
+      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue row into one CKC cue-schema JSON object.\nOutput only JSON for this one source label. Do not decide whether any source pair conflicts.\nsource label: A\nprimary quote: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nexception quote: ただし、重度腎機能障害のある患者を除く。\nraw cues: direction=推奨する; age=成人_or_18歳以上; action_abx_a=present; sepsis=present; pregnancy=absent; renal_exception=has_exception\nresolution rules:\ndirection: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\naction_abx_a: present=&gt;present. absent=&gt;absent.\nage: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nsepsis: present=&gt;present. absent=&gt;absent.\npregnancy: present=&gt;present. absent=&gt;absent.\nrenal_exception: has_exception=&gt;yes. no_exception=&gt;no.\nresolved row: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}\nJSON must be exactly this object: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}.\nJSON:&quot;,
+      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}&quot;
     }
   ]
 }</pre>
@@ -1289,36 +1265,12 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
     &quot;source_label&quot;: &quot;B&quot;
   },
   &quot;response&quot;: &quot;{\n  \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n  \&quot;pregnancy\&quot;: \&quot;present\&quot;,\n  \&quot;renal_exception\&quot;: \&quot;no\&quot;,\n  \&quot;sepsis\&quot;: \&quot;present\&quot;\n}&quot;,
-  &quot;field_calls&quot;: [
+  &quot;call_granularity&quot;: &quot;source_row&quot;,
+  &quot;model_calls&quot;: [
     {
-      &quot;field&quot;: &quot;direction&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: B\nfield: direction\nsource cue: direction_cue=投与しないこと\nresolution rule: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\nresolved value: contraindicate\nJSON must be {\&quot;direction\&quot;:\&quot;contraindicate\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;contraindicate\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;action_abx_a&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: B\nfield: action_abx_a\nsource cue: action_abx_a_cue=present\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: present\nJSON must be {\&quot;action_abx_a\&quot;:\&quot;present\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;action_abx_a\&quot;:\&quot;present\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;age&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: B\nfield: age\nsource cue: age_cue=成人_or_18歳以上\nresolution rule: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nresolved value: adult\nJSON must be {\&quot;age\&quot;:\&quot;adult\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;age\&quot;:\&quot;adult\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;sepsis&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: B\nfield: sepsis\nsource cue: sepsis_cue=present\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: present\nJSON must be {\&quot;sepsis\&quot;:\&quot;present\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;sepsis\&quot;:\&quot;present\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;pregnancy&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: B\nfield: pregnancy\nsource cue: pregnancy_cue=present\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: present\nJSON must be {\&quot;pregnancy\&quot;:\&quot;present\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;pregnancy\&quot;:\&quot;present\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;renal_exception&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: B\nfield: renal_exception\nsource cue: renal_exception_cue=no_exception\nresolution rule: has_exception=&gt;yes. no_exception=&gt;no.\nresolved value: no\nJSON must be {\&quot;renal_exception\&quot;:\&quot;no\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;renal_exception\&quot;:\&quot;no\&quot;}&quot;
+      &quot;granularity&quot;: &quot;source_row&quot;,
+      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue row into one CKC cue-schema JSON object.\nOutput only JSON for this one source label. Do not decide whether any source pair conflicts.\nsource label: B\nprimary quote: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。\nraw cues: direction=投与しないこと; age=成人_or_18歳以上; action_abx_a=present; sepsis=present; pregnancy=present; renal_exception=no_exception\nresolution rules:\ndirection: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\naction_abx_a: present=&gt;present. absent=&gt;absent.\nage: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nsepsis: present=&gt;present. absent=&gt;absent.\npregnancy: present=&gt;present. absent=&gt;absent.\nrenal_exception: has_exception=&gt;yes. no_exception=&gt;no.\nresolved row: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}\nJSON must be exactly this object: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}.\nJSON:&quot;,
+      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}&quot;
     }
   ]
 }</pre>
@@ -1453,36 +1405,12 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
     &quot;source_label&quot;: &quot;A&quot;
   },
   &quot;response&quot;: &quot;{\n  \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;direction\&quot;: \&quot;for\&quot;,\n  \&quot;pregnancy\&quot;: \&quot;absent\&quot;,\n  \&quot;renal_exception\&quot;: \&quot;yes\&quot;,\n  \&quot;sepsis\&quot;: \&quot;present\&quot;\n}&quot;,
-  &quot;field_calls&quot;: [
+  &quot;call_granularity&quot;: &quot;source_row&quot;,
+  &quot;model_calls&quot;: [
     {
-      &quot;field&quot;: &quot;direction&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: direction\nsource cue: direction_cue=推奨する\nresolution rule: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\nresolved value: for\nJSON must be {\&quot;direction\&quot;:\&quot;for\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;for\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;action_abx_a&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: action_abx_a\nsource cue: action_abx_a_cue=present\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: present\nJSON must be {\&quot;action_abx_a\&quot;:\&quot;present\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;action_abx_a\&quot;:\&quot;present\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;age&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: age\nsource cue: age_cue=成人_or_18歳以上\nresolution rule: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nresolved value: adult\nJSON must be {\&quot;age\&quot;:\&quot;adult\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;age\&quot;:\&quot;adult\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;sepsis&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: sepsis\nsource cue: sepsis_cue=present\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: present\nJSON must be {\&quot;sepsis\&quot;:\&quot;present\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;sepsis\&quot;:\&quot;present\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;pregnancy&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: pregnancy\nsource cue: pregnancy_cue=absent\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: absent\nJSON must be {\&quot;pregnancy\&quot;:\&quot;absent\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;pregnancy\&quot;:\&quot;absent\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;renal_exception&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: renal_exception\nsource cue: renal_exception_cue=has_exception\nresolution rule: has_exception=&gt;yes. no_exception=&gt;no.\nresolved value: yes\nJSON must be {\&quot;renal_exception\&quot;:\&quot;yes\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;renal_exception\&quot;:\&quot;yes\&quot;}&quot;
+      &quot;granularity&quot;: &quot;source_row&quot;,
+      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue row into one CKC cue-schema JSON object.\nOutput only JSON for this one source label. Do not decide whether any source pair conflicts.\nsource label: A\nprimary quote: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nexception quote: ただし、重度腎機能障害のある患者を除く。\nraw cues: direction=推奨する; age=成人_or_18歳以上; action_abx_a=present; sepsis=present; pregnancy=absent; renal_exception=has_exception\nresolution rules:\ndirection: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\naction_abx_a: present=&gt;present. absent=&gt;absent.\nage: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nsepsis: present=&gt;present. absent=&gt;absent.\npregnancy: present=&gt;present. absent=&gt;absent.\nrenal_exception: has_exception=&gt;yes. no_exception=&gt;no.\nresolved row: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}\nJSON must be exactly this object: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}.\nJSON:&quot;,
+      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}&quot;
     }
   ]
 }</pre>
@@ -1501,36 +1429,12 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
     &quot;source_label&quot;: &quot;C&quot;
   },
   &quot;response&quot;: &quot;{\n  \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n  \&quot;age\&quot;: \&quot;child\&quot;,\n  \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n  \&quot;pregnancy\&quot;: \&quot;absent\&quot;,\n  \&quot;renal_exception\&quot;: \&quot;no\&quot;,\n  \&quot;sepsis\&quot;: \&quot;present\&quot;\n}&quot;,
-  &quot;field_calls&quot;: [
+  &quot;call_granularity&quot;: &quot;source_row&quot;,
+  &quot;model_calls&quot;: [
     {
-      &quot;field&quot;: &quot;direction&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: C\nfield: direction\nsource cue: direction_cue=禁忌\nresolution rule: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\nresolved value: contraindicate\nJSON must be {\&quot;direction\&quot;:\&quot;contraindicate\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;contraindicate\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;action_abx_a&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: C\nfield: action_abx_a\nsource cue: action_abx_a_cue=present\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: present\nJSON must be {\&quot;action_abx_a\&quot;:\&quot;present\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;action_abx_a\&quot;:\&quot;present\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;age&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: C\nfield: age\nsource cue: age_cue=小児_or_18歳未満\nresolution rule: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nresolved value: child\nJSON must be {\&quot;age\&quot;:\&quot;child\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;age\&quot;:\&quot;child\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;sepsis&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: C\nfield: sepsis\nsource cue: sepsis_cue=present\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: present\nJSON must be {\&quot;sepsis\&quot;:\&quot;present\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;sepsis\&quot;:\&quot;present\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;pregnancy&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: C\nfield: pregnancy\nsource cue: pregnancy_cue=absent\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: absent\nJSON must be {\&quot;pregnancy\&quot;:\&quot;absent\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;pregnancy\&quot;:\&quot;absent\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;renal_exception&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: C\nfield: renal_exception\nsource cue: renal_exception_cue=no_exception\nresolution rule: has_exception=&gt;yes. no_exception=&gt;no.\nresolved value: no\nJSON must be {\&quot;renal_exception\&quot;:\&quot;no\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;renal_exception\&quot;:\&quot;no\&quot;}&quot;
+      &quot;granularity&quot;: &quot;source_row&quot;,
+      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue row into one CKC cue-schema JSON object.\nOutput only JSON for this one source label. Do not decide whether any source pair conflicts.\nsource label: C\nprimary quote: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。\nraw cues: direction=禁忌; age=小児_or_18歳未満; action_abx_a=present; sepsis=present; pregnancy=absent; renal_exception=no_exception\nresolution rules:\ndirection: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\naction_abx_a: present=&gt;present. absent=&gt;absent.\nage: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nsepsis: present=&gt;present. absent=&gt;absent.\npregnancy: present=&gt;present. absent=&gt;absent.\nrenal_exception: has_exception=&gt;yes. no_exception=&gt;no.\nresolved row: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}\nJSON must be exactly this object: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}.\nJSON:&quot;,
+      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}&quot;
     }
   ]
 }</pre>
@@ -1643,36 +1547,12 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
     &quot;source_label&quot;: &quot;A&quot;
   },
   &quot;response&quot;: &quot;{\n  \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;direction\&quot;: \&quot;for\&quot;,\n  \&quot;pregnancy\&quot;: \&quot;absent\&quot;,\n  \&quot;renal_exception\&quot;: \&quot;yes\&quot;,\n  \&quot;sepsis\&quot;: \&quot;present\&quot;\n}&quot;,
-  &quot;field_calls&quot;: [
+  &quot;call_granularity&quot;: &quot;source_row&quot;,
+  &quot;model_calls&quot;: [
     {
-      &quot;field&quot;: &quot;direction&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: direction\nsource cue: direction_cue=推奨する\nresolution rule: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\nresolved value: for\nJSON must be {\&quot;direction\&quot;:\&quot;for\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;for\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;action_abx_a&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: action_abx_a\nsource cue: action_abx_a_cue=present\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: present\nJSON must be {\&quot;action_abx_a\&quot;:\&quot;present\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;action_abx_a\&quot;:\&quot;present\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;age&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: age\nsource cue: age_cue=成人_or_18歳以上\nresolution rule: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nresolved value: adult\nJSON must be {\&quot;age\&quot;:\&quot;adult\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;age\&quot;:\&quot;adult\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;sepsis&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: sepsis\nsource cue: sepsis_cue=present\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: present\nJSON must be {\&quot;sepsis\&quot;:\&quot;present\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;sepsis\&quot;:\&quot;present\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;pregnancy&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: pregnancy\nsource cue: pregnancy_cue=absent\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: absent\nJSON must be {\&quot;pregnancy\&quot;:\&quot;absent\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;pregnancy\&quot;:\&quot;absent\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;renal_exception&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: renal_exception\nsource cue: renal_exception_cue=has_exception\nresolution rule: has_exception=&gt;yes. no_exception=&gt;no.\nresolved value: yes\nJSON must be {\&quot;renal_exception\&quot;:\&quot;yes\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;renal_exception\&quot;:\&quot;yes\&quot;}&quot;
+      &quot;granularity&quot;: &quot;source_row&quot;,
+      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue row into one CKC cue-schema JSON object.\nOutput only JSON for this one source label. Do not decide whether any source pair conflicts.\nsource label: A\nprimary quote: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nexception quote: ただし、重度腎機能障害のある患者を除く。\nraw cues: direction=推奨する; age=成人_or_18歳以上; action_abx_a=present; sepsis=present; pregnancy=absent; renal_exception=has_exception\nresolution rules:\ndirection: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\naction_abx_a: present=&gt;present. absent=&gt;absent.\nage: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nsepsis: present=&gt;present. absent=&gt;absent.\npregnancy: present=&gt;present. absent=&gt;absent.\nrenal_exception: has_exception=&gt;yes. no_exception=&gt;no.\nresolved row: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}\nJSON must be exactly this object: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}.\nJSON:&quot;,
+      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}&quot;
     }
   ]
 }</pre>
@@ -1691,36 +1571,12 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
     &quot;source_label&quot;: &quot;B&quot;
   },
   &quot;response&quot;: &quot;{\n  \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n  \&quot;pregnancy\&quot;: \&quot;present\&quot;,\n  \&quot;renal_exception\&quot;: \&quot;no\&quot;,\n  \&quot;sepsis\&quot;: \&quot;present\&quot;\n}&quot;,
-  &quot;field_calls&quot;: [
+  &quot;call_granularity&quot;: &quot;source_row&quot;,
+  &quot;model_calls&quot;: [
     {
-      &quot;field&quot;: &quot;direction&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: B\nfield: direction\nsource cue: direction_cue=投与しないこと\nresolution rule: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\nresolved value: contraindicate\nJSON must be {\&quot;direction\&quot;:\&quot;contraindicate\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;contraindicate\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;action_abx_a&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: B\nfield: action_abx_a\nsource cue: action_abx_a_cue=present\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: present\nJSON must be {\&quot;action_abx_a\&quot;:\&quot;present\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;action_abx_a\&quot;:\&quot;present\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;age&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: B\nfield: age\nsource cue: age_cue=成人_or_18歳以上\nresolution rule: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nresolved value: adult\nJSON must be {\&quot;age\&quot;:\&quot;adult\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;age\&quot;:\&quot;adult\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;sepsis&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: B\nfield: sepsis\nsource cue: sepsis_cue=present\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: present\nJSON must be {\&quot;sepsis\&quot;:\&quot;present\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;sepsis\&quot;:\&quot;present\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;pregnancy&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: B\nfield: pregnancy\nsource cue: pregnancy_cue=present\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: present\nJSON must be {\&quot;pregnancy\&quot;:\&quot;present\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;pregnancy\&quot;:\&quot;present\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;renal_exception&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: B\nfield: renal_exception\nsource cue: renal_exception_cue=no_exception\nresolution rule: has_exception=&gt;yes. no_exception=&gt;no.\nresolved value: no\nJSON must be {\&quot;renal_exception\&quot;:\&quot;no\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;renal_exception\&quot;:\&quot;no\&quot;}&quot;
+      &quot;granularity&quot;: &quot;source_row&quot;,
+      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue row into one CKC cue-schema JSON object.\nOutput only JSON for this one source label. Do not decide whether any source pair conflicts.\nsource label: B\nprimary quote: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。\nraw cues: direction=投与しないこと; age=成人_or_18歳以上; action_abx_a=present; sepsis=present; pregnancy=present; renal_exception=no_exception\nresolution rules:\ndirection: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\naction_abx_a: present=&gt;present. absent=&gt;absent.\nage: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nsepsis: present=&gt;present. absent=&gt;absent.\npregnancy: present=&gt;present. absent=&gt;absent.\nrenal_exception: has_exception=&gt;yes. no_exception=&gt;no.\nresolved row: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}\nJSON must be exactly this object: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}.\nJSON:&quot;,
+      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}&quot;
     }
   ]
 }</pre>
@@ -1855,36 +1711,12 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
     &quot;source_label&quot;: &quot;A&quot;
   },
   &quot;response&quot;: &quot;{\n  \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;direction\&quot;: \&quot;for\&quot;,\n  \&quot;pregnancy\&quot;: \&quot;absent\&quot;,\n  \&quot;renal_exception\&quot;: \&quot;yes\&quot;,\n  \&quot;sepsis\&quot;: \&quot;present\&quot;\n}&quot;,
-  &quot;field_calls&quot;: [
+  &quot;call_granularity&quot;: &quot;source_row&quot;,
+  &quot;model_calls&quot;: [
     {
-      &quot;field&quot;: &quot;direction&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: direction\nsource cue: direction_cue=推奨する\nresolution rule: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\nresolved value: for\nJSON must be {\&quot;direction\&quot;:\&quot;for\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;for\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;action_abx_a&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: action_abx_a\nsource cue: action_abx_a_cue=present\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: present\nJSON must be {\&quot;action_abx_a\&quot;:\&quot;present\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;action_abx_a\&quot;:\&quot;present\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;age&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: age\nsource cue: age_cue=成人_or_18歳以上\nresolution rule: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nresolved value: adult\nJSON must be {\&quot;age\&quot;:\&quot;adult\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;age\&quot;:\&quot;adult\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;sepsis&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: sepsis\nsource cue: sepsis_cue=present\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: present\nJSON must be {\&quot;sepsis\&quot;:\&quot;present\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;sepsis\&quot;:\&quot;present\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;pregnancy&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: pregnancy\nsource cue: pregnancy_cue=absent\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: absent\nJSON must be {\&quot;pregnancy\&quot;:\&quot;absent\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;pregnancy\&quot;:\&quot;absent\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;renal_exception&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: renal_exception\nsource cue: renal_exception_cue=has_exception\nresolution rule: has_exception=&gt;yes. no_exception=&gt;no.\nresolved value: yes\nJSON must be {\&quot;renal_exception\&quot;:\&quot;yes\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;renal_exception\&quot;:\&quot;yes\&quot;}&quot;
+      &quot;granularity&quot;: &quot;source_row&quot;,
+      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue row into one CKC cue-schema JSON object.\nOutput only JSON for this one source label. Do not decide whether any source pair conflicts.\nsource label: A\nprimary quote: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nexception quote: ただし、重度腎機能障害のある患者を除く。\nraw cues: direction=推奨する; age=成人_or_18歳以上; action_abx_a=present; sepsis=present; pregnancy=absent; renal_exception=has_exception\nresolution rules:\ndirection: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\naction_abx_a: present=&gt;present. absent=&gt;absent.\nage: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nsepsis: present=&gt;present. absent=&gt;absent.\npregnancy: present=&gt;present. absent=&gt;absent.\nrenal_exception: has_exception=&gt;yes. no_exception=&gt;no.\nresolved row: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}\nJSON must be exactly this object: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}.\nJSON:&quot;,
+      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}&quot;
     }
   ]
 }</pre>
@@ -1903,36 +1735,12 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
     &quot;source_label&quot;: &quot;C&quot;
   },
   &quot;response&quot;: &quot;{\n  \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n  \&quot;age\&quot;: \&quot;child\&quot;,\n  \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n  \&quot;pregnancy\&quot;: \&quot;absent\&quot;,\n  \&quot;renal_exception\&quot;: \&quot;no\&quot;,\n  \&quot;sepsis\&quot;: \&quot;present\&quot;\n}&quot;,
-  &quot;field_calls&quot;: [
+  &quot;call_granularity&quot;: &quot;source_row&quot;,
+  &quot;model_calls&quot;: [
     {
-      &quot;field&quot;: &quot;direction&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: C\nfield: direction\nsource cue: direction_cue=禁忌\nresolution rule: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\nresolved value: contraindicate\nJSON must be {\&quot;direction\&quot;:\&quot;contraindicate\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;contraindicate\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;action_abx_a&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: C\nfield: action_abx_a\nsource cue: action_abx_a_cue=present\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: present\nJSON must be {\&quot;action_abx_a\&quot;:\&quot;present\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;action_abx_a\&quot;:\&quot;present\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;age&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: C\nfield: age\nsource cue: age_cue=小児_or_18歳未満\nresolution rule: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nresolved value: child\nJSON must be {\&quot;age\&quot;:\&quot;child\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;age\&quot;:\&quot;child\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;sepsis&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: C\nfield: sepsis\nsource cue: sepsis_cue=present\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: present\nJSON must be {\&quot;sepsis\&quot;:\&quot;present\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;sepsis\&quot;:\&quot;present\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;pregnancy&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: C\nfield: pregnancy\nsource cue: pregnancy_cue=absent\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: absent\nJSON must be {\&quot;pregnancy\&quot;:\&quot;absent\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;pregnancy\&quot;:\&quot;absent\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;renal_exception&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: C\nfield: renal_exception\nsource cue: renal_exception_cue=no_exception\nresolution rule: has_exception=&gt;yes. no_exception=&gt;no.\nresolved value: no\nJSON must be {\&quot;renal_exception\&quot;:\&quot;no\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;renal_exception\&quot;:\&quot;no\&quot;}&quot;
+      &quot;granularity&quot;: &quot;source_row&quot;,
+      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue row into one CKC cue-schema JSON object.\nOutput only JSON for this one source label. Do not decide whether any source pair conflicts.\nsource label: C\nprimary quote: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。\nraw cues: direction=禁忌; age=小児_or_18歳未満; action_abx_a=present; sepsis=present; pregnancy=absent; renal_exception=no_exception\nresolution rules:\ndirection: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\naction_abx_a: present=&gt;present. absent=&gt;absent.\nage: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nsepsis: present=&gt;present. absent=&gt;absent.\npregnancy: present=&gt;present. absent=&gt;absent.\nrenal_exception: has_exception=&gt;yes. no_exception=&gt;no.\nresolved row: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}\nJSON must be exactly this object: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}.\nJSON:&quot;,
+      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}&quot;
     }
   ]
 }</pre>
@@ -2045,36 +1853,12 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
     &quot;source_label&quot;: &quot;A&quot;
   },
   &quot;response&quot;: &quot;{\n  \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;direction\&quot;: \&quot;for\&quot;,\n  \&quot;pregnancy\&quot;: \&quot;absent\&quot;,\n  \&quot;renal_exception\&quot;: \&quot;yes\&quot;,\n  \&quot;sepsis\&quot;: \&quot;present\&quot;\n}&quot;,
-  &quot;field_calls&quot;: [
+  &quot;call_granularity&quot;: &quot;source_row&quot;,
+  &quot;model_calls&quot;: [
     {
-      &quot;field&quot;: &quot;direction&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: direction\nsource cue: direction_cue=推奨する\nresolution rule: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\nresolved value: for\nJSON must be {\&quot;direction\&quot;:\&quot;for\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;for\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;action_abx_a&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: action_abx_a\nsource cue: action_abx_a_cue=present\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: present\nJSON must be {\&quot;action_abx_a\&quot;:\&quot;present\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;action_abx_a\&quot;:\&quot;present\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;age&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: age\nsource cue: age_cue=成人_or_18歳以上\nresolution rule: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nresolved value: adult\nJSON must be {\&quot;age\&quot;:\&quot;adult\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;age\&quot;:\&quot;adult\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;sepsis&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: sepsis\nsource cue: sepsis_cue=present\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: present\nJSON must be {\&quot;sepsis\&quot;:\&quot;present\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;sepsis\&quot;:\&quot;present\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;pregnancy&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: pregnancy\nsource cue: pregnancy_cue=absent\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: absent\nJSON must be {\&quot;pregnancy\&quot;:\&quot;absent\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;pregnancy\&quot;:\&quot;absent\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;renal_exception&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: renal_exception\nsource cue: renal_exception_cue=has_exception\nresolution rule: has_exception=&gt;yes. no_exception=&gt;no.\nresolved value: yes\nJSON must be {\&quot;renal_exception\&quot;:\&quot;yes\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;renal_exception\&quot;:\&quot;yes\&quot;}&quot;
+      &quot;granularity&quot;: &quot;source_row&quot;,
+      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue row into one CKC cue-schema JSON object.\nOutput only JSON for this one source label. Do not decide whether any source pair conflicts.\nsource label: A\nprimary quote: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nexception quote: ただし、重度腎機能障害のある患者を除く。\nraw cues: direction=推奨する; age=成人_or_18歳以上; action_abx_a=present; sepsis=present; pregnancy=absent; renal_exception=has_exception\nresolution rules:\ndirection: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\naction_abx_a: present=&gt;present. absent=&gt;absent.\nage: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nsepsis: present=&gt;present. absent=&gt;absent.\npregnancy: present=&gt;present. absent=&gt;absent.\nrenal_exception: has_exception=&gt;yes. no_exception=&gt;no.\nresolved row: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}\nJSON must be exactly this object: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}.\nJSON:&quot;,
+      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}&quot;
     }
   ]
 }</pre>
@@ -2093,36 +1877,12 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
     &quot;source_label&quot;: &quot;B&quot;
   },
   &quot;response&quot;: &quot;{\n  \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n  \&quot;pregnancy\&quot;: \&quot;present\&quot;,\n  \&quot;renal_exception\&quot;: \&quot;no\&quot;,\n  \&quot;sepsis\&quot;: \&quot;present\&quot;\n}&quot;,
-  &quot;field_calls&quot;: [
+  &quot;call_granularity&quot;: &quot;source_row&quot;,
+  &quot;model_calls&quot;: [
     {
-      &quot;field&quot;: &quot;direction&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: B\nfield: direction\nsource cue: direction_cue=投与しないこと\nresolution rule: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\nresolved value: contraindicate\nJSON must be {\&quot;direction\&quot;:\&quot;contraindicate\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;contraindicate\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;action_abx_a&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: B\nfield: action_abx_a\nsource cue: action_abx_a_cue=present\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: present\nJSON must be {\&quot;action_abx_a\&quot;:\&quot;present\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;action_abx_a\&quot;:\&quot;present\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;age&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: B\nfield: age\nsource cue: age_cue=成人_or_18歳以上\nresolution rule: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nresolved value: adult\nJSON must be {\&quot;age\&quot;:\&quot;adult\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;age\&quot;:\&quot;adult\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;sepsis&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: B\nfield: sepsis\nsource cue: sepsis_cue=present\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: present\nJSON must be {\&quot;sepsis\&quot;:\&quot;present\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;sepsis\&quot;:\&quot;present\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;pregnancy&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: B\nfield: pregnancy\nsource cue: pregnancy_cue=present\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: present\nJSON must be {\&quot;pregnancy\&quot;:\&quot;present\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;pregnancy\&quot;:\&quot;present\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;renal_exception&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: B\nfield: renal_exception\nsource cue: renal_exception_cue=no_exception\nresolution rule: has_exception=&gt;yes. no_exception=&gt;no.\nresolved value: no\nJSON must be {\&quot;renal_exception\&quot;:\&quot;no\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;renal_exception\&quot;:\&quot;no\&quot;}&quot;
+      &quot;granularity&quot;: &quot;source_row&quot;,
+      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue row into one CKC cue-schema JSON object.\nOutput only JSON for this one source label. Do not decide whether any source pair conflicts.\nsource label: B\nprimary quote: 成人の敗血症患者のうち、妊娠中の患者には抗菌薬Aを投与しないこと(禁忌)。\nraw cues: direction=投与しないこと; age=成人_or_18歳以上; action_abx_a=present; sepsis=present; pregnancy=present; renal_exception=no_exception\nresolution rules:\ndirection: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\naction_abx_a: present=&gt;present. absent=&gt;absent.\nage: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nsepsis: present=&gt;present. absent=&gt;absent.\npregnancy: present=&gt;present. absent=&gt;absent.\nrenal_exception: has_exception=&gt;yes. no_exception=&gt;no.\nresolved row: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}\nJSON must be exactly this object: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}.\nJSON:&quot;,
+      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;present\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}&quot;
     }
   ]
 }</pre>
@@ -2257,36 +2017,12 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
     &quot;source_label&quot;: &quot;A&quot;
   },
   &quot;response&quot;: &quot;{\n  \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n  \&quot;age\&quot;: \&quot;adult\&quot;,\n  \&quot;direction\&quot;: \&quot;for\&quot;,\n  \&quot;pregnancy\&quot;: \&quot;absent\&quot;,\n  \&quot;renal_exception\&quot;: \&quot;yes\&quot;,\n  \&quot;sepsis\&quot;: \&quot;present\&quot;\n}&quot;,
-  &quot;field_calls&quot;: [
+  &quot;call_granularity&quot;: &quot;source_row&quot;,
+  &quot;model_calls&quot;: [
     {
-      &quot;field&quot;: &quot;direction&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: direction\nsource cue: direction_cue=推奨する\nresolution rule: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\nresolved value: for\nJSON must be {\&quot;direction\&quot;:\&quot;for\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;for\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;action_abx_a&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: action_abx_a\nsource cue: action_abx_a_cue=present\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: present\nJSON must be {\&quot;action_abx_a\&quot;:\&quot;present\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;action_abx_a\&quot;:\&quot;present\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;age&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: age\nsource cue: age_cue=成人_or_18歳以上\nresolution rule: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nresolved value: adult\nJSON must be {\&quot;age\&quot;:\&quot;adult\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;age\&quot;:\&quot;adult\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;sepsis&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: sepsis\nsource cue: sepsis_cue=present\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: present\nJSON must be {\&quot;sepsis\&quot;:\&quot;present\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;sepsis\&quot;:\&quot;present\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;pregnancy&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: pregnancy\nsource cue: pregnancy_cue=absent\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: absent\nJSON must be {\&quot;pregnancy\&quot;:\&quot;absent\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;pregnancy\&quot;:\&quot;absent\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;renal_exception&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: A\nfield: renal_exception\nsource cue: renal_exception_cue=has_exception\nresolution rule: has_exception=&gt;yes. no_exception=&gt;no.\nresolved value: yes\nJSON must be {\&quot;renal_exception\&quot;:\&quot;yes\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;renal_exception\&quot;:\&quot;yes\&quot;}&quot;
+      &quot;granularity&quot;: &quot;source_row&quot;,
+      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue row into one CKC cue-schema JSON object.\nOutput only JSON for this one source label. Do not decide whether any source pair conflicts.\nsource label: A\nprimary quote: 成人(18歳以上)の敗血症患者には抗菌薬Aを投与することを推奨する(強い推奨)。\nexception quote: ただし、重度腎機能障害のある患者を除く。\nraw cues: direction=推奨する; age=成人_or_18歳以上; action_abx_a=present; sepsis=present; pregnancy=absent; renal_exception=has_exception\nresolution rules:\ndirection: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\naction_abx_a: present=&gt;present. absent=&gt;absent.\nage: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nsepsis: present=&gt;present. absent=&gt;absent.\npregnancy: present=&gt;present. absent=&gt;absent.\nrenal_exception: has_exception=&gt;yes. no_exception=&gt;no.\nresolved row: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}\nJSON must be exactly this object: {\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}.\nJSON:&quot;,
+      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;for\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;adult\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;yes\&quot;}&quot;
     }
   ]
 }</pre>
@@ -2305,36 +2041,12 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
     &quot;source_label&quot;: &quot;C&quot;
   },
   &quot;response&quot;: &quot;{\n  \&quot;action_abx_a\&quot;: \&quot;present\&quot;,\n  \&quot;age\&quot;: \&quot;child\&quot;,\n  \&quot;direction\&quot;: \&quot;contraindicate\&quot;,\n  \&quot;pregnancy\&quot;: \&quot;absent\&quot;,\n  \&quot;renal_exception\&quot;: \&quot;no\&quot;,\n  \&quot;sepsis\&quot;: \&quot;present\&quot;\n}&quot;,
-  &quot;field_calls&quot;: [
+  &quot;call_granularity&quot;: &quot;source_row&quot;,
+  &quot;model_calls&quot;: [
     {
-      &quot;field&quot;: &quot;direction&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: C\nfield: direction\nsource cue: direction_cue=禁忌\nresolution rule: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\nresolved value: contraindicate\nJSON must be {\&quot;direction\&quot;:\&quot;contraindicate\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;contraindicate\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;action_abx_a&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: C\nfield: action_abx_a\nsource cue: action_abx_a_cue=present\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: present\nJSON must be {\&quot;action_abx_a\&quot;:\&quot;present\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;action_abx_a\&quot;:\&quot;present\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;age&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: C\nfield: age\nsource cue: age_cue=小児_or_18歳未満\nresolution rule: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nresolved value: child\nJSON must be {\&quot;age\&quot;:\&quot;child\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;age\&quot;:\&quot;child\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;sepsis&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: C\nfield: sepsis\nsource cue: sepsis_cue=present\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: present\nJSON must be {\&quot;sepsis\&quot;:\&quot;present\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;sepsis\&quot;:\&quot;present\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;pregnancy&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: C\nfield: pregnancy\nsource cue: pregnancy_cue=absent\nresolution rule: present=&gt;present. absent=&gt;absent.\nresolved value: absent\nJSON must be {\&quot;pregnancy\&quot;:\&quot;absent\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;pregnancy\&quot;:\&quot;absent\&quot;}&quot;
-    },
-    {
-      &quot;field&quot;: &quot;renal_exception&quot;,
-      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue value into one CKC cue-schema field.\nOutput only JSON for the requested field. Do not decide whether any source pair conflicts.\nsource label: C\nfield: renal_exception\nsource cue: renal_exception_cue=no_exception\nresolution rule: has_exception=&gt;yes. no_exception=&gt;no.\nresolved value: no\nJSON must be {\&quot;renal_exception\&quot;:\&quot;no\&quot;}.\nJSON:&quot;,
-      &quot;response&quot;: &quot;{\&quot;renal_exception\&quot;:\&quot;no\&quot;}&quot;
+      &quot;granularity&quot;: &quot;source_row&quot;,
+      &quot;prompt&quot;: &quot;Task: copy one resolved source-cue row into one CKC cue-schema JSON object.\nOutput only JSON for this one source label. Do not decide whether any source pair conflicts.\nsource label: C\nprimary quote: 小児(18歳未満)の敗血症患者には抗菌薬Aは禁忌である。\nraw cues: direction=禁忌; age=小児_or_18歳未満; action_abx_a=present; sepsis=present; pregnancy=absent; renal_exception=no_exception\nresolution rules:\ndirection: 投与しないこと=&gt;contraindicate. 禁忌=&gt;contraindicate. 推奨する=&gt;for. none=&gt;unknown.\naction_abx_a: present=&gt;present. absent=&gt;absent.\nage: 成人_or_18歳以上=&gt;adult. 小児_or_18歳未満=&gt;child. unknown=&gt;unknown.\nsepsis: present=&gt;present. absent=&gt;absent.\npregnancy: present=&gt;present. absent=&gt;absent.\nrenal_exception: has_exception=&gt;yes. no_exception=&gt;no.\nresolved row: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}\nJSON must be exactly this object: {\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}.\nJSON:&quot;,
+      &quot;response&quot;: &quot;{\&quot;direction\&quot;:\&quot;contraindicate\&quot;,\&quot;action_abx_a\&quot;:\&quot;present\&quot;,\&quot;age\&quot;:\&quot;child\&quot;,\&quot;sepsis\&quot;:\&quot;present\&quot;,\&quot;pregnancy\&quot;:\&quot;absent\&quot;,\&quot;renal_exception\&quot;:\&quot;no\&quot;}&quot;
     }
   ]
 }</pre>
