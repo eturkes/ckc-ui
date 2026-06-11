@@ -24,6 +24,7 @@
       --soft-model: #f0e5ef;
       --soft-warn: #f7e3df;
       --soft-neutral: #f7f8f6;
+      --flow: #aeb8b0;
       --shadow: 0 1px 2px rgba(23, 26, 24, 0.06), 0 18px 38px rgba(23, 26, 24, 0.08);
       --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
       --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -240,6 +241,7 @@
     }
 
     .stage {
+      position: relative;
       min-width: 0;
       display: grid;
       gap: 8px;
@@ -521,7 +523,7 @@
 
     .ledger-row {
       display: grid;
-      grid-template-columns: 70px minmax(0, 1fr) 88px;
+      grid-template-columns: 62px minmax(0, 1fr) 92px 78px;
       gap: 8px;
       padding: 9px 10px;
       background: var(--paper);
@@ -537,6 +539,11 @@
     .ledger-row span {
       color: var(--muted);
       overflow-wrap: anywhere;
+    }
+
+    .ledger-row code {
+      color: var(--ink);
+      font-size: 11px;
     }
 
     .claim-ladder {
@@ -576,6 +583,32 @@
       margin-top: 12px;
       color: var(--muted);
       font-size: 12px;
+    }
+
+    @media (min-width: 981px) {
+      .pipeline .stage:not(:last-child)::after {
+        content: "";
+        position: absolute;
+        z-index: 1;
+        top: 50%;
+        right: -9px;
+        width: 9px;
+        height: 1px;
+        background: var(--flow);
+      }
+
+      .pipeline .stage:not(:last-child)::before {
+        content: "";
+        position: absolute;
+        z-index: 2;
+        top: calc(50% - 3px);
+        right: -11px;
+        width: 0;
+        height: 0;
+        border-top: 4px solid transparent;
+        border-bottom: 4px solid transparent;
+        border-left: 5px solid var(--flow);
+      }
     }
 
     @media (max-width: 980px) {
@@ -622,6 +655,15 @@
     }
 
     @media print {
+      @page {
+        margin: 14mm;
+      }
+
+      * {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
       body {
         background: #ffffff;
       }
@@ -636,9 +678,17 @@
       }
 
       .paper-figure {
-        break-inside: avoid;
+        break-inside: avoid-page;
+        page-break-inside: avoid;
         box-shadow: none;
         margin-bottom: 16px;
+      }
+
+      .figure-head,
+      .figure-body,
+      .caption {
+        padding-left: 14px;
+        padding-right: 14px;
       }
     }
   </style>
@@ -650,14 +700,14 @@
         <p class="eyebrow">CKC / research-paper figure mockups</p>
         <h1>Paper figures for a proof-carrying clinical knowledge compiler.</h1>
         <p class="lead">
-          These HTML figures imagine how CKC could be explained in a paper: method diagrams,
-          experiment schematics, result placeholders, and claim-boundary visuals.
+          A compact figure sheet for explaining CKC in a paper: artifact flow, traceability,
+          locked experiments, raw metrics, attempt ledgers, and claim gates.
         </p>
       </div>
       <aside class="status" aria-label="Figure sheet status">
-        <div><span>Medium</span><strong>HTML mock figures</strong></div>
+        <div><span>Medium</span><strong>static HTML figures</strong></div>
         <div><span>Posture</span><strong>research evidence only</strong></div>
-        <div><span>Source scope</span><strong>synthetic fixtures</strong></div>
+        <div><span>Values</span><strong>illustrative layout, not results</strong></div>
       </aside>
     </header>
 
@@ -672,19 +722,19 @@
         </div>
         <div class="figure-body">
           <div class="pipeline" aria-label="CKC pipeline">
-            <div class="stage"><span class="tag source">input</span><strong>Source material</strong><span>Guideline-like HTML, later PDF/XML/public sources.</span><code>SourceGraph</code></div>
+            <div class="stage"><span class="tag source">input</span><strong>Source material</strong><span>Synthetic fixtures now; gated public sources later.</span><code>SourceGraph</code></div>
             <div class="stage"><span class="tag source">extract</span><strong>Segments</strong><span>Clinical segment boundaries and source regions.</span><code>segments.json</code></div>
             <div class="stage"><span class="tag ir">normalize</span><strong>Clinical meaning</strong><span>Bindings, statements, actions, contexts.</span><code>ClinicalIR</code></div>
             <div class="stage"><span class="tag ir">assemble</span><strong>Reusable rules</strong><span>Structural hashes and component records.</span><code>IRBundle</code></div>
             <div class="stage"><span class="tag check">compile</span><strong>Formal checks</strong><span>SMT queries and named assertions.</span><code>compiled.json</code></div>
             <div class="stage"><span class="tag check">verify</span><strong>Solver evidence</strong><span>Verdicts, models, unsat cores, diagnostics.</span><code>VerifierResult</code></div>
             <div class="stage"><span class="tag ir">trace</span><strong>Lineage</strong><span>Finding to source span, both directions.</span><code>lineage_index</code></div>
-            <div class="stage"><span class="tag warn">report</span><strong>Bounded claim</strong><span>Findings, null results, metrics, replay.</span><code>report.md</code></div>
+            <div class="stage"><span class="tag warn">report</span><strong>Bounded claim</strong><span>Findings, null results, raw rows, replay.</span><code>report.md</code></div>
           </div>
         </div>
         <figcaption class="caption">
           <b>Figure 1.</b> CKC is framed as a headless research harness. Each stage emits canonical
-          artifacts that can be traced and replayed; reports remain bounded to source-grounded
+          accepted artifacts that can be traced and replayed; reports remain bounded to source-grounded
           formalization evidence unless explicit gates enable stronger claims.
         </figcaption>
       </figure>
@@ -732,12 +782,12 @@
           <div class="figure-label">Fig. 3</div>
           <div>
             <h2>Layered formalization is compared against a direct baseline.</h2>
-            <p>V2 paper figure sketch: raw metric rows first, ranking second.</p>
+            <p>V2 raw metric rows are shown before ranking or score breakdown.</p>
           </div>
         </div>
         <div class="figure-body">
           <div class="metric-figure">
-            <div class="bars" aria-label="Illustrative V2 metric bars">
+            <div class="bars" aria-label="Illustrative V2 metric bars, not measured results">
               <div class="bar-row"><b>component reuse</b><div class="bar-track"><div class="bar" style="width: 78%"></div></div><code>layered</code></div>
               <div class="bar-row"><b>component reuse</b><div class="bar-track"><div class="bar direct" style="width: 22%"></div></div><code>direct</code></div>
               <div class="bar-row"><b>hash convergence</b><div class="bar-track"><div class="bar" style="width: 84%"></div></div><code>layered</code></div>
@@ -745,7 +795,7 @@
               <div class="bar-row"><b>trace completeness</b><div class="bar-track"><div class="bar" style="width: 96%"></div></div><code>layered</code></div>
               <div class="bar-row"><b>trace completeness</b><div class="bar-track"><div class="bar direct" style="width: 58%"></div></div><code>direct</code></div>
             </div>
-            <div class="mini-table" aria-label="V2 metric row sketch">
+            <div class="mini-table" aria-label="V2 metric row layout">
               <div class="head"><span>Metric family</span><span>Layered row</span><span>Direct row</span></div>
               <div><span>Reuse</span><span>hash-keyed component hits</span><span>mostly bypassed</span></div>
               <div><span>Compactness</span><span>shared mapping frontier</span><span>per-document form</span></div>
@@ -757,7 +807,7 @@
         <figcaption class="caption">
           <b>Figure 3.</b> The V2 comparison should read like a measurement instrument: identical
           fixtures and gold outcomes, raw rows visible before any ranking, and direct formalization
-          used as the baseline for testing the reuse thesis.
+          used as the baseline for testing the reuse thesis. Bar widths show layout only.
         </figcaption>
       </figure>
 
@@ -766,13 +816,13 @@
           <div class="figure-label">Fig. 4</div>
           <div>
             <h2>Weak-model routes test where structure helps.</h2>
-            <p>V3 separates route lift from amortized runtime removal.</p>
+            <p>Route lift and amortized apply paths remain separate measurements.</p>
           </div>
         </div>
         <div class="figure-body">
           <div class="route-map" aria-label="V3 route and amortization map">
             <div class="route"><span class="tag model">baseline</span><strong>Direct SMT</strong><span>Model emits target text directly; expected to fail often under a weak local model.</span><code>route.direct_smt</code></div>
-            <div class="route"><span class="tag model">structured</span><strong>Single / stacked IR</strong><span>Model fills constrained schemas; deterministic bridges compile to the same verifier.</span><code>route.single_ir</code></div>
+            <div class="route"><span class="tag model">structured</span><strong>Single / stacked IR</strong><span>Model fills constrained schemas; deterministic bridges compile to the same verifier.</span><code>route.single_ir + route.stacked_ir</code></div>
             <div class="route"><span class="tag model">short hops</span><strong>IR hop chain</strong><span>Several adjacent translation steps test whether smaller semantic deltas improve admission.</span><code>route.ir_hop_chain</code></div>
             <div class="route"><span class="tag ir">project form</span><strong>CKC layered</strong><span>Model fills CKC stages; schema, grounding, and compiler checks decide admission.</span><code>route.ckc_layered</code></div>
             <div class="route"><span class="tag ir">grammar</span><strong>CKC DSL</strong><span>Compact grammar-masked syntax parses deterministically into IR and SMT.</span><code>route.ckc_dsl</code></div>
@@ -791,23 +841,23 @@
           <div class="figure-label">Fig. 5</div>
           <div>
             <h2>Autoresearch is scored against an immutable evaluator.</h2>
-            <p>V4 figure sketch: loop stages plus ledger outcomes.</p>
+            <p>V4 loop summary beside append-only ledger outcomes.</p>
           </div>
         </div>
         <div class="figure-body">
           <div class="loop-grid">
             <div class="cycle" aria-label="Autoresearch cycle">
-              <div class="cycle-step"><span class="tag model">1</span><b>Propose</b><span>Candidate patch over declared editable surfaces.</span></div>
-              <div class="cycle-step"><span class="tag check">2</span><b>Run</b><span>Execute under evaluator lock, budget, and seed.</span></div>
+              <div class="cycle-step"><span class="tag model">1</span><b>Propose patch</b><span>Candidate change over declared editable surfaces.</span></div>
+              <div class="cycle-step"><span class="tag check">2</span><b>Run + replay</b><span>Execute under evaluator lock, budget, seed, and replay check.</span></div>
               <div class="cycle-step"><span class="tag ir">3</span><b>Score</b><span>Compare raw objectives and regression thresholds.</span></div>
-              <div class="cycle-step"><span class="tag warn">4</span><b>Classify</b><span>Promote, reject, dominate, or mark unauthorized.</span></div>
+              <div class="cycle-step"><span class="tag warn">4</span><b>Classify</b><span>Promote, reject, defer, or mark unauthorized.</span></div>
             </div>
-            <div class="ledger" aria-label="Attempt ledger sketch">
-              <div class="ledger-row head"><span>Attempt</span><span>Change surface</span><span>Decision</span></div>
-              <div class="ledger-row"><span><code>a001</code></span><span>prompt template delta</span><span>promoted</span></div>
-              <div class="ledger-row"><span><code>a002</code></span><span>lexicon repair</span><span>frontier</span></div>
-              <div class="ledger-row"><span><code>a003</code></span><span>evaluator edit</span><span>unauthorized</span></div>
-              <div class="ledger-row"><span><code>a004</code></span><span>route config</span><span>rejected</span></div>
+            <div class="ledger" aria-label="Attempt ledger layout">
+              <div class="ledger-row head"><span>Attempt</span><span>Surface</span><span>Class</span><span>Decision</span></div>
+              <div class="ledger-row"><span><code>a001</code></span><span>prompt template delta</span><span><code>improved</code></span><span><code>promote</code></span></div>
+              <div class="ledger-row"><span><code>a002</code></span><span>lexicon repair</span><span><code>near_miss</code></span><span><code>defer_gate</code></span></div>
+              <div class="ledger-row"><span><code>a003</code></span><span>evaluator edit</span><span><code>unauthorized</code></span><span><code>reject</code></span></div>
+              <div class="ledger-row"><span><code>a004</code></span><span>route config</span><span><code>dominated</code></span><span><code>reject</code></span></div>
             </div>
           </div>
         </div>
@@ -823,7 +873,7 @@
           <div class="figure-label">Fig. 6</div>
           <div>
             <h2>Claim tiers and gates prevent over-reading the results.</h2>
-            <p>Paper boundary figure for limitations and deployment claims.</p>
+            <p>Claim-boundary figure for limitations and deployment claims.</p>
           </div>
         </div>
         <div class="figure-body">
