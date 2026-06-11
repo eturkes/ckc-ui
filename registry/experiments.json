@@ -1,0 +1,25 @@
+{
+  "experiments": [
+    {
+      "id": "exp.m1_spine",
+      "pipeline": "pipe.one_shot_js_ckcir_to_smt",
+      "fixture_groups": [
+        {
+          "id": "group.m1_conflict",
+          "fixtures": ["fixture.m1_guideline_a", "fixture.m1_guideline_b"]
+        },
+        {
+          "id": "group.m1_null",
+          "fixtures": ["fixture.m1_guideline_a", "fixture.m1_control"]
+        }
+      ],
+      "gold": "corpus/gold/m1_expected.json"
+    },
+    {
+      "id": "exp.m2_lift",
+      "basis": "exp.m1_spine",
+      "routes": ["route.direct_smt", "route.single_ir"],
+      "sample_seeds": [11, 22, 33]
+    }
+  ]
+}

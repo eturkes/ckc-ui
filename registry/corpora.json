@@ -1,0 +1,28 @@
+{
+  "fixtures": [
+    {
+      "id": "fixture.m1_guideline_a",
+      "path": "corpus/fixtures/fixture-m1-guideline-a.html",
+      "origin": "ai_generated",
+      "authority": "source_authority",
+      "provenance": "synthetic",
+      "role": "recommendation_source"
+    },
+    {
+      "id": "fixture.m1_guideline_b",
+      "path": "corpus/fixtures/fixture-m1-guideline-b.html",
+      "origin": "ai_generated",
+      "authority": "source_authority",
+      "provenance": "synthetic",
+      "role": "contraindication_source"
+    },
+    {
+      "id": "fixture.m1_control",
+      "path": "corpus/fixtures/fixture-m1-control.html",
+      "origin": "ai_generated",
+      "authority": "source_authority",
+      "provenance": "synthetic",
+      "role": "age_disjoint_control"
+    }
+  ]
+}

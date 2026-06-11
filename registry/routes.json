@@ -1,0 +1,16 @@
+{
+  "routes": [
+    {
+      "id": "route.direct_smt",
+      "shape": "recorded weak-model output emits SMT-LIB text directly",
+      "runtime": "one-shot deterministic fixture adapter",
+      "live_model": false
+    },
+    {
+      "id": "route.single_ir",
+      "shape": "recorded weak-model output fills a compact CKC IR row schema, then deterministic compile",
+      "runtime": "one-shot deterministic fixture adapter",
+      "live_model": false
+    }
+  ]
+}

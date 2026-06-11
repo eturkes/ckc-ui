@@ -1,0 +1,9 @@
+{
+  "name": "ckc-ui-one-shot",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:run": "node tools/build-run.mjs",
+    "verify": "node tools/build-run.mjs --verify"
+  }
+}
