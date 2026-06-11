@@ -16,8 +16,8 @@ const modelDir = path.join(localDir, "models");
 
 const llamaArchive = "llama-b9592-bin-ubuntu-x64.tar.gz";
 const llamaUrl = `https://github.com/ggml-org/llama.cpp/releases/download/b9592/${llamaArchive}`;
-const modelFile = "qwen2.5-1.5b-instruct-q4_k_m.gguf";
-const modelUrl = `https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/${modelFile}`;
+const modelFile = "qwen2.5-0.5b-instruct-q2_k.gguf";
+const modelUrl = `https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/${modelFile}`;
 
 const archivePath = path.join(downloadsDir, llamaArchive);
 const modelPath = path.join(modelDir, modelFile);

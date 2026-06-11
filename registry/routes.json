@@ -2,16 +2,16 @@
   "routes": [
     {
       "id": "route.direct_smt",
-      "shape": "weak local model emits SMT-LIB text directly from an optimized prompt-only verdict-query template",
+      "shape": "weak local model composes SMT-LIB text directly from shared source-derived cue rows and a target encoding contract",
       "runtime": "project-local llama.cpp subprocess via tools/setup-local-model.mjs",
-      "default_model": "Qwen2.5-1.5B-Instruct Q4_K_M GGUF",
+      "default_model": "Qwen2.5-0.5B-Instruct Q2_K GGUF",
       "live_model": true
     },
     {
       "id": "route.single_ir",
-      "shape": "weak local model maps source Japanese spans plus a literal primary-direction cue to source-keyed CKC IR rule fields with no verdict field; deterministic bridge computes verdict only after admission checks",
+      "shape": "weak local model maps shared source-derived cue rows through short grammar-constrained cue-field hops; deterministic bridge computes verdict only after admission checks",
       "runtime": "project-local llama.cpp subprocess via tools/setup-local-model.mjs",
-      "default_model": "Qwen2.5-1.5B-Instruct Q4_K_M GGUF",
+      "default_model": "Qwen2.5-0.5B-Instruct Q2_K GGUF",
       "live_model": true
     }
   ]

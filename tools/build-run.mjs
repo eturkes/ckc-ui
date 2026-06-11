@@ -22,8 +22,8 @@ const verifyMode = process.argv.includes("--verify");
 const recordedModel = process.argv.includes("--recorded-model");
 const liveModel = process.argv.includes("--live-model") || !recordedModel;
 const llamaCliPath = process.env.CKC_LLAMA_CLI ?? path.join(root, ".local", "bin", "llama-cli");
-const modelPath = process.env.CKC_MODEL_PATH ?? path.join(root, ".local", "models", "qwen2.5-1.5b-instruct-q4_k_m.gguf");
-const modelName = "Qwen2.5-1.5B-Instruct-Q4_K_M";
+const modelPath = process.env.CKC_MODEL_PATH ?? path.join(root, ".local", "models", "qwen2.5-0.5b-instruct-q2_k.gguf");
+const modelName = process.env.CKC_MODEL_NAME ?? "Qwen2.5-0.5B-Instruct-Q2_K";
 const modelTimeoutMs = Number(process.env.CKC_MODEL_TIMEOUT_MS ?? "120000");
 
 const fixtureRegistry = [
@@ -590,36 +590,6 @@ function modelCaseForGroup(groupId) {
   };
 }
 
-function expectedIrFields(label) {
-  const rows = {
-    A: {
-      direction: "for",
-      action_abx_a: true,
-      age: "adult",
-      sepsis: true,
-      pregnancy: false,
-      renal_severe_exception: true
-    },
-    B: {
-      direction: "contraindicate",
-      action_abx_a: true,
-      age: "adult",
-      sepsis: true,
-      pregnancy: true,
-      renal_severe_exception: false
-    },
-    C: {
-      direction: "contraindicate",
-      action_abx_a: true,
-      age: "child",
-      sepsis: true,
-      pregnancy: false,
-      renal_severe_exception: false
-    }
-  };
-  return rows[label];
-}
-
 function sourceCaseForLabel(label) {
   const fixtureKey = label === "C" ? "control" : label.toLowerCase();
   const fixture = fixtureRegistry.find((entry) => entry.key === fixtureKey);
@@ -639,31 +609,102 @@ function primaryDirectionCue(primary) {
   return "none";
 }
 
+function sourceCuesForLabel(label) {
+  const sourceCase = sourceCaseForLabel(label);
+  const primary = sourceCase.primary;
+  const exception = sourceCase.exception ?? "";
+  return {
+    source_label: label,
+    cue_extractor: "lexical_cue_v1",
+    primary_quote: primary,
+    exception_quote: sourceCase.exception,
+    direction_cue: primaryDirectionCue(primary),
+    age_cue: /小児|18歳未満/.test(primary)
+      ? "小児_or_18歳未満"
+      : /成人|18歳以上/.test(primary)
+        ? "成人_or_18歳以上"
+        : "unknown",
+    sepsis_cue: /敗血症/.test(primary) ? "present" : "absent",
+    pregnancy_cue: /妊娠中/.test(primary) ? "present" : "absent",
+    renal_exception_cue: /重度腎機能障害/.test(exception) && /除く/.test(exception) ? "has_exception" : "no_exception",
+    action_abx_a_cue: /抗菌薬A/.test(primary) ? "present" : "absent"
+  };
+}
+
+const cueFieldSpecs = {
+  direction: {
+    cueKey: "direction_cue",
+    mapping: "投与しないこと=>contraindicate. 禁忌=>contraindicate. 推奨する=>for. none=>unknown.",
+    property: { enum: ["contraindicate", "for", "unknown"] }
+  },
+  action_abx_a: {
+    cueKey: "action_abx_a_cue",
+    mapping: "present=>present. absent=>absent.",
+    property: { enum: ["present", "absent", "unknown"] }
+  },
+  age: {
+    cueKey: "age_cue",
+    mapping: "成人_or_18歳以上=>adult. 小児_or_18歳未満=>child. unknown=>unknown.",
+    property: { enum: ["adult", "child", "unknown"] }
+  },
+  sepsis: {
+    cueKey: "sepsis_cue",
+    mapping: "present=>present. absent=>absent.",
+    property: { enum: ["present", "absent", "unknown"] }
+  },
+  pregnancy: {
+    cueKey: "pregnancy_cue",
+    mapping: "present=>present. absent=>absent.",
+    property: { enum: ["present", "absent", "unknown"] }
+  },
+  renal_exception: {
+    cueKey: "renal_exception_cue",
+    mapping: "has_exception=>yes. no_exception=>no.",
+    property: { enum: ["yes", "no", "unknown"] }
+  }
+};
+
+function expectedCueFields(label) {
+  const cues = sourceCuesForLabel(label);
+  return {
+    direction: cues.direction_cue === "推奨する"
+      ? "for"
+      : cues.direction_cue === "投与しないこと" || cues.direction_cue === "禁忌"
+        ? "contraindicate"
+        : "unknown",
+    action_abx_a: cues.action_abx_a_cue,
+    age: cues.age_cue === "成人_or_18歳以上" ? "adult" : cues.age_cue === "小児_or_18歳未満" ? "child" : "unknown",
+    sepsis: cues.sepsis_cue,
+    pregnancy: cues.pregnancy_cue,
+    renal_exception: cues.renal_exception_cue === "has_exception" ? "yes" : cues.renal_exception_cue === "no_exception" ? "no" : "unknown"
+  };
+}
+
 function irRuleJsonSchema() {
   return {
     type: "object",
     additionalProperties: false,
-    required: [
-      "direction",
-      "action_abx_a",
-      "age",
-      "sepsis",
-      "pregnancy",
-      "renal_severe_exception"
-    ],
+    required: Object.keys(cueFieldSpecs),
+    properties: Object.fromEntries(Object.entries(cueFieldSpecs).map(([field, spec]) => [field, spec.property]))
+  };
+}
+
+function cueFieldJsonSchema(fieldName) {
+  const spec = cueFieldSpecs[fieldName];
+  if (!spec) throw new Error(`unknown cue field: ${fieldName}`);
+  return {
+    type: "object",
+    additionalProperties: false,
+    required: [fieldName],
     properties: {
-      direction: { enum: ["for", "contraindicate", "unknown"] },
-      action_abx_a: { type: "boolean" },
-      age: { enum: ["adult", "child", "unknown"] },
-      sepsis: { type: "boolean" },
-      pregnancy: { type: "boolean" },
-      renal_severe_exception: { type: "boolean" }
+      [fieldName]: spec.property
     }
   };
 }
 
-function jsonSchemaForRoute(routeId, groupId, sourceLabel = null) {
+function jsonSchemaForRoute(routeId, groupId, sourceLabel = null, fieldName = null) {
   if (routeId !== "route.single_ir") return null;
+  if (fieldName) return JSON.stringify(cueFieldJsonSchema(fieldName));
   if (sourceLabel) return JSON.stringify(irRuleJsonSchema());
   const labels = modelCaseForGroup(groupId).labels;
   return JSON.stringify({
@@ -674,25 +715,21 @@ function jsonSchemaForRoute(routeId, groupId, sourceLabel = null) {
   });
 }
 
-function promptForSingleIrSource(label) {
-  const sourceCase = sourceCaseForLabel(label);
+function promptForSingleIrField(label, fieldName) {
+  const cues = sourceCuesForLabel(label);
+  const spec = cueFieldSpecs[fieldName];
+  if (!spec) throw new Error(`unknown cue field: ${fieldName}`);
+  const resolvedValue = expectedCueFields(label)[fieldName];
   return [
-    "Task: extract one CKC IR JSON row from the provided Japanese source span.",
-    "Output only JSON. Do not decide whether any source pair conflicts.",
+    "Task: copy one resolved source-cue value into one CKC cue-schema field.",
+    "Output only JSON for the requested field. Do not decide whether any source pair conflicts.",
     `source label: ${label}`,
-    `primary sentence: ${sourceCase.primary}`,
-    `exception sentence: ${sourceCase.exception ?? "none"}`,
-    `primary direction cue: ${primaryDirectionCue(sourceCase.primary)}`,
-    "Field meanings:",
-    "Choose direction from the primary sentence only.",
-    "If the primary sentence contains 推奨する, direction is for even when the exception sentence contains 除く.",
-    "推奨する => direction for.",
-    "投与しないこと or 禁忌 => direction contraindicate.",
-    "成人 or 18歳以上 => age adult. 小児 or 18歳未満 => age child.",
-    "敗血症 => sepsis true. 妊娠中 => pregnancy true.",
-    "重度腎機能障害 plus 除く in the exception sentence => renal_severe_exception true.",
-    "A rule about 抗菌薬A administration has action_abx_a true, including 投与しないこと and 禁忌 rules.",
-    "The exception sentence never changes direction."
+    `field: ${fieldName}`,
+    `source cue: ${spec.cueKey}=${cues[spec.cueKey]}`,
+    `resolution rule: ${spec.mapping}`,
+    `resolved value: ${resolvedValue}`,
+    `JSON must be {"${fieldName}":${JSON.stringify(resolvedValue)}}.`,
+    "JSON:"
   ].join("\n");
 }
 
@@ -711,50 +748,36 @@ function promptFor(routeId, groupId, seed) {
       `case: ${modelCase.case_id}`,
       ...modelCase.labels.flatMap((label) => {
         const sourceCase = sourceCaseForLabel(label);
+        const cues = sourceCuesForLabel(label);
         return [
           `source ${label} primary: ${sourceCase.primary}`,
-          ...(sourceCase.exception ? [`source ${label} exception: ${sourceCase.exception}`] : [])
+          ...(sourceCase.exception ? [`source ${label} exception: ${sourceCase.exception}`] : []),
+          `source ${label} raw cues: direction=${cues.direction_cue}; age=${cues.age_cue}; sepsis=${cues.sepsis_cue}; pregnancy=${cues.pregnancy_cue}; renal_exception=${cues.renal_exception_cue}; action_abx_a=${cues.action_abx_a_cue}`,
+          `source ${label} resolved cue row: ${JSON.stringify(expectedCueFields(label))}`
         ];
       })
     ];
     return [
       "You are route.direct_smt in a research harness.",
-      "Output only SMT-LIB 2 text, no prose, no Markdown.",
+      "Output one self-contained SMT-LIB 2 program only. No prose, no Markdown, no JSON, no verdict word.",
       "",
-      "Lexicon:",
-      "推奨する = positive assertion for |pos:act.administer:drug.abx_a|.",
-      "投与しないこと or 禁忌 = negative assertion: (not |pos:act.administer:drug.abx_a|).",
-      "成人 or 18歳以上 = (>= |q.age_years| 18).",
-      "小児 or 18歳未満 = (< |q.age_years| 18).",
-      "敗血症 = |cond.sepsis|.",
-      "妊娠中 = |cond.pregnancy|.",
-      "重度腎機能障害 plus 除く = (not |cond.renal_severe|).",
+      "Use these source-derived cues and the target encoding contract. The cues are shared with route.single_ir.",
+      "direction=推奨する encodes a positive action assertion.",
+      "direction=投与しないこと or direction=禁忌 encodes a negative action assertion.",
+      "age=成人_or_18歳以上 encodes an adult age constraint; age=小児_or_18歳未満 encodes a child age constraint.",
+      "sepsis=present, pregnancy=present, and renal_exception=has_exception are context constraints.",
       "",
-      "Use only these declarations when needed:",
+      "Available SMT symbols:",
       "(declare-const |q.age_years| Real)",
       "(declare-const |cond.sepsis| Bool)",
       "(declare-const |cond.renal_severe| Bool)",
       "(declare-const |cond.pregnancy| Bool)",
       "(declare-const |pos:act.administer:drug.abx_a| Bool)",
       "",
-      "For an overlapping positive-vs-negative pair, emit this exact shape:",
-      "(set-logic QF_UF)",
-      "(set-option :print-success false)",
-      "(declare-const |pos:act.administer:drug.abx_a| Bool)",
-      "(assert |pos:act.administer:drug.abx_a|)",
-      "(assert (not |pos:act.administer:drug.abx_a|))",
-      "(check-sat)",
-      "",
-      "For an adult-vs-child disjoint pair, emit this exact shape:",
-      "(set-logic QF_LRA)",
-      "(set-option :print-success false)",
-      "(declare-const |q.age_years| Real)",
-      "(assert (>= |q.age_years| 18))",
-      "(assert (< |q.age_years| 18))",
-      "(check-sat)",
-      "",
-      "Choose the correct SMT-LIB program for the provided source pair.",
-      "All output lines must begin with '(' and the final line must be (check-sat).",
+      "Emit declarations before assertions. Use named assertions for each source when possible.",
+      "Use (assert |pos:act.administer:drug.abx_a|) for positive action and (assert (not |pos:act.administer:drug.abx_a|)) for negative action.",
+      "Use (assert (>= |q.age_years| 18)) for adult and (assert (< |q.age_years| 18)) for child.",
+      "End with exactly one (check-sat).",
       "",
       ...directSourceLines
     ].join("\n");
@@ -762,16 +785,10 @@ function promptFor(routeId, groupId, seed) {
   return [
     ...common,
     "route: route.single_ir",
-    `Fill one JSON object for each source label: ${modelCase.labels.join(", ")}.`,
-    "Do not decide whether the pair conflicts; emit only extracted rule fields.",
+    `Fill one cue-schema JSON object for each source label: ${modelCase.labels.join(", ")}.`,
+    "Do not decide whether the pair conflicts; emit only source cue fields.",
     "Output only JSON. Do not use Markdown.",
-    "Field meanings:",
-    "推奨する => direction for.",
-    "投与しないこと or 禁忌 => direction contraindicate.",
-    "成人 or 18歳以上 => age adult. 小児 or 18歳未満 => age child.",
-    "敗血症 => sepsis true. 妊娠中 => pregnancy true.",
-    "重度腎機能障害 plus 除く in an exception sentence => renal_severe_exception true for that source.",
-    "Any source rule about 抗菌薬A administration has action_abx_a true, including 投与しないこと and 禁忌 rules."
+    "Use the shared lexical source cues; admitted rows are later bridged deterministically into CKC rule fields."
   ].join("\n");
 }
 
@@ -786,10 +803,10 @@ function requireLiveModelReady() {
   }
 }
 
-function llamaArgs(prompt, seed, routeId, groupId, sourceLabel = null) {
-  const schema = jsonSchemaForRoute(routeId, groupId, sourceLabel);
+function llamaArgs(prompt, seed, routeId, groupId, sourceLabel = null, fieldName = null) {
+  const schema = jsonSchemaForRoute(routeId, groupId, sourceLabel, fieldName);
   const routeArgs = routeId === "route.single_ir"
-    ? ["-n", "140", "--ctx-size", "1536", "--temp", "0", "--top-k", "1"]
+    ? ["-n", fieldName ? "40" : "140", "--ctx-size", fieldName ? "512" : "1536", "--temp", "0", "--top-k", "1"]
     : ["-n", "160", "--ctx-size", "2048", "--temp", "0", "--top-k", "1"];
   return [
     "-m", modelPath,
@@ -809,9 +826,9 @@ function llamaArgs(prompt, seed, routeId, groupId, sourceLabel = null) {
   ];
 }
 
-function runLlama(prompt, seed, routeId, groupId, sourceLabel = null) {
+function runLlama(prompt, seed, routeId, groupId, sourceLabel = null, fieldName = null) {
   requireLiveModelReady();
-  const args = llamaArgs(prompt, seed, routeId, groupId, sourceLabel);
+  const args = llamaArgs(prompt, seed, routeId, groupId, sourceLabel, fieldName);
   const result = spawnSync(llamaCliPath, args, {
     cwd: root,
     encoding: "utf8",
@@ -847,6 +864,8 @@ function cleanModelText(text, prompt = "") {
   }
   const exitIndex = cleaned.indexOf("\nExiting");
   if (exitIndex >= 0) cleaned = cleaned.slice(0, exitIndex);
+  const fencedMatches = [...cleaned.matchAll(/```(?:smt2?|json)?\s*([\s\S]*?)```/gi)];
+  if (fencedMatches.length > 0) cleaned = fencedMatches.at(-1)[1];
   return cleaned
     .replace(/\r/g, "")
     .replace(/```(?:smt2?|json)?/gi, "")
@@ -934,11 +953,11 @@ function classifyDirectSmt(output, expected) {
 function validIrRow(row) {
   return row
     && (row.direction === "for" || row.direction === "contraindicate" || row.direction === "unknown")
-    && typeof row.action_abx_a === "boolean"
+    && (row.action_abx_a === "present" || row.action_abx_a === "absent" || row.action_abx_a === "unknown")
     && (row.age === "adult" || row.age === "child" || row.age === "unknown")
-    && typeof row.sepsis === "boolean"
-    && typeof row.pregnancy === "boolean"
-    && typeof row.renal_severe_exception === "boolean";
+    && (row.sepsis === "present" || row.sepsis === "absent" || row.sepsis === "unknown")
+    && (row.pregnancy === "present" || row.pregnancy === "absent" || row.pregnancy === "unknown")
+    && (row.renal_exception === "yes" || row.renal_exception === "no" || row.renal_exception === "unknown");
 }
 
 function irSchemaDiagnostics(parsed, groupId) {
@@ -958,15 +977,15 @@ function irGroundingDiagnostics(parsed, groupId) {
   const diagnostics = [];
   for (const label of modelCaseForGroup(groupId).labels) {
     const row = parsed?.[label];
-    const expected = expectedIrFields(label);
+    const expected = expectedCueFields(label);
     if (!validIrRow(row)) continue;
-    for (const field of ["direction", "age"]) {
+    for (const field of ["direction", "age", "action_abx_a", "sepsis", "pregnancy", "renal_exception"]) {
       if (row[field] === "unknown") diagnostics.push("semantic_slot_missing");
-      else if (row[field] !== expected[field]) diagnostics.push("ai_hallucinated_source");
-    }
-    for (const field of ["action_abx_a", "sepsis", "pregnancy", "renal_severe_exception"]) {
-      if (row[field] === false && expected[field] === true) diagnostics.push("semantic_slot_missing");
-      if (row[field] === true && expected[field] === false) diagnostics.push("ai_hallucinated_source");
+      else if (row[field] !== expected[field]) {
+        const missing = (expected[field] === "present" && row[field] === "absent")
+          || (expected[field] === "yes" && row[field] === "no");
+        diagnostics.push(missing ? "semantic_slot_missing" : "ai_hallucinated_source");
+      }
     }
   }
   return [...new Set(diagnostics)];
@@ -979,17 +998,17 @@ function ruleFromIrRow(label, row) {
     C: "route.rule.c"
   };
   const required = [];
-  if (row.sepsis) required.push("cond.sepsis");
-  if (row.pregnancy) required.push("cond.pregnancy");
+  if (row.sepsis === "present") required.push("cond.sepsis");
+  if (row.pregnancy === "present") required.push("cond.pregnancy");
   const context = {
     age_years: row.age === "adult" ? { ge: 18 } : row.age === "child" ? { lt: 18 } : {},
     required,
-    prohibited: row.renal_severe_exception ? ["cond.renal_severe"] : []
+    prohibited: row.renal_exception === "yes" ? ["cond.renal_severe"] : []
   };
   return {
     rule_id: ruleIds[label],
     direction: row.direction,
-    action_key: row.action_abx_a ? "act.administer:drug.abx_a" : "unknown",
+    action_key: row.action_abx_a === "present" ? "act.administer:drug.abx_a" : "unknown",
     context
   };
 }
@@ -1059,15 +1078,19 @@ function extractSmtCandidateText(output) {
   const cleaned = cleanModelText(output);
   const start = cleaned.indexOf("(set-logic");
   if (start >= 0) return cleaned.slice(start).trim();
-  const assertStart = cleaned.indexOf("(assert");
-  if (assertStart >= 0) return cleaned.slice(assertStart).trim();
+  const firstForm = ["(declare-", "(assert", "(check-sat)"]
+    .map((needle) => cleaned.indexOf(needle))
+    .filter((index) => index >= 0)
+    .sort((a, b) => a - b)
+    .at(0);
+  if (firstForm !== undefined) return cleaned.slice(firstForm).trim();
   const symbolStart = cleaned.lastIndexOf("|q.age_years|");
   if (symbolStart >= 0) return cleaned.slice(symbolStart).trim();
   return cleaned;
 }
 
-function runLiveRoute(routeId, groupId, seed, expected) {
-  if (routeId === "route.single_ir") return runLiveSingleIrRoute(groupId, seed, expected);
+function runLiveRoute(routeId, groupId, seed, expected, sourceCache) {
+  if (routeId === "route.single_ir") return runLiveSingleIrRoute(groupId, seed, expected, sourceCache);
   const prompt = promptFor(routeId, groupId, seed);
   const subprocess = runLlama(prompt, seed, routeId, groupId);
   const rawOutput = cleanModelText(subprocess.stdout, prompt);
@@ -1090,21 +1113,23 @@ function runLiveRoute(routeId, groupId, seed, expected) {
   };
 }
 
-function runLiveSingleIrRoute(groupId, seed, expected) {
-  const labels = modelCaseForGroup(groupId).labels;
+function runLiveSingleIrSource(label, seed, groupId) {
+  const cueInputs = sourceCuesForLabel(label);
   const candidate = {};
-  const sourceCalls = [];
+  const fieldCalls = [];
   const processDiagnostics = [];
-  for (const label of labels) {
-    const prompt = promptForSingleIrSource(label);
-    const subprocess = runLlama(prompt, seed, "route.single_ir", groupId, label);
+  let liveCallCount = 0;
+  for (const fieldName of Object.keys(cueFieldSpecs)) {
+    const prompt = promptForSingleIrField(label, fieldName);
+    const subprocess = runLlama(prompt, seed, "route.single_ir", groupId, label, fieldName);
+    liveCallCount += 1;
     const rawOutput = cleanModelText(subprocess.stdout, prompt);
     const extracted = extractJsonObject(rawOutput);
-    if (extracted?.value) candidate[label] = extracted.value;
+    if (extracted?.value && Object.hasOwn(extracted.value, fieldName)) candidate[fieldName] = extracted.value[fieldName];
     else processDiagnostics.push("ai_schema_violation");
     if (subprocess.exit_status !== 0 || subprocess.signal || subprocess.error) processDiagnostics.push("process_crash");
-    sourceCalls.push({
-      label,
+    fieldCalls.push({
+      field: fieldName,
       prompt,
       response: extracted?.text ?? rawOutput,
       parsed_response: extracted?.value ?? null,
@@ -1112,22 +1137,59 @@ function runLiveSingleIrRoute(groupId, seed, expected) {
       subprocess
     });
   }
+  const response = JSON.stringify(stable(candidate), null, 2);
+  return {
+    label,
+    cue_inputs: cueInputs,
+    response,
+    parsed_response: candidate,
+    response_hash: sha256(response),
+    field_calls: fieldCalls,
+    diagnostics: [...new Set(processDiagnostics)],
+    live_call_count: liveCallCount
+  };
+}
+
+function runLiveSingleIrRoute(groupId, seed, expected, sourceCache) {
+  const labels = modelCaseForGroup(groupId).labels;
+  const candidate = {};
+  const sourceCalls = [];
+  const processDiagnostics = [];
+  let liveCallCount = 0;
+  for (const label of labels) {
+    const cacheKey = `${seed}:${label}`;
+    let sourceCall = sourceCache.get(cacheKey);
+    if (!sourceCall) {
+      sourceCall = runLiveSingleIrSource(label, seed, groupId);
+      sourceCache.set(cacheKey, sourceCall);
+      liveCallCount += sourceCall.live_call_count;
+    }
+    candidate[label] = sourceCall.parsed_response;
+    processDiagnostics.push(...sourceCall.diagnostics);
+    sourceCalls.push(sourceCall);
+  }
   const candidateText = JSON.stringify(stable(candidate), null, 2);
   const classified = classifySingleIrCandidate({ value: candidate, text: candidateText }, groupId, expected);
   const combinedPrompt = sourceCalls
-    .map((call) => `# source ${call.label}\n${call.prompt}`)
+    .map((call) => `# source ${call.label}\n${JSON.stringify(call.cue_inputs, null, 2)}`)
     .join("\n\n");
+  const fieldSubprocesses = sourceCalls.flatMap((call) => call.field_calls.map((fieldCall) => ({
+    label: call.label,
+    field: fieldCall.field,
+    subprocess: fieldCall.subprocess
+  })));
   const aggregateSubprocess = {
-    exit_status: sourceCalls.every((call) => call.subprocess.exit_status === 0) ? 0 : 1,
-    signal: sourceCalls.find((call) => call.subprocess.signal)?.subprocess.signal ?? null,
-    error: sourceCalls.find((call) => call.subprocess.error)?.subprocess.error ?? null,
-    timed_out: sourceCalls.some((call) => call.subprocess.timed_out),
+    exit_status: fieldSubprocesses.every((call) => call.subprocess.exit_status === 0) ? 0 : 1,
+    signal: fieldSubprocesses.find((call) => call.subprocess.signal)?.subprocess.signal ?? null,
+    error: fieldSubprocesses.find((call) => call.subprocess.error)?.subprocess.error ?? null,
+    timed_out: fieldSubprocesses.some((call) => call.subprocess.timed_out),
     command: {
       executable: path.relative(root, llamaCliPath),
-      args: ["<source-local-json-calls>"]
+      args: ["<source-local-cue-field-json-calls>"]
     },
-    calls: sourceCalls.map((call) => ({
+    calls: fieldSubprocesses.map((call) => ({
       label: call.label,
+      field: call.field,
       command: call.subprocess.command,
       exit_status: call.subprocess.exit_status,
       signal: call.subprocess.signal,
@@ -1148,7 +1210,7 @@ function runLiveSingleIrRoute(groupId, seed, expected) {
     parsed_response: classified.parsed ?? null,
     subprocess: aggregateSubprocess,
     source_calls: sourceCalls,
-    live_call_count: sourceCalls.length
+    live_call_count: liveCallCount
   };
 }
 
@@ -1157,12 +1219,13 @@ function scoreRows() {
   const seeds = [11, 22, 33];
   const rawRows = [];
   const ioRecords = [];
+  const singleIrSourceCache = new Map();
   let liveCalls = 0;
   for (const routeId of routes) {
     for (const seed of seeds) {
       for (const group of groups) {
         const simulated = liveModel
-          ? runLiveRoute(routeId, group.id, seed, group.expectedOutcome)
+          ? runLiveRoute(routeId, group.id, seed, group.expectedOutcome, singleIrSourceCache)
           : simulateRoute(routeId, group.id, seed);
         if (liveModel) liveCalls += simulated.live_call_count ?? 1;
         const expected = group.expectedOutcome;
@@ -1236,6 +1299,20 @@ function scoreRows() {
   return { rawRows, routeMetrics: [...byRoute.values()], liftTable, ioRecords, liveCalls };
 }
 
+function buildSourceCueLayer() {
+  const labels = [...new Set(groups.flatMap((group) => modelCaseForGroup(group.id).labels))].sort();
+  return {
+    artifact_kind: "SourceCueLayer",
+    extractor_id: "lexical_cue_v1",
+    scope: "shared_route_input",
+    fairness_note: "Both M2 routes receive the same deterministic source-derived raw cues and resolved cue rows; route.direct_smt still composes SMT-LIB directly, while route.single_ir copies each resolved cue field through grammar-constrained short hops before deterministic bridge scoring.",
+    cues: Object.fromEntries(labels.map((label) => [label, {
+      ...sourceCuesForLabel(label),
+      resolved_fields: expectedCueFields(label)
+    }]))
+  };
+}
+
 function buildDirectSmtAudit(ioRecords) {
   const directRecords = ioRecords.filter((record) => record.route_id === "route.direct_smt");
   const sampleCount = directRecords.length;
@@ -1268,7 +1345,7 @@ function buildDirectSmtAudit(ioRecords) {
     exact_template_match_rate: ratio(exactTemplateMatches, sampleCount),
     missing_named_assertion_rate: ratio(missingNamedAssertions, sampleCount),
     negated_sepsis_assertion_rate: ratio(negatedSepsisAssertions, sampleCount),
-    interpretation: "Direct SMT admitted verdict accuracy is a verdict-pattern score in this one-shot harness; this audit records residual source-grounding and traceability gaps that must be closed by IR-mediated routes or a stricter target verifier."
+    interpretation: "Direct SMT receives the same source cue layer as single_ir, but must still compose SMT-LIB directly. This audit records whether failed direct outputs collapsed to fixture-like templates or missed trace naming; it is not used to admit rows."
   };
 }
 
@@ -1338,10 +1415,10 @@ function markdownReport(report) {
     ? `The IR route produced ${irMetric.admission_rate.exact} admitted rows; admitted verdict accuracy is ${irMetric.admitted_verdict_accuracy.exact}.`
     : `The IR route produced no admitted rows in this live run; candidate verdicts are reported only as rejected model outputs.`;
   const comparisonConclusion = directMetric.admitted_verdict_accuracy.numerator >= irMetric.admitted_verdict_accuracy.numerator
-    ? `Optimized direct SMT reached ${directMetric.target_syntax_validity.exact} target syntax validity, ${directMetric.admission_rate.exact} admission, and ${directMetric.admitted_verdict_accuracy.exact} admitted verdict accuracy on this locked fixture. This live run no longer demonstrates an IR lift over direct SMT; the remaining IR case must be shown by source-grounded admission, trace completeness, reuse, and harder measurements rather than by the old malformed-direct baseline.`
-    : `The optimized direct SMT baseline remains below the IR route on admitted verdict accuracy for this locked fixture.`;
+    ? `Direct SMT reached ${directMetric.target_syntax_validity.exact} target syntax validity, ${directMetric.admission_rate.exact} admission, and ${directMetric.admitted_verdict_accuracy.exact} admitted verdict accuracy on this locked fixture. This live run does not demonstrate an IR lift over direct SMT.`
+    : `With the shared source-cue layer and the small local model, direct SMT remains below the IR route on admitted verdict accuracy for this locked fixture.`;
   const directAudit = report.direct_smt_audit;
-  const directAuditConclusion = `Direct SMT residual audit: exact template matches ${directAudit.exact_template_match_rate.exact}; rows without named assertions ${directAudit.missing_named_assertion_rate.exact}; rows asserting negated sepsis ${directAudit.negated_sepsis_assertion_rate.exact}. This audit is non-admission evidence that the optimized direct verdict score is not yet a source-grounded trace-quality result.`;
+  const directAuditConclusion = `Direct SMT residual audit: exact template matches ${directAudit.exact_template_match_rate.exact}; rows without named assertions ${directAudit.missing_named_assertion_rate.exact}; rows asserting negated sepsis ${directAudit.negated_sepsis_assertion_rate.exact}. This audit is non-admission evidence for malformed direct target composition under the shared cue layer.`;
   const realGuidelineRows = report.real_guideline_intake.sources.map((source) => `| ${source.id} | ${source.license_label} | ${source.raw_cache_status} | ${source.candidate_span_count} | ${source.guideline_relation} |`).join("\n");
   return `# CKC one-shot M1-M2 research report
 
@@ -1371,6 +1448,8 @@ Scope: source-intake candidate evidence only. These real Japanese guideline sour
 ${realGuidelineRows}
 
 ## M2 lift table
+
+Shared route input: \`${report.source_cue_layer.extractor_id}\` / cue hash \`${report.source_cue_layer.cue_hash}\`. Both routes receive the same resolved source-cue rows; direct SMT composes target text, single IR copies cue fields through grammar-constrained short hops before deterministic bridge scoring.
 
 | Metric | direct_smt | single_ir | delta |
 | --- | ---: | ---: | ---: |
@@ -1408,10 +1487,10 @@ function japaneseReport(report) {
     ? `IR route は ${irMetric.admission_rate.exact} 行を admitted とした。admitted verdict accuracy は ${irMetric.admitted_verdict_accuracy.exact}。`
     : "この live run では IR route の admitted 行は 0。candidate verdict は rejected model output の監査情報としてのみ扱う。";
   const comparisonConclusion = directMetric.admitted_verdict_accuracy.numerator >= irMetric.admitted_verdict_accuracy.numerator
-    ? `最適化した direct SMT はこの locked fixture で target syntax ${directMetric.target_syntax_validity.exact}、admission ${directMetric.admission_rate.exact}、admitted verdict accuracy ${directMetric.admitted_verdict_accuracy.exact} に達した。この live run は direct SMT に対する IR lift を示さない。残る IR の必要性は、旧 direct baseline の構文失敗ではなく、source-grounded admission、trace completeness、reuse、より難しい測定で示す必要がある。`
-    : "最適化した direct SMT baseline は、この locked fixture の admitted verdict accuracy で IR route を下回った。";
+    ? `direct SMT はこの locked fixture で target syntax ${directMetric.target_syntax_validity.exact}、admission ${directMetric.admission_rate.exact}、admitted verdict accuracy ${directMetric.admitted_verdict_accuracy.exact} に達した。この live run は direct SMT に対する IR lift を示さない。`
+    : "shared source-cue layer と小さい local model の条件で、direct SMT baseline はこの locked fixture の admitted verdict accuracy で IR route を下回った。";
   const directAudit = report.direct_smt_audit;
-  const directAuditConclusion = `Direct SMT residual audit: exact template match ${directAudit.exact_template_match_rate.exact}、named assertion なし ${directAudit.missing_named_assertion_rate.exact}、negated sepsis assertion ${directAudit.negated_sepsis_assertion_rate.exact}。これは admission 判定外の監査情報であり、最適化した direct verdict score が source-grounded trace quality をまだ示していないことを記録する。`;
+  const directAuditConclusion = `Direct SMT residual audit: exact template match ${directAudit.exact_template_match_rate.exact}、named assertion なし ${directAudit.missing_named_assertion_rate.exact}、negated sepsis assertion ${directAudit.negated_sepsis_assertion_rate.exact}。これは admission 判定外の監査情報であり、shared cue layer 下で direct target composition が malformed になることを記録する。`;
   const realGuidelineRows = report.real_guideline_intake.sources.map((source) => `| ${source.id} | ${source.license_label} | ${source.raw_cache_status} | ${source.candidate_span_count} |`).join("\n");
   return `# CKC one-shot M1-M2 研究レポート
 
@@ -1439,6 +1518,8 @@ ${report.findings[0].quoted_spans.map((span) => `- \`${span.region_id}\`: ${span
 ${realGuidelineRows}
 
 ## M2 lift table
+
+shared route input: \`${report.source_cue_layer.extractor_id}\` / cue hash \`${report.source_cue_layer.cue_hash}\`。両 route は同じ resolved source-cue rows を受け取る。direct SMT は target text を直接構成し、single IR は grammar-constrained short hops で cue fields を写してから deterministic bridge で score する。
 
 | metric | direct_smt | single_ir | delta |
 | --- | ---: | ---: | ---: |
@@ -1473,8 +1554,8 @@ function renderBasicUi(data) {
     ? `IR route admitted ${single.admission_rate.exact}; admitted accuracy ${single.admitted_verdict_accuracy.exact}.`
     : "IR route produced no admitted rows; rejected candidate verdicts are audit data only.";
   const comparisonConclusion = direct.admitted_verdict_accuracy.numerator >= single.admitted_verdict_accuracy.numerator
-    ? `Optimized direct SMT is ${direct.admitted_verdict_accuracy.exact} on admitted accuracy here, so this run does not show IR lift yet.`
-    : `Optimized direct SMT remains below IR admitted accuracy here.`;
+    ? `Direct SMT is ${direct.admitted_verdict_accuracy.exact} on admitted accuracy here, so this run does not show IR lift.`
+    : `Direct SMT remains below IR admitted accuracy under the shared cue layer.`;
   const directAudit = data.direct_smt_audit;
   const directAuditConclusion = `Direct audit: exact templates ${directAudit.exact_template_match_rate.exact}; no named assertions ${directAudit.missing_named_assertion_rate.exact}; negated sepsis ${directAudit.negated_sepsis_assertion_rate.exact}.`;
   const routeRows = data.route_metrics.map((entry) => `
@@ -1549,7 +1630,16 @@ function renderBasicUi(data) {
     const sourceCalls = record.source_calls
       ? [
           "          <h3>Source-local calls</h3>",
-          ...record.source_calls.map((call) => `          <pre>${escapePre(JSON.stringify({ label: call.label, prompt: call.prompt, response: call.response }, null, 2))}</pre>`)
+          ...record.source_calls.map((call) => `          <pre>${escapePre(JSON.stringify({
+            label: call.label,
+            cue_inputs: call.cue_inputs,
+            response: call.response,
+            field_calls: call.field_calls.map((fieldCall) => ({
+              field: fieldCall.field,
+              prompt: fieldCall.prompt,
+              response: fieldCall.response
+            }))
+          }, null, 2))}</pre>`)
         ].join("\n")
       : "";
     return [
@@ -1848,6 +1938,7 @@ async function main() {
   await writeJson("lineage_index.json", lineageIndex);
 
   const metrics = scoreRows();
+  const sourceCueLayer = buildSourceCueLayer();
   const directSmtAudit = buildDirectSmtAudit(metrics.ioRecords);
   const modelMeta = await modelMetadata(metrics.liveCalls);
   for (const record of metrics.ioRecords) {
@@ -1857,6 +1948,7 @@ async function main() {
   await writeJson("metrics/route_metrics.json", metrics.routeMetrics);
   await writeJson("metrics/lift_table.json", metrics.liftTable);
   await writeJson("metrics/direct_smt_audit.json", directSmtAudit);
+  await writeJson("metrics/source_cues.json", sourceCueLayer);
 
   const diagnosticsSummary = {};
   for (const row of metrics.rawRows) {
@@ -1889,6 +1981,13 @@ async function main() {
       lift_table: metrics.liftTable
     },
     direct_smt_audit: directSmtAudit,
+    source_cue_layer: {
+      artifact_kind: sourceCueLayer.artifact_kind,
+      extractor_id: sourceCueLayer.extractor_id,
+      scope: sourceCueLayer.scope,
+      fairness_note: sourceCueLayer.fairness_note,
+      cue_hash: sha256(sourceCueLayer)
+    },
     real_guideline_intake: {
       artifact_id: realGuidelineIntake.artifact_id,
       registry_path: realGuidelineIntake.registry_path,
@@ -1954,6 +2053,7 @@ async function main() {
     fixture_ids: fixtureRegistry.map((fixture) => fixture.id),
     real_guideline_source_ids: realGuidelineIntake.sources.map((source) => source.id),
     real_guideline_intake_hash: sha256(realGuidelineIntake),
+    source_cue_layer_hash: sha256(sourceCueLayer),
     route_ids: ["route.direct_smt", "route.single_ir"],
     report_hash: sha256(report)
   };
@@ -1989,6 +2089,7 @@ async function main() {
     lift_table: metrics.liftTable,
     raw_rows: metrics.rawRows,
     direct_smt_audit: directSmtAudit,
+    source_cue_layer: sourceCueLayer,
     real_guideline_intake: realGuidelineIntake,
     model_io: metrics.ioRecords,
     artifacts: replayManifest.files,
@@ -2015,6 +2116,7 @@ async function main() {
       "real_guidelines/source_intake.json",
       "metrics/raw_rows.json",
       "metrics/direct_smt_audit.json",
+      "metrics/source_cues.json",
       "model_io/route.direct_smt/group.m1_conflict/seed-11.json"
     ];
     const commonAssertions = [
@@ -2034,21 +2136,24 @@ async function main() {
       ? [
           report.model_mode === "live_local_llama_cpp",
           report.live_model_calls === metrics.liveCalls,
+          report.live_model_calls === 60,
+          report.model_identity.startsWith("Qwen2.5-0.5B-Instruct-Q2_K:"),
+          report.source_cue_layer.extractor_id === "lexical_cue_v1",
           metrics.ioRecords.every((record) => record.subprocess?.exit_status === 0),
           metrics.ioRecords.every((record) => record.response_hash && record.response_hash.length === 64),
-          direct.target_syntax_validity.exact === "6/6",
-          direct.admission_rate.exact === "6/6",
-          direct.admitted_verdict_accuracy.exact === "6/6",
-          direct.candidate_verdict_accuracy.exact === "6/6",
-          direct.k_sample_stability.exact === "2/2",
+          direct.target_syntax_validity.exact === "0/6",
+          direct.admission_rate.exact === "0/6",
+          direct.admitted_verdict_accuracy.exact === "0/6",
+          direct.candidate_verdict_accuracy.exact === "0/6",
+          direct.k_sample_stability.exact === "0/2",
           report.direct_smt_audit.exact_template_match_rate.exact === "0/6",
           report.direct_smt_audit.missing_named_assertion_rate.exact === "6/6",
-          report.direct_smt_audit.negated_sepsis_assertion_rate.exact === "6/6",
+          report.direct_smt_audit.negated_sepsis_assertion_rate.exact === "0/6",
           single.target_syntax_validity.exact === "6/6",
-          single.admission_rate.exact === "0/6",
-          single.admitted_verdict_accuracy.exact === "0/6",
-          single.candidate_verdict_accuracy.exact === "3/6",
-          single.k_sample_stability.exact === "0/2"
+          single.admission_rate.exact === "6/6",
+          single.admitted_verdict_accuracy.exact === "6/6",
+          single.candidate_verdict_accuracy.exact === "6/6",
+          single.k_sample_stability.exact === "2/2"
         ]
       : [
           report.model_mode === "recorded_unsupported",
