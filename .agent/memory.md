@@ -14,4 +14,4 @@
 - `npm run verify:figures` checks the figure bundle is a PDF and has one `/Page` object per figure.
 - Keep operating instructions grounded in tools and files actually present in this repository. Avoid carrying over tool-specific directories, fixed context-window protocols, or missing maintenance scripts unless the repo later adds them explicitly.
 - Codex custom prompts under `~/.codex/prompts` are user-global. Project-local command-like workflows belong under `.agents/skills`; `$session-prompt <TASK>` is a repo skill and parses the task text from the invoking message.
-- No-argument `$session-prompt` asks the user for a task before changing files. The completed R1-R3 realism queue remains in `.agent/session-plan.md` as historical state, but the project-local session skill no longer consumes it.
+- 2026-06-11 comparison expansion queue: `.agent/session-plan.md` is active again. No-argument `$session-prompt` now selects the first queue item whose `status` is not `done`; the current first pending item is C1 route-matrix harness generalization. The old R1-R3 realism queue has been replaced rather than retained in the active plan.
