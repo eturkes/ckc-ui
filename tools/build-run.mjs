@@ -1869,10 +1869,6 @@ function humanModelIdentity(value) {
   return hashSuffix.test(text) ? text.replace(hashSuffix, "") : text;
 }
 
-function humanMode(value) {
-  return String(value ?? "unknown").replaceAll("_", " ");
-}
-
 function diagnosticSummary(codes) {
   const values = [...new Set(codes ?? [])];
   if (values.length === 0) return "none";
@@ -1886,21 +1882,6 @@ function diagnosticSummary(codes) {
     process_crash: "model process failed"
   };
   return values.map((code) => labels[code] ?? code).join("; ");
-}
-
-function compactTargetForReview(target) {
-  if (!target) return null;
-  return {
-    compiler_id: target.compiler_id,
-    source_ir_schema_id: target.source_ir_schema_id,
-    target_profile: target.target_profile,
-    syntax_valid: target.syntax_valid,
-    admitted: target.admitted,
-    verdict: target.verdict,
-    diagnostics: target.diagnostics,
-    smt_files: target.smt_files.map(({ text, sha256, ...metadata }) => metadata),
-    verifier: target.verifier
-  };
 }
 
 function sourceTraceText(label) {
@@ -1962,17 +1943,7 @@ function renderBasicUi(data) {
   const report = data.report;
   const direct = data.route_metrics.find((entry) => entry.route_id === "route.direct_smt");
   const single = data.route_metrics.find((entry) => entry.route_id === "route.single_ir");
-  const finding = report.findings[0];
-  const nullResult = report.null_results[0];
   const displayModel = humanModelIdentity(report.model_identity);
-  const irConclusion = single.admission_rate.numerator > 0
-    ? `IR path accepted ${single.admission_rate.exact} rows and matched the expected verdicts after deterministic route_rule_ir.v0 -> SMT-LIB compilation.`
-    : "IR route produced no admitted rows; rejected candidate verdicts are audit data only.";
-  const comparisonConclusion = direct.admitted_verdict_accuracy.numerator >= single.admitted_verdict_accuracy.numerator
-    ? `Direct SMT is ${direct.admitted_verdict_accuracy.exact} on admitted accuracy here, so this run does not show IR lift.`
-    : "With the same source cues, the IR path produced accepted correct rows where direct SMT produced none.";
-  const directAudit = data.direct_smt_audit;
-  const directAuditConclusion = `Direct route review note: ${directAudit.missing_named_assertion_rate.exact} direct outputs lacked named assertions, and admitted accuracy stayed ${direct.admitted_verdict_accuracy.exact}.`;
   const metricLabels = {
     target_syntax_validity: "Target syntax valid",
     admission_rate: "Rows admitted",
@@ -1985,29 +1956,6 @@ function renderBasicUi(data) {
             <td>${escapeHtml(row.baseline.exact)}</td>
             <td>${escapeHtml(row.lifted.exact)}</td>
             <td>${escapeHtml(row.delta.exact)}</td>
-          </tr>`).join("");
-  const routeRows = data.route_metrics.map((entry) => `
-          <tr>
-            <td><code>${escapeHtml(entry.route_id)}</code></td>
-            <td>${escapeHtml(entry.target_syntax_validity.exact)}</td>
-            <td>${escapeHtml(entry.model_output_syntax_validity.exact)}</td>
-            <td>${escapeHtml(entry.admission_rate.exact)}</td>
-            <td>${escapeHtml(entry.admitted_verdict_accuracy.exact)}</td>
-            <td>${escapeHtml(entry.candidate_verdict_accuracy.exact)}</td>
-            <td>${escapeHtml(entry.k_sample_stability.exact)}</td>
-          </tr>`).join("");
-  const rawRows = data.raw_rows.map((row) => `
-          <tr>
-            <td><code>${escapeHtml(row.route_id)}</code></td>
-            <td><code>${escapeHtml(row.group_id)}</code></td>
-            <td>${escapeHtml(row.seed)}</td>
-            <td>${row.model_output_syntax_valid ? "yes" : "no"}</td>
-            <td>${row.target_syntax_valid ? "yes" : "no"}</td>
-            <td>${row.admitted ? "yes" : "no"}</td>
-            <td>${escapeHtml(row.verdict)}</td>
-            <td>${row.verdict_correct ? "yes" : "no"}</td>
-            <td>${row.candidate_verdict_correct ? "yes" : "no"}</td>
-            <td>${escapeHtml(diagnosticSummary(row.diagnostics))}</td>
           </tr>`).join("");
   const cueRows = Object.entries(data.source_cue_layer.cues).map(([label, cue]) => `
           <tr>
@@ -2161,157 +2109,13 @@ function renderBasicUi(data) {
             <td>${escapeHtml(directValue)}</td>
             <td>${escapeHtml(irValue)}</td>
           </tr>`).join("");
-  const realGuideline = data.real_guideline_intake;
-  const realGuidelineRows = realGuideline.sources.map((source) => `
-          <tr>
-            <td><code>${escapeHtml(source.id)}</code></td>
-            <td>${escapeHtml(source.title_ja)}</td>
-            <td>${escapeHtml(source.license.label)}</td>
-            <td>${escapeHtml(source.raw_cache_status)}</td>
-            <td>${escapeHtml(source.candidate_spans.length)}</td>
-            <td>${escapeHtml(source.guideline_relation)}</td>
-          </tr>`).join("");
-  const realGuidelineDetails = realGuideline.sources.map((source) => {
-    const spans = source.candidate_spans.map((span) => `
-          <tr>
-            <td><code>${escapeHtml(span.region_id)}</code></td>
-            <td>${escapeHtml(span.cq_id)}</td>
-            <td>${escapeHtml(span.machine_hint.direction)}</td>
-            <td>${escapeHtml(span.machine_hint.action)}</td>
-            <td>${escapeHtml(span.quote)}</td>
-          </tr>`).join("");
-    const rawArtifacts = source.raw_artifacts.map((artifact) => `
-          <tr>
-            <td><code>${escapeHtml(artifact.artifact_id)}</code></td>
-            <td>${escapeHtml(artifact.kind)}</td>
-            <td>${escapeHtml(artifact.cache_status)}</td>
-          </tr>`).join("");
-    return `
-        <details>
-          <summary><code>${escapeHtml(source.id)}</code> / ${escapeHtml(source.title_ja)}</summary>
-          <h3>Selected candidate spans</h3>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Region</th><th>CQ</th><th>Direction</th><th>Action hint</th><th>Source span</th></tr></thead>
-              <tbody>${spans}
-              </tbody>
-            </table>
-          </div>
-          <h3>Raw cache</h3>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Artifact</th><th>Kind</th><th>Status</th></tr></thead>
-              <tbody>${rawArtifacts}
-              </tbody>
-            </table>
-          </div>
-        </details>`;
-  }).join("").trimStart();
-  const reviewCards = [
-    {
-      title: "Candidate conflict",
-      value: "Needs human adjudication",
-      status: "warn",
-      body: "Adult sepsis rule recommends Antibiotic A; pregnancy subset rule contraindicates the same action. This is admitted research evidence, not a clinical recommendation."
-    },
-    {
-      title: "Documented null result",
-      value: "Control behaved as expected",
-      status: "ok",
-      body: "Adult and child age ranges are disjoint, so the control pair is recorded as no conflict rather than ignored."
-    },
-    {
-      title: "Route comparison",
-      value: `${direct.admitted_verdict_accuracy.exact} -> ${single.admitted_verdict_accuracy.exact}`,
-      status: single.admitted_verdict_accuracy.numerator > direct.admitted_verdict_accuracy.numerator ? "ok" : "warn",
-      body: "The review signal is admission and verdict stability, not raw model text. Direct SMT failed admission; IR rows were accepted across all seeds."
-    },
-    {
-      title: "Real source intake",
-      value: `${realGuideline.source_count} sources, ${realGuideline.candidate_span_count} spans`,
-      status: "warn",
-      body: "Real Japanese guideline spans are cached as extraction candidates only. They are outside the locked M1/M2 score."
-    }
-  ].map((card) => `
-        <div class="review-card ${escapeHtml(card.status)}">
-          <strong>${escapeHtml(card.title)}</strong>
-          <span>${escapeHtml(card.value)}</span>
-          <p>${escapeHtml(card.body)}</p>
-        </div>`).join("");
-  const promptCatalog = data.prompt_catalog;
-  const promptRows = promptCatalog.entries.map((entry) => `
-          <tr>
-            <td><code>${escapeHtml(entry.prompt_id)}</code></td>
-            <td>${entry.route_ids.map((id) => `<code>${escapeHtml(id)}</code>`).join(", ")}</td>
-            <td>${entry.group_ids.map((id) => `<code>${escapeHtml(id)}</code>`).join(", ")}</td>
-            <td>${escapeHtml(entry.seeds.join(", "))}</td>
-            <td>${escapeHtml(entry.call_count)}</td>
-            <td><code>${escapeHtml(entry.prompt_path)}</code></td>
-          </tr>`).join("");
-  const promptDetails = promptCatalog.entries.map((entry) => {
-    const callRows = entry.calls.map((call) => `
-          <tr>
-            <td><code>${escapeHtml(call.model_io_record_id)}</code></td>
-            <td><code>${escapeHtml(call.group_id)}</code></td>
-            <td>${escapeHtml(call.seed)}</td>
-            <td>${escapeHtml(call.granularity)}</td>
-          </tr>`).join("");
-    return `
-        <details>
-          <summary><code>${escapeHtml(entry.prompt_id)}</code></summary>
-          <dl>
-            <dt>template</dt><dd><code>${escapeHtml(entry.prompt_template_id)}</code></dd>
-            <dt>output contract</dt><dd>${escapeHtml(entry.output_contract)}</dd>
-            <dt>characters</dt><dd>${escapeHtml(entry.prompt_chars)}</dd>
-            <dt>path</dt><dd><code>${escapeHtml(entry.prompt_path)}</code></dd>
-          </dl>
-          <h3>Calls using this exact prompt</h3>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Model I/O record</th><th>Group</th><th>Seed</th><th>Granularity</th></tr></thead>
-              <tbody>${callRows}
-              </tbody>
-            </table>
-          </div>
-          <h3>Exact prompt text</h3>
-          <pre>${escapePre(entry.prompt_text)}</pre>
-        </details>`;
-  }).join("").trimStart();
-  const ioBlocks = data.model_io.map((record) => {
-    const routeCall = record.route_call
-      ? [
-          "          <h3>Pair-level call</h3>",
-          `          <pre>${escapePre(JSON.stringify({
-            labels: record.route_call.labels,
-            cue_inputs: record.route_call.cue_inputs,
-            response: record.route_call.response,
-            call_granularity: record.route_call.granularity,
-            prompt: record.route_call.prompt
-          }, null, 2))}</pre>`
-        ].join("\n")
-      : "";
-    return [
-      "        <details>",
-      `          <summary><code>${escapeHtml(record.route_id)}</code> / <code>${escapeHtml(record.group_id)}</code> / seed ${escapeHtml(record.seed)} / ${record.row.admitted ? "admitted" : "not admitted"}</summary>`,
-      "          <h3>Prompt</h3>",
-      `          <pre>${escapePre(record.prompt)}</pre>`,
-      routeCall,
-      "          <h3>Response</h3>",
-      `          <pre>${escapePre(record.response)}</pre>`,
-      record.compiled_target ? "          <h3>Compiled SMT target</h3>" : "",
-      record.compiled_target ? `          <pre>${escapePre(JSON.stringify(compactTargetForReview(record.compiled_target), null, 2))}</pre>` : "",
-      "          <h3>Scored row</h3>",
-      `          <pre>${escapePre(JSON.stringify(record.row, null, 2))}</pre>`,
-      "        </details>"
-    ].filter(Boolean).join("\n");
-  }).join("");
 
   return `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>CKC research review run</title>
+  <title>How IR improves this pipeline</title>
   <style>
     :root {
       color-scheme: light;
@@ -2328,32 +2132,15 @@ function renderBasicUi(data) {
     * { box-sizing: border-box; }
     body { margin: 0; background: var(--bg); color: var(--ink); }
     main { max-width: 1180px; margin: 0 auto; padding: 18px; }
-    header, section { border: 1px solid var(--line); border-radius: 6px; background: var(--surface); margin-bottom: 12px; }
-    header { padding: 16px; }
+    section { border: 1px solid var(--line); border-radius: 6px; background: var(--surface); margin-bottom: 12px; }
     section { padding: 14px; }
-    h1, h2, h3, p { margin: 0; }
-    h1 { font-size: 1.15rem; }
+    h2, h3, p { margin: 0; }
     h2 { font-size: .98rem; margin-bottom: 8px; }
     h3 { font-size: .86rem; margin: 10px 0 6px; }
     p { color: var(--muted); margin-top: 4px; line-height: 1.4; }
     code, pre { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; font-size: .82rem; }
     code { overflow-wrap: anywhere; }
     pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 280px; overflow: auto; margin: 0; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: #101820; color: #eef6f4; }
-    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
-    .chip { display: inline-flex; align-items: center; max-width: 100%; min-height: 28px; border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; background: #f7fafb; color: var(--muted); font-size: .8rem; overflow-wrap: anywhere; }
-    .chip.ok { color: var(--ok); background: #e4f2ec; border-color: #b9ddcf; }
-    .chip.warn { color: var(--warn); background: #fff1cf; border-color: #e7cf91; }
-    .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-    .metric { border: 1px solid var(--line); border-radius: 6px; padding: 12px; }
-    .metric strong { display: block; font-size: 1.45rem; line-height: 1; }
-    .metric span { display: block; color: var(--muted); margin-top: 6px; font-size: .82rem; }
-    .review-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
-    .review-card { border: 1px solid var(--line); border-left: 4px solid var(--line); border-radius: 6px; padding: 10px; min-width: 0; background: #fbfdfe; }
-    .review-card.ok { border-left-color: var(--ok); }
-    .review-card.warn { border-left-color: var(--warn); }
-    .review-card strong { display: block; font-size: .84rem; }
-    .review-card span { display: block; margin-top: 4px; color: var(--ink); font-weight: 700; }
-    .review-card p { margin-top: 6px; font-size: .82rem; }
     .takeaway { border: 1px solid #b9ddcf; border-left: 4px solid var(--ok); border-radius: 6px; padding: 10px 12px; background: #f2faf6; margin: 10px 0; }
     .takeaway strong { display: block; margin-bottom: 4px; }
     .takeaway p { margin-top: 0; color: var(--ink); }
@@ -2394,15 +2181,10 @@ function renderBasicUi(data) {
     .compare td:nth-child(2) { border-left: 3px solid var(--warn); }
     .compare td:nth-child(3) { border-left: 3px solid var(--ok); }
     .table-wrap { overflow-x: auto; }
-    .quote { border-left: 3px solid var(--ok); background: #e4f2ec; padding: 8px 10px; margin-top: 8px; line-height: 1.45; }
     details { border: 1px solid var(--line); border-radius: 6px; padding: 9px 10px; margin-top: 8px; }
     summary { cursor: pointer; }
-    details dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 5px 10px; margin: 8px 0; font-size: .82rem; }
-    details dt { color: var(--muted); }
-    details dd { margin: 0; overflow-wrap: anywhere; }
     @media (max-width: 760px) {
       main { padding: 10px; }
-      .grid, .review-grid { grid-template-columns: 1fr; }
       .flow, .split, .trace-viz { grid-template-columns: 1fr; }
       .trace-step:not(:last-child)::after { content: ""; display: none; }
       .compare { min-width: 0; }
@@ -2419,32 +2201,6 @@ function renderBasicUi(data) {
 </head>
 <body>
   <main>
-    <header>
-      <h1>CKC research review run</h1>
-      <p>Fixture-scale review view for source-grounded findings, documented null results, and model-route admission evidence. This makes no clinical, patient-care, deployment, or regulatory claim.</p>
-      <div class="chips">
-        <span class="chip ok">run ${escapeHtml(report.run_id)}</span>
-        <span class="chip ok">${escapeHtml(humanMode(report.model_mode))}</span>
-        <span class="chip warn">${escapeHtml(report.live_model_calls)} local model calls</span>
-        <span class="chip">${escapeHtml(displayModel)}</span>
-      </div>
-    </header>
-
-    <section>
-      <h2>Reviewer snapshot</h2>
-      <div class="grid">
-        <div class="metric"><strong>${escapeHtml(report.findings.length)}</strong><span>candidate conflict requiring adjudication</span></div>
-        <div class="metric"><strong>${escapeHtml(report.null_results.length)}</strong><span>documented no-conflict control</span></div>
-        <div class="metric"><strong>${escapeHtml(`${direct.admitted_verdict_accuracy.exact} -> ${single.admitted_verdict_accuracy.exact}`)}</strong><span>direct SMT vs IR admitted accuracy</span></div>
-      </div>
-      <div class="review-grid">
-${reviewCards}
-      </div>
-      <p>${escapeHtml(comparisonConclusion)}</p>
-      <p>${escapeHtml(directAuditConclusion)}</p>
-      <p>${escapeHtml(irConclusion)}</p>
-    </section>
-
     <section>
       <h2>How IR improves this pipeline</h2>
       <div class="takeaway">
@@ -2566,69 +2322,6 @@ ${transformationStepsHtml}
             </tbody>
           </table>
         </div>
-      </details>
-    </section>
-
-    <section>
-      <h2>M1 evidence</h2>
-      <p><code>${escapeHtml(finding.finding_id)}</code> / <code>${escapeHtml(nullResult.null_result_id)}</code></p>
-      ${finding.quoted_spans.map((span) => `<div class="quote"><code>${escapeHtml(span.region_id)}</code>: ${escapeHtml(span.text)}</div>`).join("")}
-      <div class="quote"><code>${escapeHtml(nullResult.quoted_spans[1].region_id)}</code>: ${escapeHtml(nullResult.quoted_spans[1].text)}</div>
-    </section>
-
-    <section>
-      <h2>Real guideline intake</h2>
-      <p>Permission-recorded source candidates fetched for PoC extraction work. These rows are not included in the locked M1/M2 score and make no clinical recommendation claim.</p>
-      <div class="table-wrap">
-        <table class="wide">
-          <thead><tr><th>Source</th><th>Title</th><th>License</th><th>Raw cache</th><th>Spans</th><th>Relation</th></tr></thead>
-          <tbody>${realGuidelineRows}
-          </tbody>
-        </table>
-      </div>
-      ${realGuidelineDetails}
-    </section>
-
-    <section>
-      <h2>Route metrics</h2>
-      <p>Admitted accuracy means the row passed admission checks and matched the locked expected verdict.</p>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Route</th><th>Target syntax</th><th>Model syntax</th><th>Admission</th><th>Admitted accuracy</th><th>Candidate accuracy</th><th>Stability</th></tr></thead>
-          <tbody>${routeRows}
-          </tbody>
-        </table>
-      </div>
-      <details>
-        <summary>Route row audit by seed</summary>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Route</th><th>Group</th><th>Seed</th><th>Model syntax</th><th>Target syntax</th><th>Admitted</th><th>Verdict</th><th>Admitted correct</th><th>Candidate correct</th><th>Diagnostics</th></tr></thead>
-            <tbody>${rawRows}
-            </tbody>
-          </table>
-        </div>
-      </details>
-    </section>
-
-    <section>
-      <h2>Audit archive</h2>
-      <p>Prompt and response transcripts are retained for reproducibility and debugging. They are audit material, not the primary review signal.</p>
-      <details>
-        <summary>Prompt texts (${escapeHtml(promptCatalog.prompt_count)})</summary>
-        <p>Each prompt also exists as a generated text artifact under <code>runs/${escapeHtml(report.run_id)}/prompts/</code>.</p>
-        <div class="table-wrap">
-          <table class="extra-wide">
-            <thead><tr><th>Prompt</th><th>Route</th><th>Groups</th><th>Seeds</th><th>Calls</th><th>Path</th></tr></thead>
-            <tbody>${promptRows}
-            </tbody>
-          </table>
-        </div>
-        ${promptDetails}
-      </details>
-      <details>
-        <summary>Per-call prompt and response transcripts (${escapeHtml(data.model_io.length)})</summary>
-        ${ioBlocks}
       </details>
     </section>
   </main>
