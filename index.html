@@ -15,7 +15,6 @@
       --green: #0f6f5c;
       --amber: #8a5b00;
       --red: #a23b35;
-      --amber-soft: #fff5dc;
       font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       font-size: 15px;
     }
@@ -28,10 +27,6 @@
     code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; font-size: .82rem; overflow-wrap: anywhere; }
     .wrap { width: min(1120px, calc(100vw - 32px)); margin: 0 auto; padding: 22px 0; }
     .lede { margin-top: 8px; font-size: .96rem; }
-    .rank-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
-    .rank-fact { border-left: 3px solid var(--line); padding: 2px 0 2px 10px; min-width: 0; }
-    .rank-fact strong { display: block; font-size: .82rem; margin-bottom: 5px; }
-    .rank-fact span { display: block; color: var(--muted); font-size: .76rem; line-height: 1.35; overflow-wrap: anywhere; }
     .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); margin-top: 16px; }
     table { width: 100%; min-width: 900px; border-collapse: collapse; }
     th, td { border-bottom: 1px solid var(--line); padding: 9px 10px; text-align: left; vertical-align: top; font-size: .82rem; line-height: 1.35; }
@@ -45,11 +40,6 @@
     .fill.green { background: var(--green); }
     .fill.amber { background: var(--amber); }
     .fill.red { background: var(--red); }
-    .note { border-left: 4px solid var(--amber); background: var(--amber-soft); padding: 10px 12px; border-radius: 6px; margin-top: 14px; }
-    .note p { color: var(--ink); font-size: .83rem; }
-    @media (max-width: 860px) {
-      .rank-strip { grid-template-columns: 1fr; }
-    }
     @media (max-width: 680px) {
       .wrap { width: min(100vw - 20px, 1120px); padding: 16px 0; }
       th, td { padding: 8px; }
@@ -61,21 +51,6 @@
     <div class="wrap">
       <h1>Route Ranking</h1>
       <p class="lede">Routes are ranked by accuracy: how often the generated target reached the expected verdict on the current trial rows.</p>
-
-      <div class="rank-strip" aria-label="Route ranking summary">
-        <div class="rank-fact">
-          <strong>Highest accuracy</strong>
-          <span><code>route.ir_hop_chain</code> reached the expected verdict on <code>3/4</code> trial rows.</span>
-        </div>
-        <div class="rank-fact">
-          <strong>Middle group</strong>
-          <span><code>route.single_ir</code>, <code>route.stacked_ir</code>, and <code>route.ckc_layered</code> each reached <code>1/4</code>.</span>
-        </div>
-        <div class="rank-fact">
-          <strong>Least complex</strong>
-          <span><code>route.direct_smt</code> is complexity rank <code>1</code>, but reached <code>0/4</code>.</span>
-        </div>
-      </div>
 
       <div class="table-wrap">
         <table>
@@ -128,9 +103,6 @@
         </table>
       </div>
 
-      <div class="note">
-        <p>Accuracy is the current <code>candidate_verdict_accuracy</code> metric from <code>score_breakdown.json</code>. The current admission gate remains <code>0/4</code> for every route, so this is route-method comparison evidence, not an admitted performance claim.</p>
-      </div>
     </div>
   </main>
 </body>
