@@ -1,26 +1,26 @@
 {
   "artifact_kind": "ManuscriptFigureManifest",
   "bundle_pdf_export": "deterministic_pdf_writer_v0",
-  "bundle_pdf_hash": "db325c1d7d3ce48d5c3250a3588d3160a31df475bf55ad2be74a330dcd32403c",
+  "bundle_pdf_hash": "90470be5f2407458a178de3ffe5e7f9b60d3857b45b9871fd382c0b224340a45",
   "bundle_pdf_page_count": 4,
   "bundle_pdf_path": "manuscript_figures.pdf",
   "figure_count": 4,
   "figures": [
     {
-      "caption": "M2 route mechanics. Both routes consume the same fixture groups and are scored by the same evaluator; the current run shows target-syntax lift only, not admitted verdict lift.",
+      "caption": "Route mechanics. Implemented routes consume the same fixture groups and are scored by the same evaluator; the current run shows target-syntax lift only, not admitted verdict lift.",
       "figure_id": "fig01_route_mechanics",
       "pdf_export": "deterministic_pdf_writer_v0",
       "pdf_path": "fig01_route_mechanics.pdf",
-      "svg_hash": "3396784ffb3e02ab7061559806213f0877366cfdae0827285e91a6282817fffc",
+      "svg_hash": "299ca17aa68a4f9ae3a61413f6a775eb8e40e612937078048220eeaba73d3c8b",
       "svg_path": "fig01_route_mechanics.svg",
       "title": "Route mechanics and evidence boundaries"
     },
     {
-      "caption": "Route metrics from the current M2 run, shown as exact ratios over the route matrix with direct SMT retained as baseline. Candidate verdict accuracy is rejected-output audit evidence, not admitted lift.",
+      "caption": "Route metrics from the current run, shown as exact ratios over the route matrix with direct SMT retained as baseline. Candidate verdict accuracy is rejected-output audit evidence, not admitted lift.",
       "figure_id": "fig02_route_metrics",
       "pdf_export": "deterministic_pdf_writer_v0",
       "pdf_path": "fig02_route_metrics.pdf",
-      "svg_hash": "778ac00d308ac8e4eeb5f5b4ca73c34fa28d706451c9e3a98418fc747c9a4915",
+      "svg_hash": "3ed939b603de3535983d65a4689c01c705324f23b7e62aa564b33f1f514ccb98",
       "svg_path": "fig02_route_metrics.svg",
       "title": "M2 route matrix metrics"
     },
@@ -29,7 +29,7 @@
       "figure_id": "fig03_failure_taxonomy",
       "pdf_export": "deterministic_pdf_writer_v0",
       "pdf_path": "fig03_failure_taxonomy.pdf",
-      "svg_hash": "503fc0ce6b29132541d85af9079793dca1116d0c3ca743cc3b2e15d28406d363",
+      "svg_hash": "f060cf827e99d89dc236dd53365ebab1d8a9de024fcb706133cd215fde4e843c",
       "svg_path": "fig03_failure_taxonomy.svg",
       "title": "Failure taxonomy by route"
     },
@@ -46,6 +46,6 @@
   "generated_by": "tools/build-figures.mjs",
   "output_dir": "figures/manuscript",
   "schema_version": "manuscript_figures.v0",
-  "source_report_hash": "8e8966f010451a239c470dd2979a02976d0e6abc01e5ef1ddf0594fff64f2671",
+  "source_report_hash": "7c9d6abe0dab9ba8fdb6162038d17476b3ae99461e0d085f1c2a131a94aac323",
   "source_report_path": "runs/m2-one-shot/report.json"
 }

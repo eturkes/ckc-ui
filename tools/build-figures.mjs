@@ -255,6 +255,7 @@ function baselineRouteId(report) {
 function routeColor(routeId, index = 0) {
   if (routeId === "route.direct_smt") return colors.direct;
   if (routeId === "route.single_ir") return colors.ir;
+  if (routeId === "route.stacked_ir") return colors.det;
   const palette = [colors.det, colors.purple, colors.blue, colors.warn, colors.gray, colors.bad];
   return palette[index % palette.length];
 }
@@ -295,10 +296,11 @@ function buildRouteMechanicsFigure(report) {
     ?? { route_id: "route.single_ir", compiled_row_count: 0, smt_file_count: 0 };
   const compiledMetric = routeMetric(report, compiledSummary.route_id) ?? routeMetric(report, "route.single_ir") ?? direct;
   const singleIr = routeMetric(report, "route.single_ir");
+  const m2PairOnly = report.route_experiment?.experiment_id === "exp.m2_lift" && routeIdsForReport(report).length === 2 && singleIr;
   addTitle(
     shapes,
     "Route mechanics and evidence boundaries",
-    "M2 compares baseline target emission with route outputs over identical fixture groups.",
+    "The route matrix compares baseline target emission with route outputs over identical fixture groups.",
     `run ${report.run_id}`
   );
 
@@ -391,10 +393,10 @@ function buildRouteMechanicsFigure(report) {
   addArrow(shapes, 1155, 492, 1260, 492);
 
   addRect(shapes, 70, 665, 1460, 110, { fill: "#fbfcfd", stroke: colors.grid, strokeWidth: 2, rx: 8 });
-  addText(shapes, "Current R3 result", 96, 705, { size: 22, weight: "bold" });
+  addText(shapes, m2PairOnly ? "Current R3 result" : "Route matrix result", 96, 705, { size: 22, weight: "bold" });
   addWrappedText(
     shapes,
-    singleIr
+    m2PairOnly
       ? `The run shows a target-syntax lift (${ratioExact(direct.target_syntax_validity)} -> ${ratioExact(singleIr.target_syntax_validity)}) but no admitted lift: baseline admitted accuracy is ${ratioExact(direct.admitted_verdict_accuracy)} and single_ir admitted accuracy is ${ratioExact(singleIr.admitted_verdict_accuracy)}. Candidate verdict accuracy for single_ir is ${ratioExact(singleIr.candidate_verdict_accuracy)} and remains rejected evidence.`
       : `The route matrix keeps ${baselineId} as baseline. Highest target syntax is ${shortRouteLabel(bestRouteForMetric(report, "target_syntax_validity").route_id)} at ${ratioExact(bestRouteForMetric(report, "target_syntax_validity").target_syntax_validity)}; candidate accuracy remains rejected-output audit evidence.`,
     96,
@@ -407,8 +409,8 @@ function buildRouteMechanicsFigure(report) {
     `Scope: ${report.wording_scope}; ${report.m2_evaluation.evaluation_strength}. This figure makes no clinical, patient-care, deployment, or regulatory claim.`
   );
   const mechanicsCaption = singleIr && ratioValue(singleIr.target_syntax_validity) > ratioValue(direct.target_syntax_validity)
-    ? "M2 route mechanics. Both routes consume the same fixture groups and are scored by the same evaluator; the current run shows target-syntax lift only, not admitted verdict lift."
-    : "M2 route mechanics. Routes consume the same fixture groups and are scored by the same evaluator; admitted verdict lift is shown only when route-matrix rows exceed the direct SMT baseline.";
+    ? "Route mechanics. Implemented routes consume the same fixture groups and are scored by the same evaluator; the current run shows target-syntax lift only, not admitted verdict lift."
+    : "Route mechanics. Routes consume the same fixture groups and are scored by the same evaluator; admitted verdict lift is shown only when route-matrix rows exceed the direct SMT baseline.";
   return scene(
     "fig01_route_mechanics",
     "Route mechanics and evidence boundaries",
@@ -425,7 +427,7 @@ function buildRouteMetricsFigure(report) {
   const sampleCount = Math.max(...report.metrics.route_metrics.map((entry) => entry.samples ?? 0));
   addTitle(
     shapes,
-    "M2 route matrix metrics",
+    report.route_experiment?.experiment_id === "exp.m2_lift" ? "M2 route matrix metrics" : "Route matrix metrics",
     "Exact-ratio measurements over identical groups and seeds per route.",
     `n = ${sampleCount} rows per route`
   );
@@ -503,8 +505,8 @@ function buildRouteMetricsFigure(report) {
   );
   return scene(
     "fig02_route_metrics",
-    "M2 route matrix metrics",
-    "Route metrics from the current M2 run, shown as exact ratios over the route matrix with direct SMT retained as baseline. Candidate verdict accuracy is rejected-output audit evidence, not admitted lift.",
+    report.route_experiment?.experiment_id === "exp.m2_lift" ? "M2 route matrix metrics" : "Route matrix metrics",
+    "Route metrics from the current run, shown as exact ratios over the route matrix with direct SMT retained as baseline. Candidate verdict accuracy is rejected-output audit evidence, not admitted lift.",
     1600,
     900,
     shapes
@@ -522,13 +524,19 @@ function buildFailureTaxonomyFigure(report) {
     "row-category hits"
   );
   const counts = report.route_evaluation.route_category_counts;
-  const categories = [
-    ["syntax", colors.direct],
-    ["grounding", colors.ir],
-    ["unsupported_schema", colors.warn],
-    ["wrong_verdict", colors.bad],
-    ["process", colors.gray]
-  ];
+  const categoryColors = {
+    syntax: colors.direct,
+    grounding: colors.ir,
+    bridge: colors.det,
+    compiled_target: colors.purple,
+    unsupported_schema: colors.warn,
+    wrong_verdict: colors.bad,
+    scaffold: colors.blue,
+    process: colors.gray
+  };
+  const categories = Object.keys(report.route_evaluation.diagnostic_categories ?? {})
+    .filter((category) => routeIds.some((routeId) => (counts[routeId]?.[category] ?? 0) > 0) || category === "wrong_verdict")
+    .map((category) => [category, categoryColors[category] ?? colors.gray]);
   const chart = { x: 150, y: 170, w: 1120, h: 520 };
   for (let tick = 0; tick <= 3; tick += 1) {
     const value = Math.round((sampleCount * tick) / 3);

@@ -57,7 +57,7 @@ let m1InputRefs = null;
 let selectedExperiment = null;
 let unimplementedRouteIds = [];
 const baselineRouteId = "route.direct_smt";
-const implementedRouteIds = new Set(["route.direct_smt", "route.single_ir"]);
+const implementedRouteIds = new Set(["route.direct_smt", "route.single_ir", "route.stacked_ir"]);
 const comparisonMetricIds = [
   "target_syntax_validity",
   "admission_rate",
@@ -1271,16 +1271,72 @@ function irRuleJsonSchema() {
   };
 }
 
-function jsonSchemaForRoute(routeId, groupId, sourceLabel = null) {
-  if (routeId !== "route.single_ir") return null;
-  if (sourceLabel) return JSON.stringify(irRuleJsonSchema());
+const stackedIrSchemaId = "schema.stacked_ir.v0";
+const stackedSourceFrameFieldSpecs = {
+  population: {
+    property: { enum: ["adult", "child", "unknown"] }
+  },
+  condition_sepsis: {
+    property: { enum: ["present", "absent", "unknown"] }
+  },
+  action: {
+    property: { enum: ["abx_a", "none", "unknown"] }
+  },
+  deontic: {
+    property: { enum: ["recommend", "contraindicate", "unknown"] }
+  },
+  pregnancy_scope: {
+    property: { enum: ["present", "absent", "unknown"] }
+  },
+  renal_exception: {
+    property: { enum: ["yes", "no", "unknown"] }
+  }
+};
+
+function stackedSourceFrameJsonSchema() {
+  return {
+    type: "object",
+    additionalProperties: false,
+    required: Object.keys(stackedSourceFrameFieldSpecs),
+    properties: Object.fromEntries(Object.entries(stackedSourceFrameFieldSpecs).map(([field, spec]) => [field, spec.property]))
+  };
+}
+
+function stackedIrEntryJsonSchema() {
+  return {
+    type: "object",
+    additionalProperties: false,
+    required: ["source_frame", "rule_row"],
+    properties: {
+      source_frame: stackedSourceFrameJsonSchema(),
+      rule_row: irRuleJsonSchema()
+    }
+  };
+}
+
+function stackedIrJsonSchema(groupId) {
   const labels = modelCaseForGroup(groupId).labels;
-  return JSON.stringify({
+  return {
     type: "object",
     additionalProperties: false,
     required: labels,
-    properties: Object.fromEntries(labels.map((label) => [label, irRuleJsonSchema()]))
-  });
+    properties: Object.fromEntries(labels.map((label) => [label, stackedIrEntryJsonSchema()]))
+  };
+}
+
+function jsonSchemaForRoute(routeId, groupId, sourceLabel = null) {
+  if (routeId === "route.single_ir") {
+    if (sourceLabel) return JSON.stringify(irRuleJsonSchema());
+    const labels = modelCaseForGroup(groupId).labels;
+    return JSON.stringify({
+      type: "object",
+      additionalProperties: false,
+      required: labels,
+      properties: Object.fromEntries(labels.map((label) => [label, irRuleJsonSchema()]))
+    });
+  }
+  if (routeId === "route.stacked_ir") return JSON.stringify(stackedIrJsonSchema(groupId));
+  return null;
 }
 
 function promptForSingleIrPair(groupId) {
@@ -1295,6 +1351,37 @@ function promptForSingleIrPair(groupId) {
     `source labels: ${modelCase.labels.join(", ")}`,
     ...sourceCueEvidenceLines(groupId),
     ...cueGuideLines(),
+    "Required output schema:",
+    schema
+  ].join("\n");
+}
+
+function stackedFrameGuideLines() {
+  return [
+    "Stack contract:",
+    "- source_frame.population: adult, child, or unknown.",
+    "- source_frame.condition_sepsis: present when the excerpt mentions 敗血症.",
+    "- source_frame.action: abx_a when 抗菌薬A is the medication; none when absent.",
+    "- source_frame.deontic: recommend for 推奨する; contraindicate for 投与しないこと or 禁忌.",
+    "- source_frame.pregnancy_scope: present only when 妊娠中 is in the source excerpt.",
+    "- source_frame.renal_exception: yes only when the exception sentence excludes 重度腎機能障害.",
+    "- rule_row must translate source_frame into the downstream row fields using the same mapping guide."
+  ];
+}
+
+function promptForStackedIrPair(groupId) {
+  const modelCase = modelCaseForGroup(groupId);
+  const schema = JSON.stringify(JSON.parse(jsonSchemaForRoute("route.stacked_ir", groupId)), null, 2);
+  return [
+    "You are preparing a staged import payload for a hospital CDS knowledge-base maintenance queue.",
+    "The excerpts are guideline-derived content for rules-engine review, not a patient-specific recommendation.",
+    "For each source label, fill source_frame first, then translate it into rule_row.",
+    "Keep source labels unchanged. Use only the listed enum tokens and fields. Return JSON only, with no prose.",
+    `maintenance ticket: ${modelCase.case_id}`,
+    `source labels: ${modelCase.labels.join(", ")}`,
+    ...sourceCueEvidenceLines(groupId),
+    ...cueGuideLines(),
+    ...stackedFrameGuideLines(),
     "Required output schema:",
     schema
   ].join("\n");
@@ -1344,6 +1431,7 @@ function promptFor(routeId, groupId, seed) {
       ...directSourceLines
     ].join("\n");
   }
+  if (routeId === "route.stacked_ir") return promptForStackedIrPair(groupId);
   return [
     ...common,
     `Fill one CDS import JSON object for each source label: ${modelCase.labels.join(", ")}.`,
@@ -1367,9 +1455,11 @@ function requireLiveModelReady() {
 
 function llamaArgs(prompt, seed, routeId, groupId, sourceLabel = null) {
   const schema = jsonSchemaForRoute(routeId, groupId, sourceLabel);
-  const routeArgs = routeId === "route.single_ir"
-    ? ["-n", "220", "--ctx-size", "2048", "--temp", "0", "--top-k", "1"]
-    : ["-n", "160", "--ctx-size", "2048", "--temp", "0", "--top-k", "1"];
+  const routeArgs = routeId === "route.stacked_ir"
+    ? ["-n", "420", "--ctx-size", "3072", "--temp", "0", "--top-k", "1"]
+    : routeId === "route.single_ir"
+      ? ["-n", "220", "--ctx-size", "2048", "--temp", "0", "--top-k", "1"]
+      : ["-n", "160", "--ctx-size", "2048", "--temp", "0", "--top-k", "1"];
   return [
     "-m", modelPath,
     "-p", prompt,
@@ -1481,8 +1571,10 @@ function extractJsonObject(text) {
 }
 
 const diagnosticCategoryDefinitions = {
-  syntax: ["target_parse_error", "ai_schema_violation"],
-  grounding: ["ai_hallucinated_source", "semantic_slot_missing"],
+  syntax: ["target_parse_error", "ai_schema_violation", "stacked_ir_schema_invalid"],
+  grounding: ["ai_hallucinated_source", "semantic_slot_missing", "stacked_ir_grounding_mismatch"],
+  bridge: ["stacked_ir_bridge_incomplete", "stacked_ir_bridge_inconsistent"],
+  compiled_target: ["stacked_ir_compiled_target_failure"],
   unsupported_schema: ["unsupported_ir_fragment"],
   wrong_verdict: ["false_positive_conflict", "false_negative_conflict"],
   scaffold: ["deferred_gate_required"],
@@ -1620,7 +1712,9 @@ function ruleFromIrRow(label, row) {
   };
 }
 
-function routeRuleIrFromRows(parsed, groupId) {
+function routeRuleIrFromRows(parsed, groupId, options = {}) {
+  const routeId = options.routeId ?? "route.single_ir";
+  const bridgeSourceSchemaId = options.bridgeSourceSchemaId ?? null;
   const labels = modelCaseForGroup(groupId).labels;
   const rules = labels
     .filter((label) => validIrRow(parsed?.[label]))
@@ -1633,12 +1727,224 @@ function routeRuleIrFromRows(parsed, groupId) {
     artifact_kind: "RouteRuleIR",
     schema_id: "schema.route_rule_ir.v0",
     description: "Contrived fixture-scale IR: one source-local cue row compiles to one NormRule-like route rule.",
-    route_id: "route.single_ir",
+    route_id: routeId,
     group_id: groupId,
     labels,
     rows: labels.map((label) => ({ source_label: label, cue_row: parsed?.[label] ?? null })),
-    rules
+    rules,
+    ...(bridgeSourceSchemaId ? { bridge_source_schema_id: bridgeSourceSchemaId } : {}),
+    ...(options.bridge ? { deterministic_bridge: options.bridge } : {})
   };
+}
+
+function objectHasExactKeys(value, expectedKeys) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const keys = Object.keys(value).sort();
+  const expected = [...expectedKeys].sort();
+  return keys.join("\u0000") === expected.join("\u0000");
+}
+
+function validStackedSourceFrame(frame) {
+  return objectHasExactKeys(frame, Object.keys(stackedSourceFrameFieldSpecs))
+    && Object.entries(stackedSourceFrameFieldSpecs).every(([field, spec]) => spec.property.enum.includes(frame[field]));
+}
+
+function validStackedEntry(entry) {
+  return objectHasExactKeys(entry, ["source_frame", "rule_row"])
+    && validStackedSourceFrame(entry.source_frame)
+    && validIrRow(entry.rule_row);
+}
+
+function stackedSourceFrameFromCueFields(fields) {
+  return {
+    population: fields.age,
+    condition_sepsis: fields.sepsis,
+    action: fields.action_abx_a === "present" ? "abx_a" : fields.action_abx_a === "absent" ? "none" : "unknown",
+    deontic: fields.direction === "for" ? "recommend" : fields.direction === "contraindicate" ? "contraindicate" : "unknown",
+    pregnancy_scope: fields.pregnancy,
+    renal_exception: fields.renal_exception
+  };
+}
+
+function cueFieldsFromStackedSourceFrame(frame) {
+  return {
+    direction: frame.deontic === "recommend" ? "for" : frame.deontic === "contraindicate" ? "contraindicate" : "unknown",
+    action_abx_a: frame.action === "abx_a" ? "present" : frame.action === "none" ? "absent" : "unknown",
+    age: frame.population,
+    sepsis: frame.condition_sepsis,
+    pregnancy: frame.pregnancy_scope,
+    renal_exception: frame.renal_exception
+  };
+}
+
+function stackedResidual({ stage, code, label, field = null, expected = null, observed = null, baseCode = null, reason }) {
+  return {
+    stage,
+    code,
+    ...(baseCode ? { base_code: baseCode } : {}),
+    source_label: label,
+    field,
+    expected,
+    observed,
+    reason
+  };
+}
+
+function stackedSchemaResiduals(parsed, groupId) {
+  const labels = modelCaseForGroup(groupId).labels;
+  const residuals = [];
+  if (!objectHasExactKeys(parsed, labels)) {
+    residuals.push(stackedResidual({
+      stage: "schema",
+      code: "stacked_ir_schema_invalid",
+      baseCode: "ai_schema_violation",
+      label: null,
+      expected: labels,
+      observed: parsed && typeof parsed === "object" && !Array.isArray(parsed) ? Object.keys(parsed).sort() : typeof parsed,
+      reason: "Stacked JSON must be an object keyed exactly by source labels."
+    }));
+    return residuals;
+  }
+  for (const label of labels) {
+    const entry = parsed?.[label];
+    if (!objectHasExactKeys(entry, ["source_frame", "rule_row"])) {
+      residuals.push(stackedResidual({
+        stage: "schema",
+        code: "stacked_ir_schema_invalid",
+        baseCode: "ai_schema_violation",
+        label,
+        expected: ["source_frame", "rule_row"],
+        observed: entry && typeof entry === "object" && !Array.isArray(entry) ? Object.keys(entry).sort() : typeof entry,
+        reason: "Each source label must contain exactly source_frame and rule_row."
+      }));
+      continue;
+    }
+    if (!validStackedSourceFrame(entry.source_frame)) {
+      residuals.push(stackedResidual({
+        stage: "schema",
+        code: "stacked_ir_schema_invalid",
+        baseCode: "ai_schema_violation",
+        label,
+        field: "source_frame",
+        expected: stackedSourceFrameJsonSchema(),
+        observed: entry.source_frame,
+        reason: "source_frame violates the stacked source-frame enum contract."
+      }));
+    }
+    if (!validIrRow(entry.rule_row)) {
+      residuals.push(stackedResidual({
+        stage: "schema",
+        code: "stacked_ir_schema_invalid",
+        baseCode: "ai_schema_violation",
+        label,
+        field: "rule_row",
+        expected: irRuleJsonSchema(),
+        observed: entry.rule_row,
+        reason: "rule_row violates the downstream route_rule_ir.v0 cue-row contract."
+      }));
+    }
+  }
+  return residuals;
+}
+
+function stackedFieldResidual({ label, field, expected, observed, stage, reason }) {
+  const baseCode = observed === "unknown"
+    || (expected === "present" && observed === "absent")
+    || (expected === "yes" && observed === "no")
+    ? "semantic_slot_missing"
+    : "ai_hallucinated_source";
+  return stackedResidual({
+    stage,
+    code: "stacked_ir_grounding_mismatch",
+    baseCode,
+    label,
+    field,
+    expected,
+    observed,
+    reason
+  });
+}
+
+function stackedGroundingResiduals(parsed, groupId) {
+  const residuals = [];
+  for (const label of modelCaseForGroup(groupId).labels) {
+    const entry = parsed?.[label];
+    if (!validStackedEntry(entry)) continue;
+    const expectedCue = expectedCueFields(label);
+    const expectedFrame = stackedSourceFrameFromCueFields(expectedCue);
+    for (const field of Object.keys(stackedSourceFrameFieldSpecs)) {
+      if (entry.source_frame[field] !== expectedFrame[field]) {
+        residuals.push(stackedFieldResidual({
+          label,
+          field: `source_frame.${field}`,
+          expected: expectedFrame[field],
+          observed: entry.source_frame[field],
+          stage: "grounding",
+          reason: "source_frame is not grounded in the quoted source cue evidence."
+        }));
+      }
+    }
+    for (const field of Object.keys(cueFieldSpecs)) {
+      if (entry.rule_row[field] !== expectedCue[field]) {
+        residuals.push(stackedFieldResidual({
+          label,
+          field: `rule_row.${field}`,
+          expected: expectedCue[field],
+          observed: entry.rule_row[field],
+          stage: "grounding",
+          reason: "rule_row is not grounded in the quoted source cue evidence."
+        }));
+      }
+    }
+  }
+  return residuals;
+}
+
+function stackedBridgeResiduals(parsed, groupId) {
+  const residuals = [];
+  for (const label of modelCaseForGroup(groupId).labels) {
+    const entry = parsed?.[label];
+    if (!validStackedEntry(entry)) continue;
+    const rowFromFrame = cueFieldsFromStackedSourceFrame(entry.source_frame);
+    for (const field of Object.keys(cueFieldSpecs)) {
+      if (entry.rule_row[field] !== rowFromFrame[field]) {
+        residuals.push(stackedResidual({
+          stage: "bridge",
+          code: "stacked_ir_bridge_inconsistent",
+          label,
+          field,
+          expected: rowFromFrame[field],
+          observed: entry.rule_row[field],
+          reason: "rule_row is not a deterministic translation of source_frame."
+        }));
+      }
+    }
+    for (const field of ["direction", "action_abx_a", "age"]) {
+      if (entry.rule_row[field] === "unknown" || (field === "action_abx_a" && entry.rule_row[field] !== "present")) {
+        residuals.push(stackedResidual({
+          stage: "bridge",
+          code: "stacked_ir_bridge_incomplete",
+          label,
+          field,
+          expected: field === "action_abx_a" ? "present" : "known",
+          observed: entry.rule_row[field],
+          reason: "The bridge cannot form a complete route_rule_ir.v0 rule for deterministic SMT compilation."
+        }));
+      }
+    }
+  }
+  return residuals;
+}
+
+function stackedRuleRows(parsed, groupId) {
+  return Object.fromEntries(modelCaseForGroup(groupId).labels.map((label) => [
+    label,
+    validStackedEntry(parsed?.[label]) ? parsed[label].rule_row : null
+  ]));
+}
+
+function diagnosticCodesFromResiduals(residuals) {
+  return [...new Set(residuals.flatMap((residual) => [residual.code, residual.base_code].filter(Boolean)))];
 }
 
 function evaluateIrRows(parsed, groupId) {
@@ -1680,6 +1986,7 @@ function compileRouteIrToSmt(routeIr, groupId, seed, expected) {
       seed,
       compiler_id: "route_rule_ir_v0_to_smt_v0",
       source_ir_schema_id: routeIr.schema_id,
+      bridge_source_schema_id: routeIr.bridge_source_schema_id ?? null,
       target_profile: "smt-lib-2",
       syntax_valid: false,
       admitted: false,
@@ -1731,6 +2038,7 @@ function compileRouteIrToSmt(routeIr, groupId, seed, expected) {
     seed,
     compiler_id: "route_rule_ir_v0_to_smt_v0",
     source_ir_schema_id: routeIr.schema_id,
+    bridge_source_schema_id: routeIr.bridge_source_schema_id ?? null,
     target_profile: "smt-lib-2",
     input_ir_hash: sha256(routeIr),
     target_hash: sha256(smtFiles.map((entry) => ({
@@ -1821,6 +2129,133 @@ function classifySingleIrCandidate(extracted, groupId, expected, seed) {
   };
 }
 
+function classifyStackedIrCandidate(extracted, groupId, expected, seed) {
+  const parsed = extracted?.value;
+  const model_output_syntax_valid = Boolean(parsed);
+  const residuals = [];
+  if (!model_output_syntax_valid) {
+    residuals.push(stackedResidual({
+      stage: "schema",
+      code: "stacked_ir_schema_invalid",
+      baseCode: "ai_schema_violation",
+      label: null,
+      expected: stackedIrJsonSchema(groupId),
+      observed: "no_json_object",
+      reason: "No parseable stacked JSON object was found in the model output."
+    }));
+  }
+
+  const schemaResiduals = model_output_syntax_valid ? stackedSchemaResiduals(parsed, groupId) : [];
+  const schemaValid = model_output_syntax_valid && schemaResiduals.length === 0;
+  const groundingResiduals = schemaValid ? stackedGroundingResiduals(parsed, groupId) : [];
+  const bridgeResiduals = schemaValid ? stackedBridgeResiduals(parsed, groupId) : [];
+  residuals.push(...schemaResiduals, ...groundingResiduals, ...bridgeResiduals);
+
+  const routeRows = schemaValid ? stackedRuleRows(parsed, groupId) : {};
+  const bridge = schemaValid ? {
+    bridge_id: "stacked_ir_v0_to_route_rule_ir_v0",
+    source_schema_id: stackedIrSchemaId,
+    target_schema_id: "schema.route_rule_ir.v0",
+    source_frames: Object.fromEntries(modelCaseForGroup(groupId).labels.map((label) => [label, parsed[label].source_frame])),
+    rule_rows: routeRows,
+    residuals: [...groundingResiduals, ...bridgeResiduals]
+  } : null;
+  const routeIr = schemaValid
+    ? routeRuleIrFromRows(routeRows, groupId, {
+        routeId: "route.stacked_ir",
+        bridgeSourceSchemaId: stackedIrSchemaId,
+        bridge
+      })
+    : null;
+  const evaluated = schemaValid ? evaluateIrRows(routeRows, groupId) : { verdict: "target_syntax_failure", route_ir_rules: [], overlap: null };
+  const compiledTarget = routeIr ? compileRouteIrToSmt(routeIr, groupId, seed, expected) : null;
+  if (compiledTarget && !compiledTarget.syntax_valid) {
+    residuals.push(stackedResidual({
+      stage: "compiled_target",
+      code: "stacked_ir_compiled_target_failure",
+      baseCode: "unsupported_ir_fragment",
+      label: null,
+      expected: "complete route_rule_ir.v0 rules",
+      observed: compiledTarget.verdict,
+      reason: "The bridged route_rule_ir.v0 payload did not compile into a syntax-valid SMT target."
+    }));
+  }
+  if (compiledTarget) {
+    for (const code of compiledTarget.diagnostics) {
+      residuals.push(stackedResidual({
+        stage: "compiled_target",
+        code,
+        label: null,
+        expected,
+        observed: compiledTarget.verdict,
+        reason: "Compiled target verdict differs from the locked expected route outcome."
+      }));
+    }
+  }
+
+  const verdict = compiledTarget?.verdict ?? evaluated.verdict;
+  const compiledDiagnosticCodes = new Set(compiledTarget?.diagnostics ?? []);
+  if (schemaValid && verdict === "unknown" && !residuals.some((residual) => residual.code === "stacked_ir_bridge_incomplete")) {
+    residuals.push(stackedResidual({
+      stage: "bridge",
+      code: "stacked_ir_bridge_incomplete",
+      label: null,
+      expected: "known action, direction, and age fields",
+      observed: "unknown",
+      reason: "The stacked payload could not be evaluated into a known conflict-task verdict."
+    }));
+  }
+  if (verdict === "semantic_contradiction" && expected === "semantic_no_conflict" && !compiledDiagnosticCodes.has("false_positive_conflict")) {
+    residuals.push(stackedResidual({
+      stage: "compiled_target",
+      code: "false_positive_conflict",
+      label: null,
+      expected,
+      observed: verdict,
+      reason: "Compiled target produced a conflict where the locked group is a documented null result."
+    }));
+  }
+  if (verdict === "semantic_no_conflict" && expected === "semantic_contradiction" && !compiledDiagnosticCodes.has("false_negative_conflict")) {
+    residuals.push(stackedResidual({
+      stage: "compiled_target",
+      code: "false_negative_conflict",
+      label: null,
+      expected,
+      observed: verdict,
+      reason: "Compiled target missed the locked semantic contradiction."
+    }));
+  }
+  const diagnostics = diagnosticCodesFromResiduals(residuals);
+  const target_syntax_valid = Boolean(compiledTarget?.syntax_valid);
+
+  return {
+    syntax_valid: target_syntax_valid,
+    target_syntax_valid,
+    model_output_syntax_valid: schemaValid,
+    admitted: target_syntax_valid && diagnostics.every((code) => !blocksAdmission(code)),
+    verdict: target_syntax_valid ? verdict : "target_syntax_failure",
+    diagnostics,
+    parsed: model_output_syntax_valid ? {
+      schema_id: stackedIrSchemaId,
+      stack: parsed,
+      route_ir: routeIr,
+      deterministic_bridge: {
+        ...bridge,
+        evaluated
+      },
+      stage_diagnostics: {
+        schema: schemaResiduals,
+        grounding: groundingResiduals,
+        bridge: bridgeResiduals,
+        compiled_target: residuals.filter((residual) => residual.stage === "compiled_target")
+      },
+      residuals
+    } : null,
+    compiled_target: compiledTarget,
+    candidate_text: extracted?.text ?? ""
+  };
+}
+
 function extractSmtCandidateText(output) {
   const cleaned = cleanModelText(output);
   const start = cleaned.indexOf("(set-logic");
@@ -1841,6 +2276,7 @@ function runLiveRoute(routeId, groupId, seed, expected) {
     throw new Error(`route ${routeId} is registered but unimplemented; use --scaffold-routes for closed scaffold rows`);
   }
   if (routeId === "route.single_ir") return runLiveSingleIrRoute(groupId, seed, expected);
+  if (routeId === "route.stacked_ir") return runLiveStackedIrRoute(groupId, seed, expected);
   const prompt = promptFor(routeId, groupId, seed);
   const subprocess = runLlama(prompt, seed, routeId, groupId);
   const rawOutput = cleanModelText(subprocess.stdout, prompt);
@@ -1861,6 +2297,72 @@ function runLiveRoute(routeId, groupId, seed, expected) {
     response: classified.candidate_text ?? output,
     parsed_response: classified.parsed ?? null,
     subprocess,
+    live_call_count: 1
+  };
+}
+
+function runLiveStackedIrRoute(groupId, seed, expected) {
+  const labels = modelCaseForGroup(groupId).labels;
+  const processDiagnostics = [];
+  const prompt = promptForStackedIrPair(groupId);
+  const subprocess = runLlama(prompt, seed, "route.stacked_ir", groupId);
+  const rawOutput = cleanModelText(subprocess.stdout, prompt);
+  const extracted = extractJsonObject(rawOutput);
+  const candidate = extracted?.value && typeof extracted.value === "object" && !Array.isArray(extracted.value)
+    ? extracted.value
+    : {};
+  if (!extracted?.value) processDiagnostics.push("stacked_ir_schema_invalid", "ai_schema_violation");
+  if (subprocess.exit_status !== 0 || subprocess.signal || subprocess.error) processDiagnostics.push("process_crash");
+  const candidateText = JSON.stringify(stable(candidate), null, 2);
+  const classified = classifyStackedIrCandidate({ value: candidate, text: candidateText }, groupId, expected, seed);
+  const routeCall = {
+    granularity: "source_pair",
+    labels,
+    schema_id: stackedIrSchemaId,
+    cue_inputs: Object.fromEntries(labels.map((label) => [label, sourceCuesForLabel(label)])),
+    prompt,
+    prompt_hash: sha256Text(prompt),
+    response: extracted?.text ?? rawOutput,
+    parsed_response: extracted?.value ?? null,
+    response_hash: sha256(extracted?.text ?? rawOutput),
+    subprocess
+  };
+  const aggregateSubprocess = {
+    exit_status: subprocess.exit_status,
+    signal: subprocess.signal,
+    error: subprocess.error,
+    timed_out: subprocess.timed_out,
+    command: {
+      executable: path.relative(root, llamaCliPath),
+      args: ["<source-pair-stacked-json-call>"]
+    },
+    calls: [{
+      labels,
+      granularity: routeCall.granularity,
+      command: subprocess.command,
+      exit_status: subprocess.exit_status,
+      signal: subprocess.signal,
+      error: subprocess.error,
+      timed_out: subprocess.timed_out
+    }]
+  };
+  return {
+    route_id: "route.stacked_ir",
+    group_id: groupId,
+    seed,
+    syntax_valid: classified.syntax_valid,
+    target_syntax_valid: classified.target_syntax_valid,
+    model_output_syntax_valid: classified.model_output_syntax_valid,
+    admitted: classified.admitted && processDiagnostics.every((code) => code !== "process_crash"),
+    verdict: processDiagnostics.includes("process_crash") ? "solver_execution_failure" : classified.verdict,
+    diagnostics: [...new Set([...classified.diagnostics, ...processDiagnostics])],
+    prompt,
+    response: classified.candidate_text,
+    parsed_response: classified.parsed ?? null,
+    compiled_target: classified.compiled_target ?? null,
+    subprocess: aggregateSubprocess,
+    route_call: routeCall,
+    source_calls: null,
     live_call_count: 1
   };
 }
@@ -2074,7 +2576,7 @@ function buildSourceCueLayer() {
     artifact_kind: "SourceCueLayer",
     extractor_id: "lexical_cue_v1",
     scope: "shared_route_input",
-    fairness_note: "Implemented route rows are evaluated against the same deterministic source-derived cue rows. R3 prompts no longer include the filled single_ir answer object; route.direct_smt composes SMT-LIB directly from source excerpts, while route.single_ir derives bounded JSON rows under cue definitions before deterministic route_rule_ir.v0 to SMT-LIB compilation. Unimplemented registered routes produce closed scaffold rows only when --scaffold-routes is explicit.",
+    fairness_note: "Implemented route rows are evaluated against the same deterministic source-derived cue rows. R3 prompts no longer include filled answer objects; route.direct_smt composes SMT-LIB directly from source excerpts, route.single_ir derives bounded JSON rows, and route.stacked_ir derives source_frame -> rule_row JSON before deterministic route_rule_ir.v0 to SMT-LIB compilation. Unimplemented registered routes produce closed scaffold rows only when --scaffold-routes is explicit.",
     cues: Object.fromEntries(labels.map((label) => [label, {
       ...sourceCuesForLabel(label),
       resolved_fields: expectedCueFields(label)
@@ -2134,6 +2636,7 @@ function buildRouteTargetSummary(ioRecords) {
       route_id: routeId,
       compiled_target: records.length > 0,
       source_ir_schema_ids: [...new Set(records.map((record) => record.compiled_target.source_ir_schema_id).filter(Boolean))].sort(),
+      bridge_source_schema_ids: [...new Set(records.map((record) => record.compiled_target.bridge_source_schema_id).filter(Boolean))].sort(),
       target_profiles: [...new Set(records.map((record) => record.compiled_target.target_profile).filter(Boolean))].sort(),
       compiler_ids: [...new Set(records.map((record) => record.compiled_target.compiler_id).filter(Boolean))].sort(),
       compiled_row_count: records.length,
@@ -2175,11 +2678,11 @@ function buildRouteEvaluation(rawRows) {
     experiment_id: selectedExperimentId,
     evaluator_id: "source_derived_route_pair_evaluator.v2",
     scope: hasScaffoldedRoutes
-      ? "Registered M3 route scaffold over the frozen M2 groups; unimplemented routes emit closed diagnostic rows and no model calls."
-      : "Both M2 routes are scored over the same source-derived expected cue rows and group verdicts.",
+      ? "Registered M3 route comparison over the frozen M2 groups; implemented routes are measured, while still-unimplemented routes emit closed diagnostic rows and no model calls."
+      : "Implemented route rows are scored over the same source-derived expected cue rows and group verdicts.",
     evaluation_strength: hasScaffoldedRoutes ? "route_registry_scaffold_check" : "scaffolded_cue_translation_test",
     evaluation_strength_note: hasScaffoldedRoutes
-      ? "This run proves route registry wiring only for unimplemented routes. Closed scaffold rows are excluded from model-call provenance and carry deferred_gate_required diagnostics instead of fabricated outputs."
+      ? "This run includes measured implemented routes and closed rows for still-unimplemented registered routes. Closed scaffold rows are excluded from model-call provenance and carry deferred_gate_required diagnostics instead of fabricated outputs."
       : "R3 removes exact filled JSON payloads from route.single_ir prompts and adds a holdout mutation group. The prompt still supplies schema and cue definitions, so this remains a scaffolded cue-translation test rather than raw Japanese guideline understanding.",
     harness_change_note: "C1 generalizes the comparison harness from a fixed lift table to a baseline-aware route matrix and per-route target summaries; current route raw rows are still the measurement source.",
     scaffold_mode: scaffoldRoutes,
@@ -2322,6 +2825,8 @@ function promptTemplateId(routeId, granularity) {
   if (routeId === "route.direct_smt") return "prompt.route_direct_smt.cds_ticket_smt_target.v3";
   if (routeId === "route.single_ir" && granularity === "source_pair") return "prompt.route_single_ir.cds_ticket_pair_json.v3";
   if (routeId === "route.single_ir") return "prompt.route_single_ir.cds_ticket_generic_json.v3";
+  if (routeId === "route.stacked_ir" && granularity === "source_pair") return "prompt.route_stacked_ir.cds_ticket_stacked_json.v0";
+  if (routeId === "route.stacked_ir") return "prompt.route_stacked_ir.cds_ticket_stacked_json.v0";
   return `prompt.${routeId.replaceAll(".", "_")}.${granularity}.v3`;
 }
 
@@ -2331,6 +2836,7 @@ function promptOutputContract(routeId, granularity) {
     return "CDS import JSON object keyed by source label; constrained by llama.cpp JSON schema";
   }
   if (routeId === "route.single_ir") return "CDS import JSON object";
+  if (routeId === "route.stacked_ir") return "stacked CDS import JSON: source_frame -> rule_row -> route_rule_ir.v0 bridge";
   return "route-specific model output";
 }
 
@@ -2675,9 +3181,9 @@ function routeMatrixConclusion(report, locale = "en") {
 }
 
 function routeTargetSummaryMarkdown(routeTargetSummary) {
-  const rows = routeTargetSummary.routes.map((route) => `| \`${route.route_id}\` | ${route.compiled_target} | ${route.source_ir_schema_ids.map((entry) => `\`${entry}\``).join(", ") || "none"} | ${route.compiler_ids.map((entry) => `\`${entry}\``).join(", ") || "none"} | ${route.target_profiles.map((entry) => `\`${entry}\``).join(", ") || "none"} | ${route.compiled_row_count} | ${route.smt_file_count} |`).join("\n");
-  return `| Route | Compiled target | IR schema(s) | Compiler(s) | Target profile(s) | Compiled rows | SMT files |
-| --- | --- | --- | --- | --- | ---: | ---: |
+  const rows = routeTargetSummary.routes.map((route) => `| \`${route.route_id}\` | ${route.compiled_target} | ${route.source_ir_schema_ids.map((entry) => `\`${entry}\``).join(", ") || "none"} | ${(route.bridge_source_schema_ids ?? []).map((entry) => `\`${entry}\``).join(", ") || "none"} | ${route.compiler_ids.map((entry) => `\`${entry}\``).join(", ") || "none"} | ${route.target_profiles.map((entry) => `\`${entry}\``).join(", ") || "none"} | ${route.compiled_row_count} | ${route.smt_file_count} |`).join("\n");
+  return `| Route | Compiled target | IR schema(s) | Bridge schema(s) | Compiler(s) | Target profile(s) | Compiled rows | SMT files |
+| --- | --- | --- | --- | --- | --- | ---: | ---: |
 ${rows}`;
 }
 
@@ -2690,6 +3196,8 @@ function markdownReport(report) {
   const directAudit = report.direct_smt_audit;
   const directAuditConclusion = `Direct SMT residual audit: exact template matches ${directAudit.exact_template_match_rate.exact}; rows without named assertions ${directAudit.missing_named_assertion_rate.exact}; rows asserting negated sepsis ${directAudit.negated_sepsis_assertion_rate.exact}. This audit is non-admission evidence for malformed direct target composition under the shared cue layer.`;
   const realGuidelineRows = report.real_guideline_intake.sources.map((source) => `| ${source.id} | ${source.license_label} | ${source.raw_cache_status} | ${source.candidate_span_count} | ${source.admitted_candidate_rule_count} | ${source.rejected_residual_count} | ${source.guideline_relation} |`).join("\n");
+  const routeSectionTitle = report.route_experiment.experiment_id === "exp.m2_lift" ? "M2 route matrix" : "Route matrix";
+  const routeIntro = "Implemented routes finish at SMT-LIB under the same evaluator: direct SMT asks the model for target text, single_ir asks for bounded JSON rows, and stacked_ir asks for a source_frame -> rule_row stack before deterministic route_rule_ir.v0 compilation. Closed scaffold routes, when present, make no model calls and are not fabricated measurements.";
   return `# CKC one-shot M1-M2 research report
 
 Run: \`${report.run_id}\`
@@ -2721,9 +3229,9 @@ ${realGuidelineCoverageMarkdown(report.real_guideline_intake)}
 
 ${realismAuditMarkdown(report.realism_audit)}
 
-## M2 route matrix
+## ${routeSectionTitle}
 
-Shared route input: \`${report.source_cue_layer.extractor_id}\` / cue hash \`${report.source_cue_layer.cue_hash}\`. Both routes finish at SMT-LIB: direct SMT asks the model for target text, while single IR asks the model to derive bounded JSON rows from source excerpts under cue definitions, then compiles \`route_rule_ir.v0\` deterministically to SMT-LIB before verifier scoring.
+Shared route input: \`${report.source_cue_layer.extractor_id}\` / cue hash \`${report.source_cue_layer.cue_hash}\`. ${routeIntro}
 
 Evaluation strength: \`${report.m2_evaluation.evaluation_strength}\`. ${report.m2_evaluation.evaluation_strength_note}
 
@@ -2783,6 +3291,8 @@ function japaneseReport(report) {
   const directAudit = report.direct_smt_audit;
   const directAuditConclusion = `Direct SMT residual audit: exact template match ${directAudit.exact_template_match_rate.exact}、named assertion なし ${directAudit.missing_named_assertion_rate.exact}、negated sepsis assertion ${directAudit.negated_sepsis_assertion_rate.exact}。これは admission 判定外の監査情報であり、shared cue layer 下で direct target composition が malformed になることを記録する。`;
   const realGuidelineRows = report.real_guideline_intake.sources.map((source) => `| ${source.id} | ${source.license_label} | ${source.raw_cache_status} | ${source.candidate_span_count} | ${source.admitted_candidate_rule_count} | ${source.rejected_residual_count} |`).join("\n");
+  const routeSectionTitle = report.route_experiment.experiment_id === "exp.m2_lift" ? "M2 route matrix" : "Route matrix";
+  const routeIntro = "implemented route は同じ evaluator の下で SMT-LIB に到達する。direct SMT は model が target text を直接構成し、single_ir は bounded JSON row、stacked_ir は source_frame -> rule_row stack を出力し、deterministic route_rule_ir.v0 compiler が SMT-LIB に変換する。closed scaffold route がある場合、model call はなく fabricated measurement ではない。";
   return `# CKC one-shot M1-M2 研究レポート
 
 run: \`${report.run_id}\`
@@ -2812,9 +3322,9 @@ ${realGuidelineCoverageMarkdown(report.real_guideline_intake)}
 
 ${realismAuditJapaneseMarkdown(report.realism_audit)}
 
-## M2 route matrix
+## ${routeSectionTitle}
 
-shared route input: \`${report.source_cue_layer.extractor_id}\` / cue hash \`${report.source_cue_layer.cue_hash}\`。両 route は SMT-LIB を final target とする。direct SMT は model が target text を直接構成し、single IR は source excerpt と cue definition から bounded JSON row を導出し、\`route_rule_ir.v0\` から deterministic compiler で SMT-LIB に変換して verifier で score する。
+shared route input: \`${report.source_cue_layer.extractor_id}\` / cue hash \`${report.source_cue_layer.cue_hash}\`。${routeIntro}
 
 evaluation strength: \`${report.m2_evaluation.evaluation_strength}\`。${report.m2_evaluation.evaluation_strength_note}
 

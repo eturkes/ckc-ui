@@ -17,31 +17,26 @@
   <text x="64" y="150" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#596273" text-anchor="start">row hits</text>
   <line x1="150" y1="170" x2="150" y2="690" stroke="#c8d0da" stroke-width="2"/>
   <line x1="150" y1="690" x2="1270" y2="690" stroke="#c8d0da" stroke-width="2"/>
-  <rect x="214" y="343.333" width="44" height="346.667" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
-  <text x="236" y="333.333" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#b45c37" text-anchor="middle">6/9</text>
-  <rect x="266" y="690" width="44" height="0" rx="3" fill="#1f6f8b" stroke="#1f6f8b" stroke-width="1"/>
-  <text x="288" y="680" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#1f6f8b" text-anchor="middle">0/9</text>
-  <text x="176" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">syntax</text>
-  <rect x="438" y="516.667" width="44" height="173.333" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
-  <text x="460" y="506.667" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#b45c37" text-anchor="middle">3/9</text>
-  <rect x="490" y="170" width="44" height="520" rx="3" fill="#1f6f8b" stroke="#1f6f8b" stroke-width="1"/>
-  <text x="512" y="160" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#1f6f8b" text-anchor="middle">9/9</text>
-  <text x="400" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">grounding</text>
-  <rect x="662" y="516.667" width="44" height="173.333" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
-  <text x="684" y="506.667" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#b45c37" text-anchor="middle">3/9</text>
-  <rect x="714" y="690" width="44" height="0" rx="3" fill="#1f6f8b" stroke="#1f6f8b" stroke-width="1"/>
-  <text x="736" y="680" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#1f6f8b" text-anchor="middle">0/9</text>
-  <text x="624" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">unsupported schema</text>
-  <rect x="886" y="690" width="44" height="0" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
-  <text x="908" y="680" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#b45c37" text-anchor="middle">0/9</text>
-  <rect x="938" y="343.333" width="44" height="346.667" rx="3" fill="#1f6f8b" stroke="#1f6f8b" stroke-width="1"/>
-  <text x="960" y="333.333" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#1f6f8b" text-anchor="middle">6/9</text>
-  <text x="848" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">wrong verdict</text>
-  <rect x="1110" y="690" width="44" height="0" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
-  <text x="1132" y="680" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#b45c37" text-anchor="middle">0/9</text>
-  <rect x="1162" y="690" width="44" height="0" rx="3" fill="#1f6f8b" stroke="#1f6f8b" stroke-width="1"/>
-  <text x="1184" y="680" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#1f6f8b" text-anchor="middle">0/9</text>
-  <text x="1072" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">process</text>
+  <rect x="242" y="516.667" width="44" height="173.333" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
+  <text x="264" y="506.667" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#b45c37" text-anchor="middle">3/9</text>
+  <rect x="294" y="170" width="44" height="520" rx="3" fill="#1f6f8b" stroke="#1f6f8b" stroke-width="1"/>
+  <text x="316" y="160" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#1f6f8b" text-anchor="middle">9/9</text>
+  <text x="204" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">grounding</text>
+  <rect x="522" y="343.333" width="44" height="346.667" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
+  <text x="544" y="333.333" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#b45c37" text-anchor="middle">6/9</text>
+  <rect x="574" y="690" width="44" height="0" rx="3" fill="#1f6f8b" stroke="#1f6f8b" stroke-width="1"/>
+  <text x="596" y="680" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#1f6f8b" text-anchor="middle">0/9</text>
+  <text x="484" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">syntax</text>
+  <rect x="802" y="516.667" width="44" height="173.333" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
+  <text x="824" y="506.667" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#b45c37" text-anchor="middle">3/9</text>
+  <rect x="854" y="690" width="44" height="0" rx="3" fill="#1f6f8b" stroke="#1f6f8b" stroke-width="1"/>
+  <text x="876" y="680" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#1f6f8b" text-anchor="middle">0/9</text>
+  <text x="764" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">unsupported schema</text>
+  <rect x="1082" y="690" width="44" height="0" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
+  <text x="1104" y="680" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#b45c37" text-anchor="middle">0/9</text>
+  <rect x="1134" y="343.333" width="44" height="346.667" rx="3" fill="#1f6f8b" stroke="#1f6f8b" stroke-width="1"/>
+  <text x="1156" y="333.333" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#1f6f8b" text-anchor="middle">6/9</text>
+  <text x="1044" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">wrong verdict</text>
   <rect x="1330" y="178" width="105" height="27" rx="12" fill="#fbfcfd" stroke="#b45c37" stroke-width="1"/>
   <text x="1342" y="196" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#b45c37" text-anchor="start">direct_smt</text>
   <rect x="1330" y="220" width="96.9" height="27" rx="12" fill="#fbfcfd" stroke="#1f6f8b" stroke-width="1"/>

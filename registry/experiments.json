@@ -42,8 +42,8 @@
     {
       "id": "exp.m3_routes",
       "basis": "exp.m2_lift",
-      "comparison_scope": "frozen_route_registry_scaffold",
-      "route_registry_status": "includes registered M3 routes before route-specific implementations land",
+      "comparison_scope": "frozen_route_registry_partial_implementation",
+      "route_registry_status": "includes implemented route.stacked_ir plus closed scaffolds for later M3 routes",
       "routes": [
         "route.direct_smt",
         "route.single_ir",

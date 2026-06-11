@@ -81,7 +81,7 @@ Gate:
   routes as closed/scaffolded rather than fabricated measurements
 
 ### C3 Stacked-IR Route
-status: pending
+status: done
 
 Intent: add the first additional route: one model output that fills a compact
 stack of existing IR-shaped forms before deterministic compilation.
