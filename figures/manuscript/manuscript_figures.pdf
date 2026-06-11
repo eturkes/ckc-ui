@@ -10,14 +10,14 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 1600 900] /Resources << /Font << /F1 11 0 R /F2 12 0 R /F3 13 0 R >> >> /Contents 4 0 R >>
 endobj
 4 0 obj
-<< /Length 5278 >>
+<< /Length 5212 >>
 stream
 0.067 0.094 0.153 rg
 BT /F2 32 Tf 54 842 Td (Route mechanics and evidence boundaries) Tj ET
 0.349 0.384 0.451 rg
 BT /F1 19 Tf 54 808 Td (The route matrix compares baseline target emission with route outputs over identical fixture groups.) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1416.4 842 Td (run m2-one-shot) Tj ET
+BT /F1 16 Tf 1433.68 842 Td (run m3-routes) Tj ET
 1 1 1 rg
 0.208 0.361 0.604 RG
 3 w
@@ -205,11 +205,11 @@ h f
 70 125 1460 110 re
 B
 0.067 0.094 0.153 rg
-BT /F2 22 Tf 96 195 Td (Current R3 result) Tj ET
+BT /F2 22 Tf 96 195 Td (Route matrix result) Tj ET
 0.067 0.094 0.153 rg
-BT /F1 18 Tf 96 165 Td (The run shows a target-syntax lift \(3/9 -> 9/9\) but no admitted lift: baseline admitted accuracy is 0/9 and single_ir admitted accuracy is) Tj ET
+BT /F1 18 Tf 96 165 Td (The route matrix keeps route.direct_smt as baseline. Highest target syntax is ir_hop_chain at 9/9; candidate accuracy remains) Tj ET
 0.067 0.094 0.153 rg
-BT /F1 18 Tf 96 140 Td (0/9. Candidate verdict accuracy for single_ir is 3/9 and remains rejected evidence.) Tj ET
+BT /F1 18 Tf 96 140 Td (rejected-output audit evidence.) Tj ET
 0.898 0.914 0.937 RG
 1 w
 54 56 m 1546 56 l S
@@ -223,10 +223,10 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 1600 900] /Resources << /Font << /F1 11 0 R /F2 12 0 R /F3 13 0 R >> >> /Contents 6 0 R >>
 endobj
 6 0 obj
-<< /Length 3753 >>
+<< /Length 6099 >>
 stream
 0.067 0.094 0.153 rg
-BT /F2 32 Tf 54 842 Td (M2 route matrix metrics) Tj ET
+BT /F2 32 Tf 54 842 Td (Route matrix metrics) Tj ET
 0.349 0.384 0.451 rg
 BT /F1 19 Tf 54 808 Td (Exact-ratio measurements over identical groups and seeds per route.) Tj ET
 0.349 0.384 0.451 rg
@@ -265,81 +265,186 @@ BT /F1 15 Tf 69.6 724 Td (100%) Tj ET
 0.706 0.361 0.216 rg
 0.706 0.361 0.216 RG
 1 w
-190 210 44 173.333 re
+138 210 33.6 173.333 re
 B
 0.706 0.361 0.216 rg
-BT /F2 15 Tf 199.85 393.333 Td (3/9) Tj ET
+BT /F2 12 Tf 145.08 393.333 Td (3/9) Tj ET
 0.122 0.435 0.545 rg
 0.122 0.435 0.545 RG
 1 w
-242 210 44 520 re
+179.6 210 33.6 520 re
 B
 0.122 0.435 0.545 rg
-BT /F2 15 Tf 251.85 740 Td (9/9) Tj ET
+BT /F2 12 Tf 186.68 740 Td (9/9) Tj ET
+0.184 0.42 0.31 rg
+0.184 0.42 0.31 RG
+1 w
+221.2 210 33.6 520 re
+B
+0.184 0.42 0.31 rg
+BT /F2 12 Tf 228.28 740 Td (9/9) Tj ET
+0.208 0.361 0.604 rg
+0.208 0.361 0.604 RG
+1 w
+262.8 210 33.6 520 re
+B
+0.208 0.361 0.604 rg
+BT /F2 12 Tf 269.88 740 Td (9/9) Tj ET
+0.435 0.294 0.545 rg
+0.435 0.294 0.545 RG
+1 w
+304.4 210 33.6 0 re
+B
+0.435 0.294 0.545 rg
+BT /F2 12 Tf 311.48 220 Td (0/9) Tj ET
 0.067 0.094 0.153 rg
 BT /F1 16 Tf 103.84 176 Td (Target syntax) Tj ET
 0.706 0.361 0.216 rg
 0.706 0.361 0.216 RG
 1 w
-426 210 44 0 re
+374 210 33.6 0 re
 B
 0.706 0.361 0.216 rg
-BT /F2 15 Tf 435.85 220 Td (0/9) Tj ET
+BT /F2 12 Tf 381.08 220 Td (0/9) Tj ET
 0.122 0.435 0.545 rg
 0.122 0.435 0.545 RG
 1 w
-478 210 44 0 re
+415.6 210 33.6 0 re
 B
 0.122 0.435 0.545 rg
-BT /F2 15 Tf 487.85 220 Td (0/9) Tj ET
+BT /F2 12 Tf 422.68 220 Td (0/9) Tj ET
+0.184 0.42 0.31 rg
+0.184 0.42 0.31 RG
+1 w
+457.2 210 33.6 0 re
+B
+0.184 0.42 0.31 rg
+BT /F2 12 Tf 464.28 220 Td (0/9) Tj ET
+0.208 0.361 0.604 rg
+0.208 0.361 0.604 RG
+1 w
+498.8 210 33.6 0 re
+B
+0.208 0.361 0.604 rg
+BT /F2 12 Tf 505.88 220 Td (0/9) Tj ET
+0.435 0.294 0.545 rg
+0.435 0.294 0.545 RG
+1 w
+540.4 210 33.6 0 re
+B
+0.435 0.294 0.545 rg
+BT /F2 12 Tf 547.48 220 Td (0/9) Tj ET
 0.067 0.094 0.153 rg
 BT /F1 16 Tf 357.12 176 Td (Admission) Tj ET
 0.706 0.361 0.216 rg
 0.706 0.361 0.216 RG
 1 w
-662 210 44 0 re
+610 210 33.6 0 re
 B
 0.706 0.361 0.216 rg
-BT /F2 15 Tf 671.85 220 Td (0/9) Tj ET
+BT /F2 12 Tf 617.08 220 Td (0/9) Tj ET
 0.122 0.435 0.545 rg
 0.122 0.435 0.545 RG
 1 w
-714 210 44 0 re
+651.6 210 33.6 0 re
 B
 0.122 0.435 0.545 rg
-BT /F2 15 Tf 723.85 220 Td (0/9) Tj ET
+BT /F2 12 Tf 658.68 220 Td (0/9) Tj ET
+0.184 0.42 0.31 rg
+0.184 0.42 0.31 RG
+1 w
+693.2 210 33.6 0 re
+B
+0.184 0.42 0.31 rg
+BT /F2 12 Tf 700.28 220 Td (0/9) Tj ET
+0.208 0.361 0.604 rg
+0.208 0.361 0.604 RG
+1 w
+734.8 210 33.6 0 re
+B
+0.208 0.361 0.604 rg
+BT /F2 12 Tf 741.88 220 Td (0/9) Tj ET
+0.435 0.294 0.545 rg
+0.435 0.294 0.545 RG
+1 w
+776.4 210 33.6 0 re
+B
+0.435 0.294 0.545 rg
+BT /F2 12 Tf 783.48 220 Td (0/9) Tj ET
 0.067 0.094 0.153 rg
 BT /F1 16 Tf 558.56 176 Td (Admitted accuracy) Tj ET
 0.706 0.361 0.216 rg
 0.706 0.361 0.216 RG
 1 w
-898 210 44 0 re
+846 210 33.6 0 re
 B
 0.706 0.361 0.216 rg
-BT /F2 15 Tf 907.85 220 Td (0/9) Tj ET
+BT /F2 12 Tf 853.08 220 Td (0/9) Tj ET
 0.122 0.435 0.545 rg
 0.122 0.435 0.545 RG
 1 w
-950 210 44 173.333 re
+887.6 210 33.6 173.333 re
 B
 0.122 0.435 0.545 rg
-BT /F2 15 Tf 959.85 393.333 Td (3/9) Tj ET
+BT /F2 12 Tf 894.68 393.333 Td (3/9) Tj ET
+0.184 0.42 0.31 rg
+0.184 0.42 0.31 RG
+1 w
+929.2 210 33.6 173.333 re
+B
+0.184 0.42 0.31 rg
+BT /F2 12 Tf 936.28 393.333 Td (3/9) Tj ET
+0.208 0.361 0.604 rg
+0.208 0.361 0.604 RG
+1 w
+970.8 210 33.6 520 re
+B
+0.208 0.361 0.604 rg
+BT /F2 12 Tf 977.88 740 Td (9/9) Tj ET
+0.435 0.294 0.545 rg
+0.435 0.294 0.545 RG
+1 w
+1012.4 210 33.6 0 re
+B
+0.435 0.294 0.545 rg
+BT /F2 12 Tf 1019.48 220 Td (0/9) Tj ET
 0.067 0.094 0.153 rg
 BT /F1 16 Tf 790.24 176 Td (Candidate accuracy) Tj ET
 0.706 0.361 0.216 rg
 0.706 0.361 0.216 RG
 1 w
-1134 210 44 0 re
+1082 210 33.6 0 re
 B
 0.706 0.361 0.216 rg
-BT /F2 15 Tf 1143.85 220 Td (0/3) Tj ET
+BT /F2 12 Tf 1089.08 220 Td (0/3) Tj ET
 0.122 0.435 0.545 rg
 0.122 0.435 0.545 RG
 1 w
-1186 210 44 0 re
+1123.6 210 33.6 0 re
 B
 0.122 0.435 0.545 rg
-BT /F2 15 Tf 1195.85 220 Td (0/3) Tj ET
+BT /F2 12 Tf 1130.68 220 Td (0/3) Tj ET
+0.184 0.42 0.31 rg
+0.184 0.42 0.31 RG
+1 w
+1165.2 210 33.6 0 re
+B
+0.184 0.42 0.31 rg
+BT /F2 12 Tf 1172.28 220 Td (0/3) Tj ET
+0.208 0.361 0.604 rg
+0.208 0.361 0.604 RG
+1 w
+1206.8 210 33.6 0 re
+B
+0.208 0.361 0.604 rg
+BT /F2 12 Tf 1213.88 220 Td (0/3) Tj ET
+0.435 0.294 0.545 rg
+0.435 0.294 0.545 RG
+1 w
+1248.4 210 33.6 0 re
+B
+0.435 0.294 0.545 rg
+BT /F2 12 Tf 1255.48 220 Td (0/3) Tj ET
 0.067 0.094 0.153 rg
 BT /F1 16 Tf 1043.52 176 Td (Seed stability) Tj ET
 0.984 0.988 0.992 rg
@@ -357,30 +462,51 @@ B
 0.122 0.435 0.545 rg
 BT /F2 15 Tf 1372 660 Td (single_ir) Tj ET
 0.984 0.988 0.992 rg
+0.184 0.42 0.31 RG
+1 w
+1360 609 105 27 re
+B
+0.184 0.42 0.31 rg
+BT /F2 15 Tf 1372 618 Td (stacked_ir) Tj ET
+0.984 0.988 0.992 rg
+0.208 0.361 0.604 RG
+1 w
+1360 567 121.2 27 re
+B
+0.208 0.361 0.604 rg
+BT /F2 15 Tf 1372 576 Td (ir_hop_chain) Tj ET
+0.984 0.988 0.992 rg
+0.435 0.294 0.545 RG
+1 w
+1360 525 113.1 27 re
+B
+0.435 0.294 0.545 rg
+BT /F2 15 Tf 1372 534 Td (ckc_layered) Tj ET
+0.984 0.988 0.992 rg
 0.898 0.914 0.937 RG
 2 w
-1340 120 205 480 re
+1340 120 205 366 re
 B
 0.067 0.094 0.153 rg
-BT /F2 21 Tf 1360 562 Td (Interpretation) Tj ET
+BT /F2 21 Tf 1360 448 Td (Interpretation) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1360 528 Td (Baseline) Tj ET
+BT /F1 16 Tf 1360 414 Td (Baseline) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1360 506 Td (direct_smt) Tj ET
+BT /F1 16 Tf 1360 392 Td (direct_smt) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1360 484 Td (admitted accuracy) Tj ET
+BT /F1 16 Tf 1360 370 Td (admitted accuracy) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1360 462 Td (is 0/9. Highest) Tj ET
+BT /F1 16 Tf 1360 348 Td (is 0/9. Highest) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1360 440 Td (target syntax:) Tj ET
+BT /F1 16 Tf 1360 326 Td (target syntax:) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1360 418 Td (single_ir 9/9.) Tj ET
+BT /F1 16 Tf 1360 304 Td (ir_hop_chain 9/9.) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1360 396 Td (Highest candidate) Tj ET
+BT /F1 16 Tf 1360 282 Td (Highest candidate) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1360 374 Td (accuracy:) Tj ET
+BT /F1 16 Tf 1360 260 Td (accuracy:) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1360 352 Td (single_ir 3/9.) Tj ET
+BT /F1 16 Tf 1360 238 Td (ir_hop_chain 9/9.) Tj ET
 0.898 0.914 0.937 RG
 1 w
 54 56 m 1546 56 l S
@@ -392,7 +518,7 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 1600 900] /Resources << /Font << /F1 11 0 R /F2 12 0 R /F3 13 0 R >> >> /Contents 8 0 R >>
 endobj
 8 0 obj
-<< /Length 3193 >>
+<< /Length 6695 >>
 stream
 0.067 0.094 0.153 rg
 BT /F2 32 Tf 54 842 Td (Failure taxonomy by route) Tj ET
@@ -431,67 +557,225 @@ BT /F1 16 Tf 64 750 Td (row hits) Tj ET
 0.706 0.361 0.216 rg
 0.706 0.361 0.216 RG
 1 w
-242 210 44 173.333 re
+168 210 23.733 0 re
 B
 0.706 0.361 0.216 rg
-BT /F2 15 Tf 251.85 393.333 Td (3/9) Tj ET
+BT /F2 12 Tf 170.147 220 Td (0/9) Tj ET
 0.122 0.435 0.545 rg
 0.122 0.435 0.545 RG
 1 w
-294 210 44 520 re
+199.733 210 23.733 0 re
 B
 0.122 0.435 0.545 rg
-BT /F2 15 Tf 303.85 740 Td (9/9) Tj ET
+BT /F2 12 Tf 201.88 220 Td (0/9) Tj ET
+0.184 0.42 0.31 rg
+0.184 0.42 0.31 RG
+1 w
+231.467 210 23.733 520 re
+B
+0.184 0.42 0.31 rg
+BT /F2 12 Tf 233.613 740 Td (9/9) Tj ET
+0.208 0.361 0.604 rg
+0.208 0.361 0.604 RG
+1 w
+263.2 210 23.733 520 re
+B
+0.208 0.361 0.604 rg
+BT /F2 12 Tf 265.347 740 Td (9/9) Tj ET
+0.435 0.294 0.545 rg
+0.435 0.294 0.545 RG
+1 w
+294.933 210 23.733 520 re
+B
+0.435 0.294 0.545 rg
+BT /F2 12 Tf 297.08 740 Td (9/9) Tj ET
 0.067 0.094 0.153 rg
-BT /F1 16 Tf 165.12 176 Td (grounding) Tj ET
+BT /F1 16 Tf 131.413 176 Td (bridge) Tj ET
 0.706 0.361 0.216 rg
 0.706 0.361 0.216 RG
 1 w
-522 210 44 346.667 re
+354.667 210 23.733 0 re
 B
 0.706 0.361 0.216 rg
-BT /F2 15 Tf 531.85 566.667 Td (6/9) Tj ET
+BT /F2 12 Tf 356.813 220 Td (0/9) Tj ET
 0.122 0.435 0.545 rg
 0.122 0.435 0.545 RG
 1 w
-574 210 44 0 re
+386.4 210 23.733 0 re
 B
 0.122 0.435 0.545 rg
-BT /F2 15 Tf 583.85 220 Td (0/9) Tj ET
+BT /F2 12 Tf 388.547 220 Td (0/9) Tj ET
+0.184 0.42 0.31 rg
+0.184 0.42 0.31 RG
+1 w
+418.133 210 23.733 0 re
+B
+0.184 0.42 0.31 rg
+BT /F2 12 Tf 420.28 220 Td (0/9) Tj ET
+0.208 0.361 0.604 rg
+0.208 0.361 0.604 RG
+1 w
+449.867 210 23.733 0 re
+B
+0.208 0.361 0.604 rg
+BT /F2 12 Tf 452.013 220 Td (0/9) Tj ET
+0.435 0.294 0.545 rg
+0.435 0.294 0.545 RG
+1 w
+481.6 210 23.733 520 re
+B
+0.435 0.294 0.545 rg
+BT /F2 12 Tf 483.747 740 Td (9/9) Tj ET
 0.067 0.094 0.153 rg
-BT /F1 16 Tf 458.08 176 Td (syntax) Tj ET
+BT /F1 16 Tf 279.2 176 Td (compiled target) Tj ET
 0.706 0.361 0.216 rg
 0.706 0.361 0.216 RG
 1 w
-802 210 44 173.333 re
+541.333 210 23.733 173.333 re
 B
 0.706 0.361 0.216 rg
-BT /F2 15 Tf 811.85 393.333 Td (3/9) Tj ET
+BT /F2 12 Tf 543.48 393.333 Td (3/9) Tj ET
 0.122 0.435 0.545 rg
 0.122 0.435 0.545 RG
 1 w
-854 210 44 0 re
+573.067 210 23.733 520 re
 B
 0.122 0.435 0.545 rg
-BT /F2 15 Tf 863.85 220 Td (0/9) Tj ET
+BT /F2 12 Tf 575.213 740 Td (9/9) Tj ET
+0.184 0.42 0.31 rg
+0.184 0.42 0.31 RG
+1 w
+604.8 210 23.733 520 re
+B
+0.184 0.42 0.31 rg
+BT /F2 12 Tf 606.947 740 Td (9/9) Tj ET
+0.208 0.361 0.604 rg
+0.208 0.361 0.604 RG
+1 w
+636.533 210 23.733 520 re
+B
+0.208 0.361 0.604 rg
+BT /F2 12 Tf 638.68 740 Td (9/9) Tj ET
+0.435 0.294 0.545 rg
+0.435 0.294 0.545 RG
+1 w
+668.267 210 23.733 520 re
+B
+0.435 0.294 0.545 rg
+BT /F2 12 Tf 670.413 740 Td (9/9) Tj ET
 0.067 0.094 0.153 rg
-BT /F1 16 Tf 686.24 176 Td (unsupported schema) Tj ET
+BT /F1 16 Tf 491.787 176 Td (grounding) Tj ET
 0.706 0.361 0.216 rg
 0.706 0.361 0.216 RG
 1 w
-1082 210 44 0 re
+728 210 23.733 346.667 re
 B
 0.706 0.361 0.216 rg
-BT /F2 15 Tf 1091.85 220 Td (0/9) Tj ET
+BT /F2 12 Tf 730.147 566.667 Td (6/9) Tj ET
 0.122 0.435 0.545 rg
 0.122 0.435 0.545 RG
 1 w
-1134 210 44 346.667 re
+759.733 210 23.733 0 re
 B
 0.122 0.435 0.545 rg
-BT /F2 15 Tf 1143.85 566.667 Td (6/9) Tj ET
+BT /F2 12 Tf 761.88 220 Td (0/9) Tj ET
+0.184 0.42 0.31 rg
+0.184 0.42 0.31 RG
+1 w
+791.467 210 23.733 0 re
+B
+0.184 0.42 0.31 rg
+BT /F2 12 Tf 793.613 220 Td (0/9) Tj ET
+0.208 0.361 0.604 rg
+0.208 0.361 0.604 RG
+1 w
+823.2 210 23.733 0 re
+B
+0.208 0.361 0.604 rg
+BT /F2 12 Tf 825.347 220 Td (0/9) Tj ET
+0.435 0.294 0.545 rg
+0.435 0.294 0.545 RG
+1 w
+854.933 210 23.733 0 re
+B
+0.435 0.294 0.545 rg
+BT /F2 12 Tf 857.08 220 Td (0/9) Tj ET
 0.067 0.094 0.153 rg
-BT /F1 16 Tf 987.84 176 Td (wrong verdict) Tj ET
+BT /F1 16 Tf 691.413 176 Td (syntax) Tj ET
+0.706 0.361 0.216 rg
+0.706 0.361 0.216 RG
+1 w
+914.667 210 23.733 173.333 re
+B
+0.706 0.361 0.216 rg
+BT /F2 12 Tf 916.813 393.333 Td (3/9) Tj ET
+0.122 0.435 0.545 rg
+0.122 0.435 0.545 RG
+1 w
+946.4 210 23.733 0 re
+B
+0.122 0.435 0.545 rg
+BT /F2 12 Tf 948.547 220 Td (0/9) Tj ET
+0.184 0.42 0.31 rg
+0.184 0.42 0.31 RG
+1 w
+978.133 210 23.733 0 re
+B
+0.184 0.42 0.31 rg
+BT /F2 12 Tf 980.28 220 Td (0/9) Tj ET
+0.208 0.361 0.604 rg
+0.208 0.361 0.604 RG
+1 w
+1009.867 210 23.733 0 re
+B
+0.208 0.361 0.604 rg
+BT /F2 12 Tf 1012.013 220 Td (0/9) Tj ET
+0.435 0.294 0.545 rg
+0.435 0.294 0.545 RG
+1 w
+1041.6 210 23.733 520 re
+B
+0.435 0.294 0.545 rg
+BT /F2 12 Tf 1043.747 740 Td (9/9) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 16 Tf 826.24 176 Td (unsupported schema) Tj ET
+0.706 0.361 0.216 rg
+0.706 0.361 0.216 RG
+1 w
+1101.333 210 23.733 0 re
+B
+0.706 0.361 0.216 rg
+BT /F2 12 Tf 1103.48 220 Td (0/9) Tj ET
+0.122 0.435 0.545 rg
+0.122 0.435 0.545 RG
+1 w
+1133.067 210 23.733 346.667 re
+B
+0.122 0.435 0.545 rg
+BT /F2 12 Tf 1135.213 566.667 Td (6/9) Tj ET
+0.184 0.42 0.31 rg
+0.184 0.42 0.31 RG
+1 w
+1164.8 210 23.733 346.667 re
+B
+0.184 0.42 0.31 rg
+BT /F2 12 Tf 1166.947 566.667 Td (6/9) Tj ET
+0.208 0.361 0.604 rg
+0.208 0.361 0.604 RG
+1 w
+1196.533 210 23.733 0 re
+B
+0.208 0.361 0.604 rg
+BT /F2 12 Tf 1198.68 220 Td (0/9) Tj ET
+0.435 0.294 0.545 rg
+0.435 0.294 0.545 RG
+1 w
+1228.267 210 23.733 0 re
+B
+0.435 0.294 0.545 rg
+BT /F2 12 Tf 1230.413 220 Td (0/9) Tj ET
+0.067 0.094 0.153 rg
+BT /F1 16 Tf 1034.507 176 Td (wrong verdict) Tj ET
 0.984 0.988 0.992 rg
 0.706 0.361 0.216 RG
 1 w
@@ -507,22 +791,43 @@ B
 0.122 0.435 0.545 rg
 BT /F2 15 Tf 1342 662 Td (single_ir) Tj ET
 0.984 0.988 0.992 rg
+0.184 0.42 0.31 RG
+1 w
+1330 611 105 27 re
+B
+0.184 0.42 0.31 rg
+BT /F2 15 Tf 1342 620 Td (stacked_ir) Tj ET
+0.984 0.988 0.992 rg
+0.208 0.361 0.604 RG
+1 w
+1330 569 121.2 27 re
+B
+0.208 0.361 0.604 rg
+BT /F2 15 Tf 1342 578 Td (ir_hop_chain) Tj ET
+0.984 0.988 0.992 rg
+0.435 0.294 0.545 RG
+1 w
+1330 527 113.1 27 re
+B
+0.435 0.294 0.545 rg
+BT /F2 15 Tf 1342 536 Td (ckc_layered) Tj ET
+0.984 0.988 0.992 rg
 0.898 0.914 0.937 RG
 2 w
-1310 140 230 460 re
+1310 140 230 348 re
 B
 0.067 0.094 0.153 rg
-BT /F2 21 Tf 1330 562 Td (Residual audit) Tj ET
+BT /F2 21 Tf 1330 450 Td (Residual audit) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1330 528 Td (Direct SMT: 9/9 rows) Tj ET
+BT /F1 16 Tf 1330 416 Td (Direct SMT: 9/9 rows) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1330 506 Td (lacked named) Tj ET
+BT /F1 16 Tf 1330 394 Td (lacked named) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1330 484 Td (assertions; exact) Tj ET
+BT /F1 16 Tf 1330 372 Td (assertions; exact) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1330 462 Td (template matches) Tj ET
+BT /F1 16 Tf 1330 350 Td (template matches) Tj ET
 0.349 0.384 0.451 rg
-BT /F1 16 Tf 1330 440 Td (0/9.) Tj ET
+BT /F1 16 Tf 1330 328 Td (0/9.) Tj ET
 0.898 0.914 0.937 RG
 1 w
 54 56 m 1546 56 l S
@@ -739,17 +1044,17 @@ xref
 0000000064 00000 n
 0000000139 00000 n
 0000000289 00000 n
-0000005618 00000 n
-0000005768 00000 n
-0000009572 00000 n
-0000009722 00000 n
-0000012966 00000 n
-0000013117 00000 n
-0000017682 00000 n
-0000017753 00000 n
-0000017829 00000 n
+0000005552 00000 n
+0000005702 00000 n
+0000011852 00000 n
+0000012002 00000 n
+0000018748 00000 n
+0000018899 00000 n
+0000023464 00000 n
+0000023535 00000 n
+0000023611 00000 n
 trailer
 << /Size 14 /Root 1 0 R >>
 startxref
-17898
+23680
 %%EOF

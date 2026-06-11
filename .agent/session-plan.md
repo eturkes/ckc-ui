@@ -122,7 +122,7 @@ Gate:
 - `npm run verify:figures`
 
 ### C5 CKC-Layered Route
-status: pending
+status: done
 
 Intent: add the route that asks the model for CKC-native stages before the
 deterministic compiler takes over.

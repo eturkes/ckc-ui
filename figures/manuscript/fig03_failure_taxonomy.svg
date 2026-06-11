@@ -17,37 +17,89 @@
   <text x="64" y="150" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#596273" text-anchor="start">row hits</text>
   <line x1="150" y1="170" x2="150" y2="690" stroke="#c8d0da" stroke-width="2"/>
   <line x1="150" y1="690" x2="1270" y2="690" stroke="#c8d0da" stroke-width="2"/>
-  <rect x="242" y="516.667" width="44" height="173.333" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
-  <text x="264" y="506.667" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#b45c37" text-anchor="middle">3/9</text>
-  <rect x="294" y="170" width="44" height="520" rx="3" fill="#1f6f8b" stroke="#1f6f8b" stroke-width="1"/>
-  <text x="316" y="160" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#1f6f8b" text-anchor="middle">9/9</text>
-  <text x="204" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">grounding</text>
-  <rect x="522" y="343.333" width="44" height="346.667" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
-  <text x="544" y="333.333" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#b45c37" text-anchor="middle">6/9</text>
-  <rect x="574" y="690" width="44" height="0" rx="3" fill="#1f6f8b" stroke="#1f6f8b" stroke-width="1"/>
-  <text x="596" y="680" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#1f6f8b" text-anchor="middle">0/9</text>
-  <text x="484" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">syntax</text>
-  <rect x="802" y="516.667" width="44" height="173.333" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
-  <text x="824" y="506.667" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#b45c37" text-anchor="middle">3/9</text>
-  <rect x="854" y="690" width="44" height="0" rx="3" fill="#1f6f8b" stroke="#1f6f8b" stroke-width="1"/>
-  <text x="876" y="680" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#1f6f8b" text-anchor="middle">0/9</text>
-  <text x="764" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">unsupported schema</text>
-  <rect x="1082" y="690" width="44" height="0" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
-  <text x="1104" y="680" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#b45c37" text-anchor="middle">0/9</text>
-  <rect x="1134" y="343.333" width="44" height="346.667" rx="3" fill="#1f6f8b" stroke="#1f6f8b" stroke-width="1"/>
-  <text x="1156" y="333.333" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#1f6f8b" text-anchor="middle">6/9</text>
-  <text x="1044" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">wrong verdict</text>
+  <rect x="168" y="690" width="23.733" height="0" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
+  <text x="179.867" y="680" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#b45c37" text-anchor="middle">0/9</text>
+  <rect x="199.733" y="690" width="23.733" height="0" rx="3" fill="#1f6f8b" stroke="#1f6f8b" stroke-width="1"/>
+  <text x="211.6" y="680" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#1f6f8b" text-anchor="middle">0/9</text>
+  <rect x="231.467" y="170" width="23.733" height="520" rx="3" fill="#2f6b4f" stroke="#2f6b4f" stroke-width="1"/>
+  <text x="243.333" y="160" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#2f6b4f" text-anchor="middle">9/9</text>
+  <rect x="263.2" y="170" width="23.733" height="520" rx="3" fill="#355c9a" stroke="#355c9a" stroke-width="1"/>
+  <text x="275.067" y="160" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#355c9a" text-anchor="middle">9/9</text>
+  <rect x="294.933" y="170" width="23.733" height="520" rx="3" fill="#6f4b8b" stroke="#6f4b8b" stroke-width="1"/>
+  <text x="306.8" y="160" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#6f4b8b" text-anchor="middle">9/9</text>
+  <text x="157.333" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">bridge</text>
+  <rect x="354.667" y="690" width="23.733" height="0" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
+  <text x="366.533" y="680" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#b45c37" text-anchor="middle">0/9</text>
+  <rect x="386.4" y="690" width="23.733" height="0" rx="3" fill="#1f6f8b" stroke="#1f6f8b" stroke-width="1"/>
+  <text x="398.267" y="680" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#1f6f8b" text-anchor="middle">0/9</text>
+  <rect x="418.133" y="690" width="23.733" height="0" rx="3" fill="#2f6b4f" stroke="#2f6b4f" stroke-width="1"/>
+  <text x="430" y="680" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#2f6b4f" text-anchor="middle">0/9</text>
+  <rect x="449.867" y="690" width="23.733" height="0" rx="3" fill="#355c9a" stroke="#355c9a" stroke-width="1"/>
+  <text x="461.733" y="680" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#355c9a" text-anchor="middle">0/9</text>
+  <rect x="481.6" y="170" width="23.733" height="520" rx="3" fill="#6f4b8b" stroke="#6f4b8b" stroke-width="1"/>
+  <text x="493.467" y="160" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#6f4b8b" text-anchor="middle">9/9</text>
+  <text x="344" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">compiled target</text>
+  <rect x="541.333" y="516.667" width="23.733" height="173.333" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
+  <text x="553.2" y="506.667" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#b45c37" text-anchor="middle">3/9</text>
+  <rect x="573.067" y="170" width="23.733" height="520" rx="3" fill="#1f6f8b" stroke="#1f6f8b" stroke-width="1"/>
+  <text x="584.933" y="160" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#1f6f8b" text-anchor="middle">9/9</text>
+  <rect x="604.8" y="170" width="23.733" height="520" rx="3" fill="#2f6b4f" stroke="#2f6b4f" stroke-width="1"/>
+  <text x="616.667" y="160" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#2f6b4f" text-anchor="middle">9/9</text>
+  <rect x="636.533" y="170" width="23.733" height="520" rx="3" fill="#355c9a" stroke="#355c9a" stroke-width="1"/>
+  <text x="648.4" y="160" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#355c9a" text-anchor="middle">9/9</text>
+  <rect x="668.267" y="170" width="23.733" height="520" rx="3" fill="#6f4b8b" stroke="#6f4b8b" stroke-width="1"/>
+  <text x="680.133" y="160" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#6f4b8b" text-anchor="middle">9/9</text>
+  <text x="530.667" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">grounding</text>
+  <rect x="728" y="343.333" width="23.733" height="346.667" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
+  <text x="739.867" y="333.333" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#b45c37" text-anchor="middle">6/9</text>
+  <rect x="759.733" y="690" width="23.733" height="0" rx="3" fill="#1f6f8b" stroke="#1f6f8b" stroke-width="1"/>
+  <text x="771.6" y="680" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#1f6f8b" text-anchor="middle">0/9</text>
+  <rect x="791.467" y="690" width="23.733" height="0" rx="3" fill="#2f6b4f" stroke="#2f6b4f" stroke-width="1"/>
+  <text x="803.333" y="680" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#2f6b4f" text-anchor="middle">0/9</text>
+  <rect x="823.2" y="690" width="23.733" height="0" rx="3" fill="#355c9a" stroke="#355c9a" stroke-width="1"/>
+  <text x="835.067" y="680" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#355c9a" text-anchor="middle">0/9</text>
+  <rect x="854.933" y="690" width="23.733" height="0" rx="3" fill="#6f4b8b" stroke="#6f4b8b" stroke-width="1"/>
+  <text x="866.8" y="680" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#6f4b8b" text-anchor="middle">0/9</text>
+  <text x="717.333" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">syntax</text>
+  <rect x="914.667" y="516.667" width="23.733" height="173.333" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
+  <text x="926.533" y="506.667" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#b45c37" text-anchor="middle">3/9</text>
+  <rect x="946.4" y="690" width="23.733" height="0" rx="3" fill="#1f6f8b" stroke="#1f6f8b" stroke-width="1"/>
+  <text x="958.267" y="680" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#1f6f8b" text-anchor="middle">0/9</text>
+  <rect x="978.133" y="690" width="23.733" height="0" rx="3" fill="#2f6b4f" stroke="#2f6b4f" stroke-width="1"/>
+  <text x="990" y="680" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#2f6b4f" text-anchor="middle">0/9</text>
+  <rect x="1009.867" y="690" width="23.733" height="0" rx="3" fill="#355c9a" stroke="#355c9a" stroke-width="1"/>
+  <text x="1021.733" y="680" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#355c9a" text-anchor="middle">0/9</text>
+  <rect x="1041.6" y="170" width="23.733" height="520" rx="3" fill="#6f4b8b" stroke="#6f4b8b" stroke-width="1"/>
+  <text x="1053.467" y="160" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#6f4b8b" text-anchor="middle">9/9</text>
+  <text x="904" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">unsupported schema</text>
+  <rect x="1101.333" y="690" width="23.733" height="0" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
+  <text x="1113.2" y="680" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#b45c37" text-anchor="middle">0/9</text>
+  <rect x="1133.067" y="343.333" width="23.733" height="346.667" rx="3" fill="#1f6f8b" stroke="#1f6f8b" stroke-width="1"/>
+  <text x="1144.933" y="333.333" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#1f6f8b" text-anchor="middle">6/9</text>
+  <rect x="1164.8" y="343.333" width="23.733" height="346.667" rx="3" fill="#2f6b4f" stroke="#2f6b4f" stroke-width="1"/>
+  <text x="1176.667" y="333.333" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#2f6b4f" text-anchor="middle">6/9</text>
+  <rect x="1196.533" y="690" width="23.733" height="0" rx="3" fill="#355c9a" stroke="#355c9a" stroke-width="1"/>
+  <text x="1208.4" y="680" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#355c9a" text-anchor="middle">0/9</text>
+  <rect x="1228.267" y="690" width="23.733" height="0" rx="3" fill="#6f4b8b" stroke="#6f4b8b" stroke-width="1"/>
+  <text x="1240.133" y="680" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#6f4b8b" text-anchor="middle">0/9</text>
+  <text x="1090.667" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">wrong verdict</text>
   <rect x="1330" y="178" width="105" height="27" rx="12" fill="#fbfcfd" stroke="#b45c37" stroke-width="1"/>
   <text x="1342" y="196" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#b45c37" text-anchor="start">direct_smt</text>
   <rect x="1330" y="220" width="96.9" height="27" rx="12" fill="#fbfcfd" stroke="#1f6f8b" stroke-width="1"/>
   <text x="1342" y="238" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#1f6f8b" text-anchor="start">single_ir</text>
-  <rect x="1310" y="300" width="230" height="460" rx="8" fill="#fbfcfd" stroke="#e5e9ef" stroke-width="2"/>
-  <text x="1330" y="338" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700" fill="#111827" text-anchor="start">Residual audit</text>
-  <text x="1330" y="372" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#596273" text-anchor="start">Direct SMT: 9/9 rows</text>
-  <text x="1330" y="394" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#596273" text-anchor="start">lacked named</text>
-  <text x="1330" y="416" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#596273" text-anchor="start">assertions; exact</text>
-  <text x="1330" y="438" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#596273" text-anchor="start">template matches</text>
-  <text x="1330" y="460" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#596273" text-anchor="start">0/9.</text>
+  <rect x="1330" y="262" width="105" height="27" rx="12" fill="#fbfcfd" stroke="#2f6b4f" stroke-width="1"/>
+  <text x="1342" y="280" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#2f6b4f" text-anchor="start">stacked_ir</text>
+  <rect x="1330" y="304" width="121.2" height="27" rx="12" fill="#fbfcfd" stroke="#355c9a" stroke-width="1"/>
+  <text x="1342" y="322" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#355c9a" text-anchor="start">ir_hop_chain</text>
+  <rect x="1330" y="346" width="113.1" height="27" rx="12" fill="#fbfcfd" stroke="#6f4b8b" stroke-width="1"/>
+  <text x="1342" y="364" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#6f4b8b" text-anchor="start">ckc_layered</text>
+  <rect x="1310" y="412" width="230" height="348" rx="8" fill="#fbfcfd" stroke="#e5e9ef" stroke-width="2"/>
+  <text x="1330" y="450" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700" fill="#111827" text-anchor="start">Residual audit</text>
+  <text x="1330" y="484" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#596273" text-anchor="start">Direct SMT: 9/9 rows</text>
+  <text x="1330" y="506" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#596273" text-anchor="start">lacked named</text>
+  <text x="1330" y="528" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#596273" text-anchor="start">assertions; exact</text>
+  <text x="1330" y="550" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#596273" text-anchor="start">template matches</text>
+  <text x="1330" y="572" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#596273" text-anchor="start">0/9.</text>
   <line x1="54" y1="844" x2="1546" y2="844" stroke="#e5e9ef" stroke-width="1"/>
   <text x="54" y="868" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" fill="#596273" text-anchor="start">Counts come from route_evaluation.route_category_counts. Categories can co-occur in one row, so columns are diagnostic burden rather than a partition of samples.</text>
 </svg>

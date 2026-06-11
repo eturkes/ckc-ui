@@ -57,7 +57,7 @@ let m1InputRefs = null;
 let selectedExperiment = null;
 let unimplementedRouteIds = [];
 const baselineRouteId = "route.direct_smt";
-const implementedRouteIds = new Set(["route.direct_smt", "route.single_ir", "route.stacked_ir", "route.ir_hop_chain"]);
+const implementedRouteIds = new Set(["route.direct_smt", "route.single_ir", "route.stacked_ir", "route.ir_hop_chain", "route.ckc_layered"]);
 const comparisonMetricIds = [
   "target_syntax_validity",
   "admission_rate",
@@ -1398,11 +1398,131 @@ function irHopRuleRowsJsonSchema(groupId) {
   return pairJsonSchemaForGroup(groupId, irRuleJsonSchema());
 }
 
+const ckcLayeredSchemaId = "schema.ckc_layered.v0";
+const ckcLayeredSegmentSchemaId = "schema.ckc_layered.segments.v0";
+const ckcLayeredStatementSchemaId = "schema.ckc_layered.statements.v0";
+const ckcLayeredRuleSchemaId = "schema.ckc_layered.rules.v0";
+const ckcLayeredBridgeId = "ckc_layered_v0_to_route_rule_ir_v0";
+const ckcLayeredStageSpecs = [
+  {
+    stage_id: "stage1.segments",
+    granularity: "stage.segments",
+    schema_id: ckcLayeredSegmentSchemaId
+  },
+  {
+    stage_id: "stage2.statements",
+    granularity: "stage.statements",
+    schema_id: ckcLayeredStatementSchemaId
+  },
+  {
+    stage_id: "stage3.rules",
+    granularity: "stage.rules",
+    schema_id: ckcLayeredRuleSchemaId
+  }
+];
+const ckcLayeredSegmentFieldSpecs = {
+  primary_segment_kind: {
+    property: { enum: ["recommendation", "contraindication", "unknown"] }
+  },
+  primary_span_ref: {
+    property: { enum: ["primary_excerpt", "unknown"] }
+  },
+  exception_span_ref: {
+    property: { enum: ["exception_excerpt", "none", "unknown"] }
+  },
+  source_span_scope: {
+    property: { enum: ["primary", "primary_plus_exception", "unknown"] }
+  }
+};
+const ckcLayeredStatementFieldSpecs = {
+  population: {
+    property: { enum: ["pop.adult", "pop.child", "unknown"] }
+  },
+  condition: {
+    property: { enum: ["cond.sepsis", "none", "unknown"] }
+  },
+  pregnancy_condition: {
+    property: { enum: ["cond.pregnancy", "none", "unknown"] }
+  },
+  renal_exception: {
+    property: { enum: ["cond.renal_severe", "none", "unknown"] }
+  },
+  action: {
+    property: { enum: ["act.administer:drug.abx_a", "unknown"] }
+  },
+  modality: {
+    property: { enum: ["for", "contraindicate", "unknown"] }
+  },
+  strength: {
+    property: { enum: ["strong", "unknown"] }
+  },
+  certainty: {
+    property: { enum: ["moderate", "unknown"] }
+  },
+  source_span_scope: {
+    property: { enum: ["primary", "primary_plus_exception", "unknown"] }
+  }
+};
+const ckcLayeredRuleFieldSpecs = {
+  direction: {
+    property: { enum: ["for", "contraindicate", "unknown"] }
+  },
+  action_key: {
+    property: { enum: ["act.administer:drug.abx_a", "unknown"] }
+  },
+  age_interval: {
+    property: { enum: ["adult_ge_18", "child_lt_18", "unknown"] }
+  },
+  required_conditions: {
+    property: { enum: ["cond.sepsis", "cond.sepsis+cond.pregnancy", "none", "unknown"] }
+  },
+  prohibited_conditions: {
+    property: { enum: ["cond.renal_severe", "none", "unknown"] }
+  },
+  strength: {
+    property: { enum: ["strong", "unknown"] }
+  },
+  certainty: {
+    property: { enum: ["moderate", "unknown"] }
+  },
+  source_span_scope: {
+    property: { enum: ["primary", "primary_plus_exception", "unknown"] }
+  }
+};
+
+function schemaFromFieldSpecs(fieldSpecs) {
+  return {
+    type: "object",
+    additionalProperties: false,
+    required: Object.keys(fieldSpecs),
+    properties: Object.fromEntries(Object.entries(fieldSpecs).map(([field, spec]) => [field, spec.property]))
+  };
+}
+
+function ckcLayeredSegmentsJsonSchema(groupId) {
+  return pairJsonSchemaForGroup(groupId, schemaFromFieldSpecs(ckcLayeredSegmentFieldSpecs));
+}
+
+function ckcLayeredStatementsJsonSchema(groupId) {
+  return pairJsonSchemaForGroup(groupId, schemaFromFieldSpecs(ckcLayeredStatementFieldSpecs));
+}
+
+function ckcLayeredRulesJsonSchema(groupId) {
+  return pairJsonSchemaForGroup(groupId, schemaFromFieldSpecs(ckcLayeredRuleFieldSpecs));
+}
+
 function irHopJsonSchemaForHop(hopId, groupId) {
   if (hopId === "hop1.lexical_cues") return irHopLexicalCuesJsonSchema(groupId);
   if (hopId === "hop2.clinical_frame") return irHopClinicalFrameJsonSchema(groupId);
   if (hopId === "hop3.rule_rows") return irHopRuleRowsJsonSchema(groupId);
   throw new Error(`unknown ir_hop_chain hop: ${hopId}`);
+}
+
+function ckcLayeredJsonSchemaForStage(stageId, groupId) {
+  if (stageId === "stage1.segments") return ckcLayeredSegmentsJsonSchema(groupId);
+  if (stageId === "stage2.statements") return ckcLayeredStatementsJsonSchema(groupId);
+  if (stageId === "stage3.rules") return ckcLayeredRulesJsonSchema(groupId);
+  throw new Error(`unknown ckc_layered stage: ${stageId}`);
 }
 
 function jsonSchemaForRoute(routeId, groupId, sourceLabel = null) {
@@ -1418,6 +1538,7 @@ function jsonSchemaForRoute(routeId, groupId, sourceLabel = null) {
   }
   if (routeId === "route.stacked_ir") return JSON.stringify(stackedIrJsonSchema(groupId));
   if (routeId === "route.ir_hop_chain") return JSON.stringify(irHopRuleRowsJsonSchema(groupId));
+  if (routeId === "route.ckc_layered") return JSON.stringify(ckcLayeredRulesJsonSchema(groupId));
   return null;
 }
 
@@ -1560,6 +1681,96 @@ function promptForIrHopRuleRows(groupId, clinicalFrame) {
   ].join("\n");
 }
 
+function ckcLayeredSegmentGuideLines() {
+  return [
+    "CKC segment layer contract:",
+    "- primary_segment_kind: recommendation when the primary excerpt recommends the action; contraindication when it says not to administer or says 禁忌.",
+    "- primary_span_ref: primary_excerpt when the primary excerpt contains the rule span.",
+    "- exception_span_ref: exception_excerpt only when a separate exception excerpt is present; otherwise none.",
+    "- source_span_scope: primary_plus_exception when the rule depends on the exception span; otherwise primary."
+  ];
+}
+
+function ckcLayeredStatementGuideLines() {
+  return [
+    "CKC statement layer contract:",
+    "- population: pop.adult for 成人 or 18歳以上; pop.child for 小児 or 18歳未満.",
+    "- condition: cond.sepsis when 敗血症 is present; otherwise none.",
+    "- pregnancy_condition: cond.pregnancy only when 妊娠中 is present; otherwise none.",
+    "- renal_exception: cond.renal_severe only when the exception excludes 重度腎機能障害; otherwise none.",
+    "- action: act.administer:drug.abx_a when 抗菌薬A is the medication.",
+    "- modality: for for 推奨する; contraindicate for 投与しないこと or 禁忌.",
+    "- strength: strong for the current maintenance ticket sources.",
+    "- certainty: moderate for the current maintenance ticket sources.",
+    "- source_span_scope: copy the segment layer scope."
+  ];
+}
+
+function ckcLayeredRuleGuideLines() {
+  return [
+    "CKC rule layer contract:",
+    "- direction: copy statement.modality.",
+    "- action_key: copy statement.action.",
+    "- age_interval: adult_ge_18 for pop.adult; child_lt_18 for pop.child.",
+    "- required_conditions: cond.sepsis+cond.pregnancy when both are present; cond.sepsis when only sepsis is present; none when neither is present.",
+    "- prohibited_conditions: cond.renal_severe when renal_exception is cond.renal_severe; otherwise none.",
+    "- strength and certainty: copy the statement values.",
+    "- source_span_scope: copy the statement layer scope."
+  ];
+}
+
+function promptForCkcLayeredSegments(groupId) {
+  const modelCase = modelCaseForGroup(groupId);
+  const schema = JSON.stringify(ckcLayeredSegmentsJsonSchema(groupId), null, 2);
+  return [
+    "You are preparing stage 1 of a CKC-style import payload for a hospital CDS knowledge-base maintenance queue.",
+    "The excerpts are guideline-derived content for rules-engine review, not a patient-specific recommendation.",
+    "Identify segment-like span references for each source label. Do not decide whether the sources conflict.",
+    "Keep source labels unchanged. Use only the listed enum tokens and fields. Return JSON only, with no prose.",
+    `maintenance ticket: ${modelCase.case_id}`,
+    `source labels: ${modelCase.labels.join(", ")}`,
+    ...sourceCueEvidenceLines(groupId),
+    ...ckcLayeredSegmentGuideLines(),
+    "Required output schema:",
+    schema
+  ].join("\n");
+}
+
+function promptForCkcLayeredStatements(groupId, segments) {
+  const modelCase = modelCaseForGroup(groupId);
+  const schema = JSON.stringify(ckcLayeredStatementsJsonSchema(groupId), null, 2);
+  return [
+    "You are preparing stage 2 of a CKC-style import payload for a hospital CDS knowledge-base maintenance queue.",
+    "Normalize each segment into one clinical statement. This is rules-engine maintenance, not patient-specific care advice.",
+    "Use the prior segment JSON plus the quoted excerpts. Keep source labels unchanged. Return JSON only, with no prose.",
+    `maintenance ticket: ${modelCase.case_id}`,
+    `source labels: ${modelCase.labels.join(", ")}`,
+    "Prior segment JSON:",
+    previousHopJsonBlock(segments),
+    ...sourceCueEvidenceLines(groupId),
+    ...ckcLayeredStatementGuideLines(),
+    "Required output schema:",
+    schema
+  ].join("\n");
+}
+
+function promptForCkcLayeredRules(groupId, statements) {
+  const modelCase = modelCaseForGroup(groupId);
+  const schema = JSON.stringify(ckcLayeredRulesJsonSchema(groupId), null, 2);
+  return [
+    "You are preparing stage 3 of a CKC-style import payload for a hospital CDS knowledge-base maintenance queue.",
+    "Translate the prior clinical-statement JSON into compact rule rows for deterministic repository checks.",
+    "Use only the prior JSON and the CKC rule layer contract. Keep source labels unchanged. Return JSON only, with no prose.",
+    `maintenance ticket: ${modelCase.case_id}`,
+    `source labels: ${modelCase.labels.join(", ")}`,
+    "Prior statement JSON:",
+    previousHopJsonBlock(statements),
+    ...ckcLayeredRuleGuideLines(),
+    "Required output schema:",
+    schema
+  ].join("\n");
+}
+
 function promptFor(routeId, groupId, seed) {
   const modelCase = modelCaseForGroup(groupId);
   const common = [
@@ -1606,6 +1817,7 @@ function promptFor(routeId, groupId, seed) {
   }
   if (routeId === "route.stacked_ir") return promptForStackedIrPair(groupId);
   if (routeId === "route.ir_hop_chain") return promptForIrHopLexicalCues(groupId);
+  if (routeId === "route.ckc_layered") return promptForCkcLayeredSegments(groupId);
   return [
     ...common,
     `Fill one CDS import JSON object for each source label: ${modelCase.labels.join(", ")}.`,
@@ -1631,6 +1843,8 @@ function llamaArgs(prompt, seed, routeId, groupId, sourceLabel = null, options =
   const schema = options.schema ?? jsonSchemaForRoute(routeId, groupId, sourceLabel);
   const routeArgs = options.routeArgs ?? (routeId === "route.ir_hop_chain"
     ? ["-n", "360", "--ctx-size", "3072", "--temp", "0", "--top-k", "1"]
+    : routeId === "route.ckc_layered"
+    ? ["-n", "520", "--ctx-size", "4096", "--temp", "0", "--top-k", "1"]
     : routeId === "route.stacked_ir"
     ? ["-n", "420", "--ctx-size", "3072", "--temp", "0", "--top-k", "1"]
     : routeId === "route.single_ir"
@@ -1747,10 +1961,10 @@ function extractJsonObject(text) {
 }
 
 const diagnosticCategoryDefinitions = {
-  syntax: ["target_parse_error", "ai_schema_violation", "stacked_ir_schema_invalid", "ir_hop_chain_schema_invalid"],
-  grounding: ["ai_hallucinated_source", "semantic_slot_missing", "stacked_ir_grounding_mismatch", "ir_hop_chain_grounding_mismatch"],
-  bridge: ["stacked_ir_bridge_incomplete", "stacked_ir_bridge_inconsistent", "ir_hop_chain_bridge_incomplete", "ir_hop_chain_bridge_inconsistent"],
-  compiled_target: ["stacked_ir_compiled_target_failure", "ir_hop_chain_compiled_target_failure"],
+  syntax: ["target_parse_error", "ai_schema_violation", "stacked_ir_schema_invalid", "ir_hop_chain_schema_invalid", "ckc_layered_schema_invalid"],
+  grounding: ["ai_hallucinated_source", "semantic_slot_missing", "stacked_ir_grounding_mismatch", "ir_hop_chain_grounding_mismatch", "ckc_layered_grounding_mismatch"],
+  bridge: ["stacked_ir_bridge_incomplete", "stacked_ir_bridge_inconsistent", "ir_hop_chain_bridge_incomplete", "ir_hop_chain_bridge_inconsistent", "ckc_layered_bridge_incomplete", "ckc_layered_bridge_inconsistent"],
+  compiled_target: ["stacked_ir_compiled_target_failure", "ir_hop_chain_compiled_target_failure", "ckc_layered_compiled_target_failure"],
   unsupported_schema: ["unsupported_ir_fragment"],
   wrong_verdict: ["false_positive_conflict", "false_negative_conflict"],
   scaffold: ["deferred_gate_required"],
@@ -2854,6 +3068,559 @@ function classifyIrHopChainCandidate({ hopOutputs, modelCalls }, groupId, expect
   };
 }
 
+function validObjectForFieldSpecs(row, fieldSpecs) {
+  return objectHasExactKeys(row, Object.keys(fieldSpecs))
+    && Object.entries(fieldSpecs).every(([field, spec]) => spec.property.enum.includes(row[field]));
+}
+
+function validCkcLayeredSegmentRow(row) {
+  return validObjectForFieldSpecs(row, ckcLayeredSegmentFieldSpecs);
+}
+
+function validCkcLayeredStatementRow(row) {
+  return validObjectForFieldSpecs(row, ckcLayeredStatementFieldSpecs);
+}
+
+function validCkcLayeredRuleRow(row) {
+  return validObjectForFieldSpecs(row, ckcLayeredRuleFieldSpecs);
+}
+
+function fixtureForLabel(label) {
+  const fixture = fixtureRegistry.find((entry) => entry.source_label === label);
+  if (!fixture) throw new Error(`unknown source label: ${label}`);
+  return fixture;
+}
+
+function fixtureRuleForLabel(label) {
+  const fixture = fixtureForLabel(label);
+  if ((fixture.rules ?? []).length !== 1) throw new Error(`expected one fixture rule for source label: ${label}`);
+  return fixture.rules[0];
+}
+
+function fixtureStatementForLabel(label) {
+  const fixture = fixtureForLabel(label);
+  if ((fixture.clinical_statements ?? []).length !== 1) {
+    throw new Error(`expected one fixture statement for source label: ${label}`);
+  }
+  return fixture.clinical_statements[0];
+}
+
+function ckcLayeredSourceSpanScopeForLabel(label) {
+  return sourceCaseForLabel(label).exception ? "primary_plus_exception" : "primary";
+}
+
+function expectedCkcLayeredSegmentRow(label) {
+  const fixture = fixtureForLabel(label);
+  const primary = primaryRegion(fixture);
+  const hasException = Boolean(fixture.regions.find((region) => region.role === "exception"));
+  return {
+    primary_segment_kind: primary.role === "recommendation"
+      ? "recommendation"
+      : primary.role === "contraindication"
+        ? "contraindication"
+        : "unknown",
+    primary_span_ref: "primary_excerpt",
+    exception_span_ref: hasException ? "exception_excerpt" : "none",
+    source_span_scope: hasException ? "primary_plus_exception" : "primary"
+  };
+}
+
+function expectedCkcLayeredStatementRow(label) {
+  const statement = fixtureStatementForLabel(label);
+  const rule = fixtureRuleForLabel(label);
+  const required = new Set(rule.context?.required ?? []);
+  const prohibited = new Set(rule.context?.prohibited ?? []);
+  return {
+    population: statement.population ?? "unknown",
+    condition: statement.condition ?? "none",
+    pregnancy_condition: required.has("cond.pregnancy") ? "cond.pregnancy" : "none",
+    renal_exception: prohibited.has("cond.renal_severe") ? "cond.renal_severe" : "none",
+    action: statement.action ?? "unknown",
+    modality: statement.modality ?? "unknown",
+    strength: statement.strength ?? rule.strength ?? "unknown",
+    certainty: statement.certainty ?? rule.certainty ?? "unknown",
+    source_span_scope: ckcLayeredSourceSpanScopeForLabel(label)
+  };
+}
+
+function ckcLayeredRequiredConditionsToken(requiredConditions) {
+  const required = new Set(requiredConditions);
+  if (required.has("cond.sepsis") && required.has("cond.pregnancy")) return "cond.sepsis+cond.pregnancy";
+  if (required.has("cond.sepsis")) return "cond.sepsis";
+  if (required.size === 0) return "none";
+  return "unknown";
+}
+
+function ckcLayeredAgeIntervalFromRule(rule) {
+  if (rule.context?.age_years?.ge === 18) return "adult_ge_18";
+  if (rule.context?.age_years?.lt === 18) return "child_lt_18";
+  return "unknown";
+}
+
+function expectedCkcLayeredRuleRow(label) {
+  const rule = fixtureRuleForLabel(label);
+  return {
+    direction: rule.direction ?? "unknown",
+    action_key: rule.action_key ?? "unknown",
+    age_interval: ckcLayeredAgeIntervalFromRule(rule),
+    required_conditions: ckcLayeredRequiredConditionsToken(rule.context?.required ?? []),
+    prohibited_conditions: (rule.context?.prohibited ?? []).includes("cond.renal_severe") ? "cond.renal_severe" : "none",
+    strength: rule.strength ?? "unknown",
+    certainty: rule.certainty ?? "unknown",
+    source_span_scope: ckcLayeredSourceSpanScopeForLabel(label)
+  };
+}
+
+function ckcLayeredRuleFromStatementRow(statement) {
+  const required = [];
+  if (statement.condition === "cond.sepsis") required.push("cond.sepsis");
+  if (statement.pregnancy_condition === "cond.pregnancy") required.push("cond.pregnancy");
+  return {
+    direction: statement.modality,
+    action_key: statement.action,
+    age_interval: statement.population === "pop.adult"
+      ? "adult_ge_18"
+      : statement.population === "pop.child"
+        ? "child_lt_18"
+        : "unknown",
+    required_conditions: ckcLayeredRequiredConditionsToken(required),
+    prohibited_conditions: statement.renal_exception === "cond.renal_severe" ? "cond.renal_severe" : "none",
+    strength: statement.strength,
+    certainty: statement.certainty,
+    source_span_scope: statement.source_span_scope
+  };
+}
+
+function cueFieldsFromCkcLayeredRuleRow(row) {
+  return {
+    direction: row.direction,
+    action_abx_a: row.action_key === "act.administer:drug.abx_a" ? "present" : row.action_key === "unknown" ? "unknown" : "absent",
+    age: row.age_interval === "adult_ge_18" ? "adult" : row.age_interval === "child_lt_18" ? "child" : "unknown",
+    sepsis: row.required_conditions === "cond.sepsis" || row.required_conditions === "cond.sepsis+cond.pregnancy" ? "present" : row.required_conditions === "none" ? "absent" : "unknown",
+    pregnancy: row.required_conditions === "cond.sepsis+cond.pregnancy" ? "present" : row.required_conditions === "cond.sepsis" || row.required_conditions === "none" ? "absent" : "unknown",
+    renal_exception: row.prohibited_conditions === "cond.renal_severe" ? "yes" : row.prohibited_conditions === "none" ? "no" : "unknown"
+  };
+}
+
+function ckcLayeredResidual({ stageId, stage, code, label, field = null, expected = null, observed = null, baseCode = null, reason }) {
+  return {
+    stage_id: stageId,
+    stage,
+    code,
+    ...(baseCode ? { base_code: baseCode } : {}),
+    source_label: label,
+    field,
+    expected,
+    observed,
+    reason
+  };
+}
+
+function ckcLayeredBaseCode(expected, observed) {
+  if (
+    observed === "unknown"
+    || observed === null
+    || (expected !== "none" && observed === "none")
+    || (expected === "present" && observed === "absent")
+    || (expected === "yes" && observed === "no")
+  ) {
+    return "semantic_slot_missing";
+  }
+  return "ai_hallucinated_source";
+}
+
+function ckcLayeredFieldResidual({ stageId, label, field, expected, observed, stage, code, reason }) {
+  return ckcLayeredResidual({
+    stageId,
+    stage,
+    code,
+    baseCode: ckcLayeredBaseCode(expected, observed),
+    label,
+    field,
+    expected,
+    observed,
+    reason
+  });
+}
+
+function ckcLayeredPairSchemaResiduals({ parsed, groupId, stageId, expectedSchema, validator, expectedEntryDescription }) {
+  const labels = modelCaseForGroup(groupId).labels;
+  const residuals = [];
+  if (!objectHasExactKeys(parsed, labels)) {
+    residuals.push(ckcLayeredResidual({
+      stageId,
+      stage: "schema",
+      code: "ckc_layered_schema_invalid",
+      baseCode: "ai_schema_violation",
+      label: null,
+      expected: labels,
+      observed: parsed && typeof parsed === "object" && !Array.isArray(parsed) ? Object.keys(parsed).sort() : typeof parsed,
+      reason: "CKC layer JSON must be an object keyed exactly by source labels."
+    }));
+    return residuals;
+  }
+  for (const label of labels) {
+    if (!validator(parsed?.[label])) {
+      residuals.push(ckcLayeredResidual({
+        stageId,
+        stage: "schema",
+        code: "ckc_layered_schema_invalid",
+        baseCode: "ai_schema_violation",
+        label,
+        expected: expectedSchema,
+        observed: parsed?.[label] ?? null,
+        reason: `${expectedEntryDescription} violates the CKC layer enum contract.`
+      }));
+    }
+  }
+  return residuals;
+}
+
+function ckcLayeredSchemaResiduals(stageOutputs, groupId) {
+  const residuals = [];
+  if (!stageOutputs.segments.extracted?.value) {
+    residuals.push(ckcLayeredResidual({
+      stageId: "stage1.segments",
+      stage: "schema",
+      code: "ckc_layered_schema_invalid",
+      baseCode: "ai_schema_violation",
+      label: null,
+      expected: ckcLayeredSegmentsJsonSchema(groupId),
+      observed: "no_json_object",
+      reason: "No parseable CKC segment JSON object was found in stage 1 output."
+    }));
+  } else {
+    residuals.push(...ckcLayeredPairSchemaResiduals({
+      parsed: stageOutputs.segments.parsed,
+      groupId,
+      stageId: "stage1.segments",
+      expectedSchema: schemaFromFieldSpecs(ckcLayeredSegmentFieldSpecs),
+      validator: validCkcLayeredSegmentRow,
+      expectedEntryDescription: "segment row"
+    }));
+  }
+
+  if (!stageOutputs.statements.extracted?.value) {
+    residuals.push(ckcLayeredResidual({
+      stageId: "stage2.statements",
+      stage: "schema",
+      code: "ckc_layered_schema_invalid",
+      baseCode: "ai_schema_violation",
+      label: null,
+      expected: ckcLayeredStatementsJsonSchema(groupId),
+      observed: "no_json_object",
+      reason: "No parseable CKC statement JSON object was found in stage 2 output."
+    }));
+  } else {
+    residuals.push(...ckcLayeredPairSchemaResiduals({
+      parsed: stageOutputs.statements.parsed,
+      groupId,
+      stageId: "stage2.statements",
+      expectedSchema: schemaFromFieldSpecs(ckcLayeredStatementFieldSpecs),
+      validator: validCkcLayeredStatementRow,
+      expectedEntryDescription: "statement row"
+    }));
+  }
+
+  if (!stageOutputs.rules.extracted?.value) {
+    residuals.push(ckcLayeredResidual({
+      stageId: "stage3.rules",
+      stage: "schema",
+      code: "ckc_layered_schema_invalid",
+      baseCode: "ai_schema_violation",
+      label: null,
+      expected: ckcLayeredRulesJsonSchema(groupId),
+      observed: "no_json_object",
+      reason: "No parseable CKC rule JSON object was found in stage 3 output."
+    }));
+  } else {
+    residuals.push(...ckcLayeredPairSchemaResiduals({
+      parsed: stageOutputs.rules.parsed,
+      groupId,
+      stageId: "stage3.rules",
+      expectedSchema: schemaFromFieldSpecs(ckcLayeredRuleFieldSpecs),
+      validator: validCkcLayeredRuleRow,
+      expectedEntryDescription: "rule row"
+    }));
+  }
+  return residuals;
+}
+
+function ckcLayeredRowResiduals({ stageId, label, observedRow, expectedRow, fields, stage, code, reason }) {
+  return fields
+    .filter((field) => observedRow[field] !== expectedRow[field])
+    .map((field) => ckcLayeredFieldResidual({
+      stageId,
+      label,
+      field,
+      expected: expectedRow[field],
+      observed: observedRow[field],
+      stage,
+      code,
+      reason
+    }));
+}
+
+function ckcLayeredGroundingResiduals({ segments, statements, rules, groupId }) {
+  const residuals = [];
+  for (const label of modelCaseForGroup(groupId).labels) {
+    if (validCkcLayeredSegmentRow(segments?.[label])) {
+      residuals.push(...ckcLayeredRowResiduals({
+        stageId: "stage1.segments",
+        label,
+        observedRow: segments[label],
+        expectedRow: expectedCkcLayeredSegmentRow(label),
+        fields: Object.keys(ckcLayeredSegmentFieldSpecs),
+        stage: "grounding",
+        code: "ckc_layered_grounding_mismatch",
+        reason: "CKC segment row is not grounded in the quoted source excerpts."
+      }));
+    }
+    if (validCkcLayeredStatementRow(statements?.[label])) {
+      residuals.push(...ckcLayeredRowResiduals({
+        stageId: "stage2.statements",
+        label,
+        observedRow: statements[label],
+        expectedRow: expectedCkcLayeredStatementRow(label),
+        fields: Object.keys(ckcLayeredStatementFieldSpecs),
+        stage: "grounding",
+        code: "ckc_layered_grounding_mismatch",
+        reason: "CKC statement row is not grounded in fixture semantics and quoted source excerpts."
+      }));
+    }
+    if (validCkcLayeredRuleRow(rules?.[label])) {
+      residuals.push(...ckcLayeredRowResiduals({
+        stageId: "stage3.rules",
+        label,
+        observedRow: rules[label],
+        expectedRow: expectedCkcLayeredRuleRow(label),
+        fields: Object.keys(ckcLayeredRuleFieldSpecs),
+        stage: "grounding",
+        code: "ckc_layered_grounding_mismatch",
+        reason: "CKC rule row is not grounded in fixture semantics and quoted source excerpts."
+      }));
+    }
+  }
+  return residuals;
+}
+
+function ckcLayeredStatementBridgeFromSegment(segment) {
+  return {
+    modality: segment.primary_segment_kind === "recommendation"
+      ? "for"
+      : segment.primary_segment_kind === "contraindication"
+        ? "contraindicate"
+        : "unknown",
+    renal_exception: segment.exception_span_ref === "exception_excerpt"
+      ? "cond.renal_severe"
+      : segment.exception_span_ref === "none"
+        ? "none"
+        : "unknown",
+    source_span_scope: segment.source_span_scope
+  };
+}
+
+function ckcLayeredBridgeResiduals({ segments, statements, rules, groupId }) {
+  const residuals = [];
+  for (const label of modelCaseForGroup(groupId).labels) {
+    if (validCkcLayeredSegmentRow(segments?.[label]) && validCkcLayeredStatementRow(statements?.[label])) {
+      const expectedStatementFields = ckcLayeredStatementBridgeFromSegment(segments[label]);
+      for (const field of Object.keys(expectedStatementFields)) {
+        if (statements[label][field] !== expectedStatementFields[field]) {
+          residuals.push(ckcLayeredFieldResidual({
+            stageId: "stage2.statements",
+            label,
+            field,
+            expected: expectedStatementFields[field],
+            observed: statements[label][field],
+            stage: "bridge",
+            code: "ckc_layered_bridge_inconsistent",
+            reason: "Statement row is not a deterministic normalization of the CKC segment row."
+          }));
+        }
+      }
+    }
+    if (validCkcLayeredStatementRow(statements?.[label]) && validCkcLayeredRuleRow(rules?.[label])) {
+      const expectedRule = ckcLayeredRuleFromStatementRow(statements[label]);
+      residuals.push(...ckcLayeredRowResiduals({
+        stageId: "stage3.rules",
+        label,
+        observedRow: rules[label],
+        expectedRow: expectedRule,
+        fields: Object.keys(ckcLayeredRuleFieldSpecs),
+        stage: "bridge",
+        code: "ckc_layered_bridge_inconsistent",
+        reason: "Rule row is not a deterministic assembly of the CKC statement row."
+      }));
+      for (const field of ["direction", "action_key", "age_interval"]) {
+        if (
+          rules[label][field] === "unknown"
+          || (field === "action_key" && rules[label][field] !== "act.administer:drug.abx_a")
+        ) {
+          residuals.push(ckcLayeredResidual({
+            stageId: "stage3.rules",
+            stage: "bridge",
+            code: "ckc_layered_bridge_incomplete",
+            label,
+            field,
+            expected: field === "action_key" ? "act.administer:drug.abx_a" : "known",
+            observed: rules[label][field],
+            reason: "The CKC layered route cannot form a complete route_rule_ir.v0 rule for deterministic SMT compilation."
+          }));
+        }
+      }
+    }
+  }
+  return residuals;
+}
+
+function ckcLayeredRuleRows(parsed, groupId) {
+  return Object.fromEntries(modelCaseForGroup(groupId).labels.map((label) => [
+    label,
+    validCkcLayeredRuleRow(parsed?.[label]) ? cueFieldsFromCkcLayeredRuleRow(parsed[label]) : null
+  ]));
+}
+
+function classifyCkcLayeredCandidate({ stageOutputs, modelCalls }, groupId, expected, seed) {
+  const segments = stageOutputs.segments.parsed;
+  const statements = stageOutputs.statements.parsed;
+  const rules = stageOutputs.rules.parsed;
+  const residuals = ckcLayeredSchemaResiduals(stageOutputs, groupId);
+  const schemaResiduals = residuals.filter((residual) => residual.stage === "schema");
+  const schemaValid = schemaResiduals.length === 0;
+  const groundingResiduals = schemaValid ? ckcLayeredGroundingResiduals({ segments, statements, rules, groupId }) : [];
+  const bridgeResiduals = schemaValid ? ckcLayeredBridgeResiduals({ segments, statements, rules, groupId }) : [];
+  residuals.push(...groundingResiduals, ...bridgeResiduals);
+
+  const bridgedRows = schemaValid ? ckcLayeredRuleRows(rules, groupId) : {};
+  const bridge = schemaValid ? {
+    bridge_id: ckcLayeredBridgeId,
+    source_schema_id: ckcLayeredSchemaId,
+    target_schema_id: "schema.route_rule_ir.v0",
+    stage_schema_ids: ckcLayeredStageSpecs.map((stage) => stage.schema_id),
+    stage_lineage: modelCalls.map((call) => ({
+      stage_id: call.stage_id,
+      granularity: call.granularity,
+      schema_id: call.schema_id,
+      prompt_hash: call.prompt_hash,
+      response_hash: call.response_hash,
+      subprocess_exit_status: call.subprocess?.exit_status ?? null
+    })),
+    segments,
+    statements,
+    ckc_rules: rules,
+    route_rule_rows: bridgedRows,
+    residuals: [...groundingResiduals, ...bridgeResiduals]
+  } : null;
+  const routeIr = schemaValid
+    ? routeRuleIrFromRows(bridgedRows, groupId, {
+        routeId: "route.ckc_layered",
+        bridgeSourceSchemaId: ckcLayeredSchemaId,
+        bridge
+      })
+    : null;
+  const evaluated = schemaValid ? evaluateIrRows(bridgedRows, groupId) : { verdict: "target_syntax_failure", route_ir_rules: [], overlap: null };
+  const compiledTarget = routeIr ? compileRouteIrToSmt(routeIr, groupId, seed, expected) : null;
+  if (compiledTarget && !compiledTarget.syntax_valid) {
+    residuals.push(ckcLayeredResidual({
+      stageId: "stage3.rules",
+      stage: "compiled_target",
+      code: "ckc_layered_compiled_target_failure",
+      baseCode: "unsupported_ir_fragment",
+      label: null,
+      expected: "complete route_rule_ir.v0 rules",
+      observed: compiledTarget.verdict,
+      reason: "The CKC layered payload did not compile into a syntax-valid SMT target."
+    }));
+  }
+  if (compiledTarget) {
+    for (const code of compiledTarget.diagnostics) {
+      residuals.push(ckcLayeredResidual({
+        stageId: "stage3.rules",
+        stage: "compiled_target",
+        code,
+        label: null,
+        expected,
+        observed: compiledTarget.verdict,
+        reason: "Compiled target verdict differs from the locked expected route outcome."
+      }));
+    }
+  }
+
+  const verdict = compiledTarget?.verdict ?? evaluated.verdict;
+  const compiledDiagnosticCodes = new Set(compiledTarget?.diagnostics ?? []);
+  if (schemaValid && verdict === "unknown" && !residuals.some((residual) => residual.code === "ckc_layered_bridge_incomplete")) {
+    residuals.push(ckcLayeredResidual({
+      stageId: "stage3.rules",
+      stage: "bridge",
+      code: "ckc_layered_bridge_incomplete",
+      label: null,
+      expected: "known action, direction, and age fields",
+      observed: "unknown",
+      reason: "The CKC layered payload could not be evaluated into a known conflict-task verdict."
+    }));
+  }
+  if (verdict === "semantic_contradiction" && expected === "semantic_no_conflict" && !compiledDiagnosticCodes.has("false_positive_conflict")) {
+    residuals.push(ckcLayeredResidual({
+      stageId: "stage3.rules",
+      stage: "compiled_target",
+      code: "false_positive_conflict",
+      label: null,
+      expected,
+      observed: verdict,
+      reason: "Compiled target produced a conflict where the locked group is a documented null result."
+    }));
+  }
+  if (verdict === "semantic_no_conflict" && expected === "semantic_contradiction" && !compiledDiagnosticCodes.has("false_negative_conflict")) {
+    residuals.push(ckcLayeredResidual({
+      stageId: "stage3.rules",
+      stage: "compiled_target",
+      code: "false_negative_conflict",
+      label: null,
+      expected,
+      observed: verdict,
+      reason: "Compiled target missed the locked semantic contradiction."
+    }));
+  }
+  const diagnostics = diagnosticCodesFromResiduals(residuals);
+  const target_syntax_valid = Boolean(compiledTarget?.syntax_valid);
+  const stageSchemaDiagnostics = Object.fromEntries(ckcLayeredStageSpecs.map((stage) => [
+    stage.stage_id,
+    schemaResiduals.filter((residual) => residual.stage_id === stage.stage_id)
+  ]));
+
+  return {
+    syntax_valid: target_syntax_valid,
+    target_syntax_valid,
+    model_output_syntax_valid: schemaValid,
+    admitted: target_syntax_valid && diagnostics.every((code) => !blocksAdmission(code)),
+    verdict: target_syntax_valid ? verdict : "target_syntax_failure",
+    diagnostics,
+    parsed: {
+      schema_id: ckcLayeredSchemaId,
+      layers: {
+        segments: segments ?? null,
+        statements: statements ?? null,
+        rules: rules ?? null
+      },
+      route_ir: routeIr,
+      deterministic_bridge: bridge ? {
+        ...bridge,
+        evaluated
+      } : null,
+      stage_diagnostics: {
+        schema: stageSchemaDiagnostics,
+        grounding: groundingResiduals,
+        bridge: bridgeResiduals,
+        compiled_target: residuals.filter((residual) => residual.stage === "compiled_target")
+      },
+      residuals
+    },
+    compiled_target: compiledTarget,
+    candidate_text: JSON.stringify(stable(bridgedRows ?? {}), null, 2)
+  };
+}
+
 function extractSmtCandidateText(output) {
   const cleaned = cleanModelText(output);
   const start = cleaned.indexOf("(set-logic");
@@ -2896,7 +3663,30 @@ function runIrHopChainHop({ hopSpec, prompt, seed, groupId, labels, inputArtifac
   };
 }
 
-function aggregateSubprocessFromModelCalls(modelCalls) {
+function runCkcLayeredStage({ stageSpec, prompt, seed, groupId, labels, inputArtifact }) {
+  const schema = JSON.stringify(ckcLayeredJsonSchemaForStage(stageSpec.stage_id, groupId));
+  const subprocess = runLlama(prompt, seed, "route.ckc_layered", groupId, null, { schema });
+  const rawOutput = cleanModelText(subprocess.stdout, prompt);
+  const extracted = extractJsonObject(rawOutput);
+  const response = extracted?.text ?? rawOutput;
+  const parsed = extracted?.value ?? null;
+  return {
+    stage_id: stageSpec.stage_id,
+    granularity: stageSpec.granularity,
+    labels,
+    schema_id: stageSpec.schema_id,
+    input_artifact: inputArtifact,
+    prompt,
+    prompt_hash: sha256Text(prompt),
+    response,
+    parsed_response: parsed,
+    response_hash: sha256(response),
+    subprocess,
+    extracted: extracted ? { value: parsed, text: extracted.text } : null
+  };
+}
+
+function aggregateSubprocessFromModelCalls(modelCalls, argsLabel = "<multi-call-route-json-calls>") {
   const failingCall = modelCalls.find((call) => (
     call.subprocess.exit_status !== 0 || call.subprocess.signal || call.subprocess.error || call.subprocess.timed_out
   ));
@@ -2908,10 +3698,11 @@ function aggregateSubprocessFromModelCalls(modelCalls) {
     timed_out: modelCalls.some((call) => call.subprocess.timed_out),
     command: {
       executable: path.relative(root, llamaCliPath),
-      args: ["<ir-hop-chain-json-hop-calls>"]
+      args: [argsLabel]
     },
     calls: modelCalls.map((call) => ({
-      hop_id: call.hop_id,
+      hop_id: call.hop_id ?? null,
+      stage_id: call.stage_id ?? null,
       granularity: call.granularity,
       schema_id: call.schema_id,
       labels: call.labels,
@@ -2931,6 +3722,7 @@ function runLiveRoute(routeId, groupId, seed, expected) {
   if (routeId === "route.single_ir") return runLiveSingleIrRoute(groupId, seed, expected);
   if (routeId === "route.stacked_ir") return runLiveStackedIrRoute(groupId, seed, expected);
   if (routeId === "route.ir_hop_chain") return runLiveIrHopChainRoute(groupId, seed, expected);
+  if (routeId === "route.ckc_layered") return runLiveCkcLayeredRoute(groupId, seed, expected);
   const prompt = promptFor(routeId, groupId, seed);
   const subprocess = runLlama(prompt, seed, routeId, groupId);
   const rawOutput = cleanModelText(subprocess.stdout, prompt);
@@ -3010,7 +3802,7 @@ function runLiveIrHopChainRoute(groupId, seed, expected) {
     if (call.subprocess.exit_status !== 0 || call.subprocess.signal || call.subprocess.error) processDiagnostics.push("process_crash");
   }
   const classified = classifyIrHopChainCandidate({ hopOutputs, modelCalls }, groupId, expected, seed);
-  const aggregateSubprocess = aggregateSubprocessFromModelCalls(modelCalls);
+  const aggregateSubprocess = aggregateSubprocessFromModelCalls(modelCalls, "<ir-hop-chain-json-hop-calls>");
   return {
     route_id: "route.ir_hop_chain",
     group_id: groupId,
@@ -3022,6 +3814,84 @@ function runLiveIrHopChainRoute(groupId, seed, expected) {
     verdict: processDiagnostics.includes("process_crash") ? "solver_execution_failure" : classified.verdict,
     diagnostics: [...new Set([...classified.diagnostics, ...processDiagnostics])],
     prompt: lexicalPrompt,
+    response: classified.candidate_text,
+    parsed_response: classified.parsed ?? null,
+    compiled_target: classified.compiled_target ?? null,
+    subprocess: aggregateSubprocess,
+    route_call: null,
+    source_calls: null,
+    model_calls: modelCalls,
+    live_call_count: modelCalls.length
+  };
+}
+
+function runLiveCkcLayeredRoute(groupId, seed, expected) {
+  const labels = modelCaseForGroup(groupId).labels;
+  const processDiagnostics = [];
+
+  const segmentPrompt = promptForCkcLayeredSegments(groupId);
+  const segmentCall = runCkcLayeredStage({
+    stageSpec: ckcLayeredStageSpecs[0],
+    prompt: segmentPrompt,
+    seed,
+    groupId,
+    labels,
+    inputArtifact: {
+      kind: "source_excerpts",
+      source_refs: Object.fromEntries(labels.map((label) => [label, sourceCuesForLabel(label)]))
+    }
+  });
+
+  const statementPrompt = promptForCkcLayeredStatements(groupId, objectForNextHop(segmentCall.parsed_response));
+  const statementCall = runCkcLayeredStage({
+    stageSpec: ckcLayeredStageSpecs[1],
+    prompt: statementPrompt,
+    seed,
+    groupId,
+    labels,
+    inputArtifact: {
+      kind: "ckc_stage_output",
+      stage_id: segmentCall.stage_id,
+      response_hash: segmentCall.response_hash
+    }
+  });
+
+  const rulePrompt = promptForCkcLayeredRules(groupId, objectForNextHop(statementCall.parsed_response));
+  const ruleCall = runCkcLayeredStage({
+    stageSpec: ckcLayeredStageSpecs[2],
+    prompt: rulePrompt,
+    seed,
+    groupId,
+    labels,
+    inputArtifact: {
+      kind: "ckc_stage_output",
+      stage_id: statementCall.stage_id,
+      response_hash: statementCall.response_hash
+    }
+  });
+
+  const modelCalls = [segmentCall, statementCall, ruleCall].map(({ extracted, ...call }) => call);
+  const stageOutputs = {
+    segments: { extracted: segmentCall.extracted, parsed: segmentCall.parsed_response },
+    statements: { extracted: statementCall.extracted, parsed: statementCall.parsed_response },
+    rules: { extracted: ruleCall.extracted, parsed: ruleCall.parsed_response }
+  };
+  for (const call of [segmentCall, statementCall, ruleCall]) {
+    if (call.subprocess.exit_status !== 0 || call.subprocess.signal || call.subprocess.error) processDiagnostics.push("process_crash");
+  }
+  const classified = classifyCkcLayeredCandidate({ stageOutputs, modelCalls }, groupId, expected, seed);
+  const aggregateSubprocess = aggregateSubprocessFromModelCalls(modelCalls, "<ckc-layered-json-stage-calls>");
+  return {
+    route_id: "route.ckc_layered",
+    group_id: groupId,
+    seed,
+    syntax_valid: classified.syntax_valid,
+    target_syntax_valid: classified.target_syntax_valid,
+    model_output_syntax_valid: classified.model_output_syntax_valid,
+    admitted: classified.admitted && processDiagnostics.every((code) => code !== "process_crash"),
+    verdict: processDiagnostics.includes("process_crash") ? "solver_execution_failure" : classified.verdict,
+    diagnostics: [...new Set([...classified.diagnostics, ...processDiagnostics])],
+    prompt: segmentPrompt,
     response: classified.candidate_text,
     parsed_response: classified.parsed ?? null,
     compiled_target: classified.compiled_target ?? null,
@@ -3312,7 +4182,7 @@ function buildSourceCueLayer() {
     artifact_kind: "SourceCueLayer",
     extractor_id: "lexical_cue_v1",
     scope: "shared_route_input",
-    fairness_note: "Implemented route rows are evaluated against the same deterministic source-derived cue rows. R3 prompts no longer include filled answer objects; route.direct_smt composes SMT-LIB directly from source excerpts, route.single_ir derives bounded JSON rows, route.stacked_ir derives source_frame -> rule_row JSON, and route.ir_hop_chain derives lexical cues -> clinical frame -> rule rows before deterministic route_rule_ir.v0 to SMT-LIB compilation. Unimplemented registered routes produce closed scaffold rows only when --scaffold-routes is explicit.",
+    fairness_note: "Implemented route rows are evaluated against the same deterministic source-derived cue rows. R3 prompts no longer include filled answer objects; route.direct_smt composes SMT-LIB directly from source excerpts, route.single_ir derives bounded JSON rows, route.stacked_ir derives source_frame -> rule_row JSON, route.ir_hop_chain derives lexical cues -> clinical frame -> rule rows, and route.ckc_layered derives CKC segment -> statement -> rule JSON before deterministic route_rule_ir.v0 to SMT-LIB compilation. Unimplemented registered routes produce closed scaffold rows only when --scaffold-routes is explicit.",
     cues: Object.fromEntries(labels.map((label) => [label, {
       ...sourceCuesForLabel(label),
       resolved_fields: expectedCueFields(label)
@@ -3419,7 +4289,7 @@ function buildRouteEvaluation(rawRows) {
     evaluation_strength: hasScaffoldedRoutes ? "route_registry_scaffold_check" : "scaffolded_cue_translation_test",
     evaluation_strength_note: hasScaffoldedRoutes
       ? "This run includes measured implemented routes and closed rows for still-unimplemented registered routes. Closed scaffold rows are excluded from model-call provenance and carry deferred_gate_required diagnostics instead of fabricated outputs."
-      : "R3 removes exact filled JSON payloads from route.single_ir prompts and adds a holdout mutation group. The prompt still supplies schema and cue definitions, so this remains a scaffolded cue-translation test rather than raw Japanese guideline understanding.",
+      : "R3 removes exact filled JSON payloads from route.single_ir prompts and adds a holdout mutation group. M3 route extensions add stacked, hop-chain, and CKC-layered JSON routes under the same evaluator. Prompts still supply schema and cue definitions, so this remains a scaffolded route-translation test rather than raw Japanese guideline understanding.",
     harness_change_note: "C1 generalizes the comparison harness from a fixed lift table to a baseline-aware route matrix and per-route target summaries; current route raw rows are still the measurement source.",
     scaffold_mode: scaffoldRoutes,
     unimplemented_route_ids: [...unimplementedRouteIds],
@@ -3566,6 +4436,9 @@ function promptTemplateId(routeId, granularity) {
   if (routeId === "route.ir_hop_chain" && granularity === "hop.lexical_cues") return "prompt.route_ir_hop_chain.cds_ticket_lexical_cues.v0";
   if (routeId === "route.ir_hop_chain" && granularity === "hop.clinical_frame") return "prompt.route_ir_hop_chain.cds_ticket_clinical_frame.v0";
   if (routeId === "route.ir_hop_chain" && granularity === "hop.rule_rows") return "prompt.route_ir_hop_chain.cds_ticket_rule_rows.v0";
+  if (routeId === "route.ckc_layered" && granularity === "stage.segments") return "prompt.route_ckc_layered.cds_ticket_segments.v0";
+  if (routeId === "route.ckc_layered" && granularity === "stage.statements") return "prompt.route_ckc_layered.cds_ticket_statements.v0";
+  if (routeId === "route.ckc_layered" && granularity === "stage.rules") return "prompt.route_ckc_layered.cds_ticket_rules.v0";
   return `prompt.${routeId.replaceAll(".", "_")}.${granularity}.v3`;
 }
 
@@ -3580,6 +4453,10 @@ function promptOutputContract(routeId, granularity) {
   if (routeId === "route.ir_hop_chain" && granularity === "hop.clinical_frame") return "hop 2 JSON: lexical cue rows -> clinical frame rows";
   if (routeId === "route.ir_hop_chain" && granularity === "hop.rule_rows") return "hop 3 JSON: clinical frame rows -> route_rule_ir.v0 cue rows";
   if (routeId === "route.ir_hop_chain") return "IR hop-chain JSON output";
+  if (routeId === "route.ckc_layered" && granularity === "stage.segments") return "CKC layer JSON stage 1: source excerpts -> segment-like span rows";
+  if (routeId === "route.ckc_layered" && granularity === "stage.statements") return "CKC layer JSON stage 2: segments -> normalized clinical statement rows";
+  if (routeId === "route.ckc_layered" && granularity === "stage.rules") return "CKC layer JSON stage 3: statements -> rule rows for deterministic route_rule_ir.v0 bridge";
+  if (routeId === "route.ckc_layered") return "CKC layered JSON output";
   return "route-specific model output";
 }
 
@@ -3593,7 +4470,8 @@ function modelCallsForIoRecord(record) {
     return record.model_calls.map((call, index) => ({
       call_index: index + 1,
       granularity: call.granularity ?? call.hop_id ?? "route",
-      hop_id: call.hop_id ?? null,
+      hop_id: call.hop_id ?? call.stage_id ?? null,
+      stage_id: call.stage_id ?? null,
       schema_id: call.schema_id ?? null,
       prompt: call.prompt,
       prompt_hash: call.prompt_hash ?? sha256Text(call.prompt),
@@ -3606,6 +4484,7 @@ function modelCallsForIoRecord(record) {
       call_index: 1,
       granularity: record.route_call.granularity ?? "route",
       hop_id: null,
+      stage_id: null,
       schema_id: record.route_call.schema_id ?? null,
       prompt: record.route_call.prompt,
       prompt_hash: record.route_call.prompt_hash ?? sha256Text(record.route_call.prompt),
@@ -3617,6 +4496,7 @@ function modelCallsForIoRecord(record) {
     call_index: 1,
     granularity: "route",
     hop_id: null,
+    stage_id: null,
     schema_id: null,
     prompt: record.prompt,
     prompt_hash: record.prompt_hash ?? sha256Text(record.prompt),
@@ -3639,6 +4519,7 @@ function buildPromptCatalog(ioRecords) {
       seed: record.seed,
       granularity,
       hop_id: modelCall.hop_id ?? null,
+      stage_id: modelCall.stage_id ?? null,
       schema_id: modelCall.schema_id ?? null,
       prompt_template_id: promptTemplateId(record.route_id, granularity),
       output_contract: modelCall.output_contract ?? promptOutputContract(record.route_id, granularity),
@@ -3978,7 +4859,7 @@ function markdownReport(report) {
   const directAuditConclusion = `Direct SMT residual audit: exact template matches ${directAudit.exact_template_match_rate.exact}; rows without named assertions ${directAudit.missing_named_assertion_rate.exact}; rows asserting negated sepsis ${directAudit.negated_sepsis_assertion_rate.exact}. This audit is non-admission evidence for malformed direct target composition under the shared cue layer.`;
   const realGuidelineRows = report.real_guideline_intake.sources.map((source) => `| ${source.id} | ${source.license_label} | ${source.raw_cache_status} | ${source.candidate_span_count} | ${source.admitted_candidate_rule_count} | ${source.rejected_residual_count} | ${source.guideline_relation} |`).join("\n");
   const routeSectionTitle = report.route_experiment.experiment_id === "exp.m2_lift" ? "M2 route matrix" : "Route matrix";
-  const routeIntro = "Implemented routes finish at SMT-LIB under the same evaluator: direct SMT asks the model for target text, single_ir asks for bounded JSON rows, stacked_ir asks for a source_frame -> rule_row stack, and ir_hop_chain asks for three adjacent JSON hops before deterministic route_rule_ir.v0 compilation. Closed scaffold routes, when present, make no model calls and are not fabricated measurements.";
+  const routeIntro = "Implemented routes finish at SMT-LIB under the same evaluator: direct SMT asks the model for target text, single_ir asks for bounded JSON rows, stacked_ir asks for a source_frame -> rule_row stack, ir_hop_chain asks for three adjacent JSON hops, and ckc_layered asks for CKC segment -> statement -> rule stages before deterministic route_rule_ir.v0 compilation. Closed scaffold routes, when present, make no model calls and are not fabricated measurements.";
   return `# CKC one-shot M1-M2 research report
 
 Run: \`${report.run_id}\`
@@ -4073,7 +4954,7 @@ function japaneseReport(report) {
   const directAuditConclusion = `Direct SMT residual audit: exact template match ${directAudit.exact_template_match_rate.exact}、named assertion なし ${directAudit.missing_named_assertion_rate.exact}、negated sepsis assertion ${directAudit.negated_sepsis_assertion_rate.exact}。これは admission 判定外の監査情報であり、shared cue layer 下で direct target composition が malformed になることを記録する。`;
   const realGuidelineRows = report.real_guideline_intake.sources.map((source) => `| ${source.id} | ${source.license_label} | ${source.raw_cache_status} | ${source.candidate_span_count} | ${source.admitted_candidate_rule_count} | ${source.rejected_residual_count} |`).join("\n");
   const routeSectionTitle = report.route_experiment.experiment_id === "exp.m2_lift" ? "M2 route matrix" : "Route matrix";
-  const routeIntro = "implemented route は同じ evaluator の下で SMT-LIB に到達する。direct SMT は model が target text を直接構成し、single_ir は bounded JSON row、stacked_ir は source_frame -> rule_row stack、ir_hop_chain は lexical cues -> clinical frame -> rule rows の 3 hop JSON を出力し、deterministic route_rule_ir.v0 compiler が SMT-LIB に変換する。closed scaffold route がある場合、model call はなく fabricated measurement ではない。";
+  const routeIntro = "implemented route は同じ evaluator の下で SMT-LIB に到達する。direct SMT は model が target text を直接構成し、single_ir は bounded JSON row、stacked_ir は source_frame -> rule_row stack、ir_hop_chain は lexical cues -> clinical frame -> rule rows の 3 hop JSON、ckc_layered は CKC segment -> statement -> rule stages を出力し、deterministic route_rule_ir.v0 compiler が SMT-LIB に変換する。closed scaffold route がある場合、model call はなく fabricated measurement ではない。";
   return `# CKC one-shot M1-M2 研究レポート
 
 run: \`${report.run_id}\`
@@ -4709,6 +5590,17 @@ async function main() {
                 record.model_calls?.length === irHopChainHopSpecs.length
                 && record.parsed_response?.deterministic_bridge?.hop_lineage?.length === irHopChainHopSpecs.length
                 && record.model_calls.every((call) => call.prompt_hash?.length === 64 && call.response_hash?.length === 64)
+              ))
+          ]),
+          ...(!routeIds.includes("route.ckc_layered") ? [] : [
+            routeMetricsById.get("route.ckc_layered")?.model_call_count === routeMetricsById.get("route.ckc_layered")?.samples * ckcLayeredStageSpecs.length,
+            metrics.ioRecords
+              .filter((record) => record.route_id === "route.ckc_layered")
+              .every((record) => (
+                record.model_calls?.length === ckcLayeredStageSpecs.length
+                && record.parsed_response?.deterministic_bridge?.stage_lineage?.length === ckcLayeredStageSpecs.length
+                && record.parsed_response?.stage_diagnostics
+                && record.model_calls.every((call) => call.prompt_hash?.length === 64 && call.response_hash?.length === 64 && call.stage_id)
               ))
           ])
         ]
