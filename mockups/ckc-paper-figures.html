@@ -1,0 +1,850 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CKC Paper Figure Mockups</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f4f5f2;
+      --paper: #ffffff;
+      --ink: #171a18;
+      --muted: #606963;
+      --line: #d7ddd6;
+      --line-strong: #9ca89f;
+      --source: #2d7074;
+      --ir: #4f7330;
+      --check: #344f7e;
+      --model: #7b4b78;
+      --warn: #a84034;
+      --soft-source: #e0f0ef;
+      --soft-ir: #e6f1df;
+      --soft-check: #e4ecf7;
+      --soft-model: #f0e5ef;
+      --soft-warn: #f7e3df;
+      --soft-neutral: #f7f8f6;
+      --shadow: 0 1px 2px rgba(23, 26, 24, 0.06), 0 18px 38px rgba(23, 26, 24, 0.08);
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      font-family: var(--sans);
+      font-size: 15px;
+      line-height: 1.42;
+    }
+
+    code {
+      font-family: var(--mono);
+      letter-spacing: 0;
+    }
+
+    .shell {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 46px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 280px;
+      gap: 24px;
+      align-items: end;
+      margin-bottom: 24px;
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 0;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      max-width: 760px;
+      font-size: 42px;
+      line-height: 1.02;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      max-width: 760px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 17px;
+    }
+
+    .status {
+      display: grid;
+      gap: 1px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--line);
+      box-shadow: var(--shadow);
+    }
+
+    .status div {
+      display: grid;
+      gap: 3px;
+      padding: 11px 12px;
+      background: var(--paper);
+    }
+
+    .status span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .status strong {
+      font-family: var(--mono);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .grid {
+      display: grid;
+      gap: 18px;
+    }
+
+    .paper-figure {
+      margin: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .figure-head {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+      padding: 16px 18px 12px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfcfa;
+    }
+
+    .figure-label {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 72px;
+      min-height: 32px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: var(--paper);
+      font: 800 12px/1 var(--mono);
+    }
+
+    .figure-head h2 {
+      font-size: 20px;
+      line-height: 1.16;
+      letter-spacing: 0;
+    }
+
+    .figure-head p {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .figure-body {
+      padding: 18px;
+    }
+
+    .caption {
+      padding: 13px 18px 16px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-family: var(--serif);
+      font-size: 15px;
+      line-height: 1.46;
+    }
+
+    .caption b {
+      color: var(--ink);
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: max-content;
+      max-width: 100%;
+      min-height: 21px;
+      padding: 3px 7px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--paper);
+      color: var(--muted);
+      font: 800 11px/1 var(--sans);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .tag.source {
+      border-color: #a9cdcc;
+      background: var(--soft-source);
+      color: var(--source);
+    }
+
+    .tag.ir {
+      border-color: #b8cfae;
+      background: var(--soft-ir);
+      color: var(--ir);
+    }
+
+    .tag.check {
+      border-color: #b8c8dc;
+      background: var(--soft-check);
+      color: var(--check);
+    }
+
+    .tag.model {
+      border-color: #d4b5d2;
+      background: var(--soft-model);
+      color: var(--model);
+    }
+
+    .tag.warn {
+      border-color: #dfb4ac;
+      background: var(--soft-warn);
+      color: var(--warn);
+    }
+
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(8, minmax(0, 1fr));
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .stage {
+      min-width: 0;
+      display: grid;
+      gap: 8px;
+      align-content: start;
+      min-height: 118px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--soft-neutral);
+    }
+
+    .stage strong,
+    .stage span,
+    .stage code {
+      display: block;
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .stage strong {
+      font-size: 13px;
+    }
+
+    .stage span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .stage code {
+      color: var(--check);
+      font-size: 11px;
+    }
+
+    .trace-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .source-card,
+    .trace-card {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--soft-neutral);
+      overflow: hidden;
+    }
+
+    .source-card {
+      padding: 15px;
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .source-card code {
+      color: var(--source);
+      font-size: 12px;
+    }
+
+    .source-card p {
+      font-size: 18px;
+      line-height: 1.6;
+    }
+
+    .mark {
+      padding: 1px 4px;
+      border-radius: 4px;
+      background: var(--soft-source);
+      box-shadow: inset 0 0 0 1px rgba(45, 112, 116, 0.18);
+    }
+
+    .mark.action {
+      background: #f6ead7;
+      box-shadow: inset 0 0 0 1px rgba(138, 100, 28, 0.2);
+    }
+
+    .mark.neg {
+      background: var(--soft-warn);
+      box-shadow: inset 0 0 0 1px rgba(168, 64, 52, 0.2);
+    }
+
+    .trace-steps {
+      display: grid;
+      gap: 1px;
+      background: var(--line);
+    }
+
+    .trace-step {
+      display: grid;
+      grid-template-columns: 126px minmax(0, 1fr);
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--paper);
+      align-items: start;
+    }
+
+    .trace-step b {
+      font-size: 12px;
+    }
+
+    .trace-step span,
+    .trace-step code {
+      display: block;
+      min-width: 0;
+      overflow-wrap: anywhere;
+      font-size: 12px;
+    }
+
+    .trace-step span {
+      color: var(--muted);
+    }
+
+    .metric-figure {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 0.72fr);
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .bars {
+      display: grid;
+      gap: 14px;
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--soft-neutral);
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 168px minmax(0, 1fr) 54px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .bar-row b {
+      font-size: 12px;
+    }
+
+    .bar-track {
+      height: 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--paper);
+      overflow: hidden;
+    }
+
+    .bar {
+      height: 100%;
+      border-radius: 999px;
+      background: var(--source);
+    }
+
+    .bar.direct {
+      background: var(--line-strong);
+    }
+
+    .bar.model {
+      background: var(--model);
+    }
+
+    .bar-row code {
+      color: var(--muted);
+      font-size: 11px;
+      text-align: right;
+    }
+
+    .mini-table {
+      display: grid;
+      gap: 1px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--line);
+    }
+
+    .mini-table div {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr 0.8fr;
+      gap: 8px;
+      padding: 9px 10px;
+      background: var(--paper);
+      font-size: 12px;
+    }
+
+    .mini-table .head {
+      background: #fbfcfa;
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .mini-table span {
+      color: var(--muted);
+      overflow-wrap: anywhere;
+    }
+
+    .route-map {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .route {
+      min-width: 0;
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--soft-neutral);
+    }
+
+    .route strong,
+    .route span,
+    .route code {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .route strong {
+      font-size: 13px;
+    }
+
+    .route span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .route code {
+      color: var(--model);
+      font-size: 11px;
+    }
+
+    .loop-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 0.72fr);
+      gap: 16px;
+    }
+
+    .cycle {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .cycle-step {
+      min-width: 0;
+      display: grid;
+      gap: 8px;
+      min-height: 104px;
+      padding: 11px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--soft-neutral);
+    }
+
+    .cycle-step b,
+    .cycle-step span {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .cycle-step span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .ledger {
+      display: grid;
+      gap: 1px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--line);
+    }
+
+    .ledger-row {
+      display: grid;
+      grid-template-columns: 70px minmax(0, 1fr) 88px;
+      gap: 8px;
+      padding: 9px 10px;
+      background: var(--paper);
+      align-items: center;
+      font-size: 12px;
+    }
+
+    .ledger-row.head {
+      background: #fbfcfa;
+      font-weight: 800;
+    }
+
+    .ledger-row span {
+      color: var(--muted);
+      overflow-wrap: anywhere;
+    }
+
+    .claim-ladder {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .claim {
+      min-width: 0;
+      display: grid;
+      gap: 8px;
+      min-height: 132px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--soft-neutral);
+    }
+
+    .claim code {
+      color: var(--ink);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .claim span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .claim.blocked {
+      border-color: #dfb4ac;
+      background: var(--soft-warn);
+    }
+
+    .note {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    @media (max-width: 980px) {
+      header,
+      .trace-grid,
+      .metric-figure,
+      .loop-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .pipeline,
+      .route-map,
+      .cycle,
+      .claim-ladder {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 680px) {
+      .shell {
+        width: min(100% - 20px, 1180px);
+        padding-top: 18px;
+      }
+
+      h1 {
+        font-size: 34px;
+      }
+
+      .figure-head,
+      .pipeline,
+      .route-map,
+      .cycle,
+      .claim-ladder,
+      .mini-table div,
+      .trace-step,
+      .bar-row,
+      .ledger-row {
+        grid-template-columns: 1fr;
+      }
+
+      .bar-row code {
+        text-align: left;
+      }
+    }
+
+    @media print {
+      body {
+        background: #ffffff;
+      }
+
+      .shell {
+        width: 100%;
+        padding: 0;
+      }
+
+      header {
+        display: none;
+      }
+
+      .paper-figure {
+        break-inside: avoid;
+        box-shadow: none;
+        margin-bottom: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div>
+        <p class="eyebrow">CKC / research-paper figure mockups</p>
+        <h1>Paper figures for a proof-carrying clinical knowledge compiler.</h1>
+        <p class="lead">
+          These HTML figures imagine how CKC could be explained in a paper: method diagrams,
+          experiment schematics, result placeholders, and claim-boundary visuals.
+        </p>
+      </div>
+      <aside class="status" aria-label="Figure sheet status">
+        <div><span>Medium</span><strong>HTML mock figures</strong></div>
+        <div><span>Posture</span><strong>research evidence only</strong></div>
+        <div><span>Source scope</span><strong>synthetic fixtures</strong></div>
+      </aside>
+    </header>
+
+    <main class="grid">
+      <figure class="paper-figure" id="fig-1">
+        <div class="figure-head">
+          <div class="figure-label">Fig. 1</div>
+          <div>
+            <h2>CKC as an evidence compiler, not a clinical application.</h2>
+            <p>End-to-end artifact spine from source material to replayable report.</p>
+          </div>
+        </div>
+        <div class="figure-body">
+          <div class="pipeline" aria-label="CKC pipeline">
+            <div class="stage"><span class="tag source">input</span><strong>Source material</strong><span>Guideline-like HTML, later PDF/XML/public sources.</span><code>SourceGraph</code></div>
+            <div class="stage"><span class="tag source">extract</span><strong>Segments</strong><span>Clinical segment boundaries and source regions.</span><code>segments.json</code></div>
+            <div class="stage"><span class="tag ir">normalize</span><strong>Clinical meaning</strong><span>Bindings, statements, actions, contexts.</span><code>ClinicalIR</code></div>
+            <div class="stage"><span class="tag ir">assemble</span><strong>Reusable rules</strong><span>Structural hashes and component records.</span><code>IRBundle</code></div>
+            <div class="stage"><span class="tag check">compile</span><strong>Formal checks</strong><span>SMT queries and named assertions.</span><code>compiled.json</code></div>
+            <div class="stage"><span class="tag check">verify</span><strong>Solver evidence</strong><span>Verdicts, models, unsat cores, diagnostics.</span><code>VerifierResult</code></div>
+            <div class="stage"><span class="tag ir">trace</span><strong>Lineage</strong><span>Finding to source span, both directions.</span><code>lineage_index</code></div>
+            <div class="stage"><span class="tag warn">report</span><strong>Bounded claim</strong><span>Findings, null results, metrics, replay.</span><code>report.md</code></div>
+          </div>
+        </div>
+        <figcaption class="caption">
+          <b>Figure 1.</b> CKC is framed as a headless research harness. Each stage emits canonical
+          artifacts that can be traced and replayed; reports remain bounded to source-grounded
+          formalization evidence unless explicit gates enable stronger claims.
+        </figcaption>
+      </figure>
+
+      <figure class="paper-figure" id="fig-2">
+        <div class="figure-head">
+          <div class="figure-label">Fig. 2</div>
+          <div>
+            <h2>One reported finding is a path through artifacts.</h2>
+            <p>Example trace for the V1 synthetic contradiction fixture.</p>
+          </div>
+        </div>
+        <div class="figure-body">
+          <div class="trace-grid">
+            <div class="source-card">
+              <code>fixture.v1_guideline_a x fixture.v1_guideline_b</code>
+              <p>
+                「<span class="mark">成人の敗血症患者</span>には
+                <span class="mark action">抗菌薬Aを投与する</span>」 versus
+                「<span class="mark">妊娠中の患者</span>には
+                <span class="mark neg">投与しないこと</span>」.
+              </p>
+              <span class="tag warn">synthetic fixture measurement</span>
+            </div>
+            <div class="trace-card">
+              <div class="trace-steps">
+                <div class="trace-step"><b>source regions</b><span><code>region.a.cq1.rec</code>, <code>region.b.contra1</code></span></div>
+                <div class="trace-step"><b>rules</b><span><code>rule.a.cq1.r1</code> and <code>rule.b.contra1</code> share action key <code>act.administer:drug.abx_a</code>.</span></div>
+                <div class="trace-step"><b>query</b><span>Context overlap is satisfiable; deontic polarity check is unsatisfiable.</span></div>
+                <div class="trace-step"><b>solver core</b><span><code>[a.rule.a.cq1.r1, a.rule.b.contra1]</code></span></div>
+                <div class="trace-step"><b>report row</b><span><code>finding.group.v1_conflict.1</code>, kind <code>deontic_direction_conflict</code>.</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <figcaption class="caption">
+          <b>Figure 2.</b> A CKC finding is not just a label. It is a traversable evidence path from
+          quoted source regions through normalized rules and named SMT assertions to a verifier
+          result and report row.
+        </figcaption>
+      </figure>
+
+      <figure class="paper-figure" id="fig-3">
+        <div class="figure-head">
+          <div class="figure-label">Fig. 3</div>
+          <div>
+            <h2>Layered formalization is compared against a direct baseline.</h2>
+            <p>V2 paper figure sketch: raw metric rows first, ranking second.</p>
+          </div>
+        </div>
+        <div class="figure-body">
+          <div class="metric-figure">
+            <div class="bars" aria-label="Illustrative V2 metric bars">
+              <div class="bar-row"><b>component reuse</b><div class="bar-track"><div class="bar" style="width: 78%"></div></div><code>layered</code></div>
+              <div class="bar-row"><b>component reuse</b><div class="bar-track"><div class="bar direct" style="width: 22%"></div></div><code>direct</code></div>
+              <div class="bar-row"><b>hash convergence</b><div class="bar-track"><div class="bar" style="width: 84%"></div></div><code>layered</code></div>
+              <div class="bar-row"><b>hash convergence</b><div class="bar-track"><div class="bar direct" style="width: 34%"></div></div><code>direct</code></div>
+              <div class="bar-row"><b>trace completeness</b><div class="bar-track"><div class="bar" style="width: 96%"></div></div><code>layered</code></div>
+              <div class="bar-row"><b>trace completeness</b><div class="bar-track"><div class="bar direct" style="width: 58%"></div></div><code>direct</code></div>
+            </div>
+            <div class="mini-table" aria-label="V2 metric row sketch">
+              <div class="head"><span>Metric family</span><span>Layered row</span><span>Direct row</span></div>
+              <div><span>Reuse</span><span>hash-keyed component hits</span><span>mostly bypassed</span></div>
+              <div><span>Compactness</span><span>shared mapping frontier</span><span>per-document form</span></div>
+              <div><span>Conflict quality</span><span>expected findings/nulls</span><span>same gold fixture</span></div>
+              <div><span>Ablations</span><span>exceptions off, grounding off</span><span>same evaluator</span></div>
+            </div>
+          </div>
+        </div>
+        <figcaption class="caption">
+          <b>Figure 3.</b> The V2 comparison should read like a measurement instrument: identical
+          fixtures and gold outcomes, raw rows visible before any ranking, and direct formalization
+          used as the baseline for testing the reuse thesis.
+        </figcaption>
+      </figure>
+
+      <figure class="paper-figure" id="fig-4">
+        <div class="figure-head">
+          <div class="figure-label">Fig. 4</div>
+          <div>
+            <h2>Weak-model routes test where structure helps.</h2>
+            <p>V3 separates route lift from amortized runtime removal.</p>
+          </div>
+        </div>
+        <div class="figure-body">
+          <div class="route-map" aria-label="V3 route and amortization map">
+            <div class="route"><span class="tag model">baseline</span><strong>Direct SMT</strong><span>Model emits target text directly; expected to fail often under a weak local model.</span><code>route.direct_smt</code></div>
+            <div class="route"><span class="tag model">structured</span><strong>Single / stacked IR</strong><span>Model fills constrained schemas; deterministic bridges compile to the same verifier.</span><code>route.single_ir</code></div>
+            <div class="route"><span class="tag model">short hops</span><strong>IR hop chain</strong><span>Several adjacent translation steps test whether smaller semantic deltas improve admission.</span><code>route.ir_hop_chain</code></div>
+            <div class="route"><span class="tag ir">project form</span><strong>CKC layered</strong><span>Model fills CKC stages; schema, grounding, and compiler checks decide admission.</span><code>route.ckc_layered</code></div>
+            <div class="route"><span class="tag ir">grammar</span><strong>CKC DSL</strong><span>Compact grammar-masked syntax parses deterministically into IR and SMT.</span><code>route.ckc_dsl</code></div>
+            <div class="route"><span class="tag check">amortize</span><strong>Build once, apply many</strong><span>Admitted mappings built on set A apply to fresh set B with zero apply-phase model calls.</span><code>exp.v3_amortize</code></div>
+          </div>
+        </div>
+        <figcaption class="caption">
+          <b>Figure 4.</b> V3 decomposes the model question. Route experiments measure whether IR
+          configuration lifts a weak model into admitted artifacts; amortization then measures
+          whether admitted mappings remove model calls from fresh-document apply paths.
+        </figcaption>
+      </figure>
+
+      <figure class="paper-figure" id="fig-5">
+        <div class="figure-head">
+          <div class="figure-label">Fig. 5</div>
+          <div>
+            <h2>Autoresearch is scored against an immutable evaluator.</h2>
+            <p>V4 figure sketch: loop stages plus ledger outcomes.</p>
+          </div>
+        </div>
+        <div class="figure-body">
+          <div class="loop-grid">
+            <div class="cycle" aria-label="Autoresearch cycle">
+              <div class="cycle-step"><span class="tag model">1</span><b>Propose</b><span>Candidate patch over declared editable surfaces.</span></div>
+              <div class="cycle-step"><span class="tag check">2</span><b>Run</b><span>Execute under evaluator lock, budget, and seed.</span></div>
+              <div class="cycle-step"><span class="tag ir">3</span><b>Score</b><span>Compare raw objectives and regression thresholds.</span></div>
+              <div class="cycle-step"><span class="tag warn">4</span><b>Classify</b><span>Promote, reject, dominate, or mark unauthorized.</span></div>
+            </div>
+            <div class="ledger" aria-label="Attempt ledger sketch">
+              <div class="ledger-row head"><span>Attempt</span><span>Change surface</span><span>Decision</span></div>
+              <div class="ledger-row"><span><code>a001</code></span><span>prompt template delta</span><span>promoted</span></div>
+              <div class="ledger-row"><span><code>a002</code></span><span>lexicon repair</span><span>frontier</span></div>
+              <div class="ledger-row"><span><code>a003</code></span><span>evaluator edit</span><span>unauthorized</span></div>
+              <div class="ledger-row"><span><code>a004</code></span><span>route config</span><span>rejected</span></div>
+            </div>
+          </div>
+        </div>
+        <figcaption class="caption">
+          <b>Figure 5.</b> The self-improvement claim is presented as a locked experiment, not an
+          assertion of autonomy. Every attempt is ledgered, scored or rejected under declared
+          rules, and replay is required before local promotion.
+        </figcaption>
+      </figure>
+
+      <figure class="paper-figure" id="fig-6">
+        <div class="figure-head">
+          <div class="figure-label">Fig. 6</div>
+          <div>
+            <h2>Claim tiers and gates prevent over-reading the results.</h2>
+            <p>Paper boundary figure for limitations and deployment claims.</p>
+          </div>
+        </div>
+        <div class="figure-body">
+          <div class="claim-ladder" aria-label="Claim tier ladder">
+            <div class="claim"><span class="tag check">open</span><code>s0_replayable</code><span>Artifact bytes replay; schema and trace checks pass.</span></div>
+            <div class="claim"><span class="tag check">open</span><code>s1_admitted</code><span>Deterministic validation and admission accept the artifact set.</span></div>
+            <div class="claim"><span class="tag ir">conditional</span><code>s2_research_evidence</code><span>Benchmark or gate evidence supports a stated research claim.</span></div>
+            <div class="claim blocked"><span class="tag warn">gated</span><code>s3_clinical_regulatory</code><span>Clinical, regulatory, or deployment authority requires explicit gate evidence.</span></div>
+          </div>
+          <p class="note">
+            High-salience gates for paper limitations: <code>G-SOURCE-PERMISSION</code>,
+            <code>G-RUNTIME-ORACLE</code>, <code>G-SELF-IMPROVE</code>, and <code>G-S3</code>.
+          </p>
+        </div>
+        <figcaption class="caption">
+          <b>Figure 6.</b> CKC reports should distinguish replayable/admitted artifacts from stronger
+          research, clinical, regulatory, or deployment claims. Missing gate evidence blocks only
+          the stronger claim; lower-tier measurements remain reportable.
+        </figcaption>
+      </figure>
+    </main>
+  </div>
+</body>
+</html>

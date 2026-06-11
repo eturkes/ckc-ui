@@ -76,6 +76,7 @@ audit/build context. Existing specialized views remain useful drill-downs:
 | --- | --- |
 | `mockups/ckc-human-overview-lite.html` | Sparse first-read overview. |
 | `mockups/ckc-human-overview.html` | Denser multi-mode human overview. |
+| `mockups/ckc-paper-figures.html` | Research-paper-style mock figure sheet. |
 | `mockups/ckc-evidence-workbench.html` | General evidence workbench. |
 | `mockups/ckc-exp-v2-compare.html` | Layered versus direct comparison. |
 | `mockups/ckc-exp-v3-routes.html` | Weak-model route and amortization evidence. |
