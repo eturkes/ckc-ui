@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
   <title id="title">Deterministic pipeline comparison</title>
-  <desc id="desc">Deterministic pipeline comparison. Direct rule-to-SMT is retained as baseline; the layered CKC pipeline matches verdict and conflict-kind accuracy in the current M3 comparison while component reuse is reported separately from model-route lift.</desc>
+  <desc id="desc">Deterministic pipeline comparison. Direct rule-to-SMT is retained as baseline; profile lines show that the layered CKC pipeline matches verdict and conflict-kind accuracy in the current M3 comparison while component reuse is reported separately from model-route lift.</desc>
   <rect width="1600" height="900" fill="#ffffff"/>
   <text x="54" y="58" font-family="Arial, Helvetica, sans-serif" font-size="32" font-weight="700" fill="#111827" text-anchor="start">Deterministic pipeline comparison</text>
   <text x="54" y="92" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#596273" text-anchor="start">Layered CKC artifacts are compared with direct rule-to-SMT over identical M3 groups.</text>
@@ -16,28 +16,43 @@
   <text x="102" y="303.5" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" fill="#596273" text-anchor="end">75%</text>
   <line x1="120" y1="170" x2="1160" y2="170" stroke="#e5e9ef" stroke-width="1"/>
   <text x="102" y="176" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" fill="#596273" text-anchor="end">100%</text>
+  <line x1="120" y1="170" x2="120" y2="680" stroke="#e5e9ef" stroke-width="1" stroke-dasharray="2 10"/>
+  <line x1="120" y1="680" x2="120" y2="688" stroke="#c8d0da" stroke-width="2"/>
+  <text x="120" y="714" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">Compile</text>
+  <line x1="466.667" y1="170" x2="466.667" y2="680" stroke="#e5e9ef" stroke-width="1" stroke-dasharray="2 10"/>
+  <line x1="466.667" y1="680" x2="466.667" y2="688" stroke="#c8d0da" stroke-width="2"/>
+  <text x="466.667" y="714" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">Verdict</text>
+  <line x1="813.333" y1="170" x2="813.333" y2="680" stroke="#e5e9ef" stroke-width="1" stroke-dasharray="2 10"/>
+  <line x1="813.333" y1="680" x2="813.333" y2="688" stroke="#c8d0da" stroke-width="2"/>
+  <text x="813.333" y="714" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">Conflict kind</text>
+  <line x1="1160" y1="170" x2="1160" y2="680" stroke="#e5e9ef" stroke-width="1" stroke-dasharray="2 10"/>
+  <line x1="1160" y1="680" x2="1160" y2="688" stroke="#c8d0da" stroke-width="2"/>
+  <text x="1160" y="714" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">Reuse</text>
+  <text x="34" y="150" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#596273" text-anchor="start">rate</text>
   <line x1="120" y1="170" x2="120" y2="680" stroke="#c8d0da" stroke-width="2"/>
   <line x1="120" y1="680" x2="1160" y2="680" stroke="#c8d0da" stroke-width="2"/>
-  <rect x="187" y="170" width="58" height="510" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
-  <text x="216" y="160" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#b45c37" text-anchor="middle">8/8</text>
-  <rect x="255" y="170" width="58" height="510" rx="3" fill="#2f6b4f" stroke="#2f6b4f" stroke-width="1"/>
-  <text x="284" y="160" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#2f6b4f" text-anchor="middle">8/8</text>
-  <text x="172" y="714" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">Compile</text>
-  <rect x="447" y="170" width="58" height="510" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
-  <text x="476" y="160" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#b45c37" text-anchor="middle">8/8</text>
-  <rect x="515" y="170" width="58" height="510" rx="3" fill="#2f6b4f" stroke="#2f6b4f" stroke-width="1"/>
-  <text x="544" y="160" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#2f6b4f" text-anchor="middle">8/8</text>
-  <text x="432" y="714" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">Verdict</text>
-  <rect x="707" y="170" width="58" height="510" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
-  <text x="736" y="160" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#b45c37" text-anchor="middle">8/8</text>
-  <rect x="775" y="170" width="58" height="510" rx="3" fill="#2f6b4f" stroke="#2f6b4f" stroke-width="1"/>
-  <text x="804" y="160" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#2f6b4f" text-anchor="middle">8/8</text>
-  <text x="692" y="714" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">Conflict kind</text>
-  <rect x="967" y="680" width="58" height="0" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
-  <text x="996" y="670" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#b45c37" text-anchor="middle">0/16</text>
-  <rect x="1035" y="239.153" width="58" height="440.847" rx="3" fill="#2f6b4f" stroke="#2f6b4f" stroke-width="1"/>
-  <text x="1064" y="229.153" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#2f6b4f" text-anchor="middle">51/59</text>
-  <text x="952" y="714" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">Reuse</text>
+  <line x1="120" y1="170" x2="466.667" y2="170" stroke="#b45c37" stroke-width="3"/>
+  <line x1="466.667" y1="170" x2="813.333" y2="170" stroke="#b45c37" stroke-width="3"/>
+  <line x1="813.333" y1="170" x2="1160" y2="680" stroke="#b45c37" stroke-width="3"/>
+  <polygon points="120,164 126,170 120,176 114,170" fill="#b45c37" stroke="none"/>
+  <text x="120" y="190" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="14" font-weight="700" fill="#b45c37" text-anchor="middle">8/8</text>
+  <polygon points="466.667,164 472.667,170 466.667,176 460.667,170" fill="#b45c37" stroke="none"/>
+  <text x="466.667" y="190" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="14" font-weight="700" fill="#b45c37" text-anchor="middle">8/8</text>
+  <polygon points="813.333,164 819.333,170 813.333,176 807.333,170" fill="#b45c37" stroke="none"/>
+  <text x="813.333" y="190" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="14" font-weight="700" fill="#b45c37" text-anchor="middle">8/8</text>
+  <polygon points="1160,674 1166,680 1160,686 1154,680" fill="#b45c37" stroke="none"/>
+  <text x="1160" y="668" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="14" font-weight="700" fill="#b45c37" text-anchor="middle">0/16</text>
+  <line x1="120" y1="170" x2="466.667" y2="170" stroke="#2f6b4f" stroke-width="3" stroke-dasharray="9 6"/>
+  <line x1="466.667" y1="170" x2="813.333" y2="170" stroke="#2f6b4f" stroke-width="3" stroke-dasharray="9 6"/>
+  <line x1="813.333" y1="170" x2="1160" y2="239.153" stroke="#2f6b4f" stroke-width="3" stroke-dasharray="9 6"/>
+  <polygon points="120,164 126,170 120,176 114,170" fill="#2f6b4f" stroke="none"/>
+  <text x="120" y="203" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="14" font-weight="700" fill="#2f6b4f" text-anchor="middle">8/8</text>
+  <polygon points="466.667,164 472.667,170 466.667,176 460.667,170" fill="#2f6b4f" stroke="none"/>
+  <text x="466.667" y="203" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="14" font-weight="700" fill="#2f6b4f" text-anchor="middle">8/8</text>
+  <polygon points="813.333,164 819.333,170 813.333,176 807.333,170" fill="#2f6b4f" stroke="none"/>
+  <text x="813.333" y="203" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="14" font-weight="700" fill="#2f6b4f" text-anchor="middle">8/8</text>
+  <polygon points="1160,233.153 1166,239.153 1160,245.153 1154,239.153" fill="#2f6b4f" stroke="none"/>
+  <text x="1160" y="261.153" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="14" font-weight="700" fill="#2f6b4f" text-anchor="middle">51/59</text>
   <rect x="1240" y="176" width="113.1" height="27" rx="12" fill="#fbfcfd" stroke="#b45c37" stroke-width="1"/>
   <text x="1252" y="194" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#b45c37" text-anchor="start">direct_rule</text>
   <rect x="1240" y="220" width="113.1" height="27" rx="12" fill="#fbfcfd" stroke="#2f6b4f" stroke-width="1"/>

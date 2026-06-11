@@ -192,6 +192,117 @@ function addLine(shapes, x1, y1, x2, y2, options = {}) {
   });
 }
 
+function lineDash(index) {
+  return [null, "9 6", "3 5", "11 4 3 4", "2 4 2 7"][index % 5];
+}
+
+function addDiamond(shapes, x, y, r, fill) {
+  shapes.push({
+    kind: "poly",
+    points: [
+      [x, y - r],
+      [x + r, y],
+      [x, y + r],
+      [x - r, y]
+    ],
+    fill,
+    stroke: "none"
+  });
+}
+
+function countTicks(max) {
+  const safeMax = Math.max(1, Math.ceil(max));
+  if (safeMax <= 5) return Array.from({ length: safeMax + 1 }, (_, index) => index);
+  return [0, 0.25, 0.5, 0.75, 1].map((value) => Math.round(value * safeMax));
+}
+
+function addProfileLineChart(shapes, {
+  chart,
+  items,
+  series,
+  yMax = 1,
+  ticks = [0, 0.25, 0.5, 0.75, 1],
+  tickLabel = (value) => String(value),
+  valueLabel = (point) => String(point.label ?? point.value),
+  yLabel = null,
+  itemLabelWidth = 156,
+  itemLabelSize = 16,
+  xLabelY = 34,
+  markerSize = 6
+}) {
+  const safeYMax = Math.max(yMax, 1);
+  const xFor = (index) => items.length === 1
+    ? chart.x + chart.w / 2
+    : chart.x + (chart.w * index) / (items.length - 1);
+  const yFor = (value) => chart.y + chart.h - (Math.max(0, Math.min(value, safeYMax)) / safeYMax) * chart.h;
+
+  for (const tick of ticks) {
+    const y = yFor(tick);
+    addLine(shapes, chart.x, y, chart.x + chart.w, y, { stroke: colors.grid, strokeWidth: 1 });
+    addText(shapes, tickLabel(tick), chart.x - 18, y + 6, {
+      size: 15,
+      fill: colors.muted,
+      anchor: "end"
+    });
+  }
+  items.forEach((item, index) => {
+    const x = xFor(index);
+    addLine(shapes, x, chart.y, x, chart.y + chart.h, {
+      stroke: colors.grid,
+      strokeWidth: 1,
+      dash: "2 10"
+    });
+    addLine(shapes, x, chart.y + chart.h, x, chart.y + chart.h + 8, {
+      stroke: colors.line,
+      strokeWidth: 2
+    });
+    addWrappedText(shapes, item.label, x, chart.y + chart.h + xLabelY, itemLabelWidth, {
+      size: itemLabelSize,
+      fill: colors.ink,
+      anchor: "middle",
+      lineHeight: Math.round(itemLabelSize * 1.25)
+    });
+  });
+  if (yLabel) addText(shapes, yLabel, chart.x - 86, chart.y - 20, { size: 16, fill: colors.muted });
+  addLine(shapes, chart.x, chart.y, chart.x, chart.y + chart.h, { stroke: colors.line, strokeWidth: 2 });
+  addLine(shapes, chart.x, chart.y + chart.h, chart.x + chart.w, chart.y + chart.h, { stroke: colors.line, strokeWidth: 2 });
+
+  series.forEach((entry, seriesIndex) => {
+    const points = entry.points.map((point, index) => ({
+      ...point,
+      x: xFor(index),
+      y: yFor(point.value)
+    }));
+    for (let index = 1; index < points.length; index += 1) {
+      addLine(
+        shapes,
+        points[index - 1].x,
+        points[index - 1].y,
+        points[index].x,
+        points[index].y,
+        { stroke: entry.color, strokeWidth: 3, dash: lineDash(seriesIndex) }
+      );
+    }
+    points.forEach((point) => {
+      addDiamond(shapes, point.x, point.y, markerSize, entry.color);
+      const nearTop = point.y - chart.y < 42;
+      const nearBottom = chart.y + chart.h - point.y < 42;
+      const labelY = nearTop
+        ? point.y + 20 + seriesIndex * 13
+        : nearBottom
+          ? point.y - 12 - seriesIndex * 13
+          : point.y + (seriesIndex % 2 === 0 ? -14 - Math.floor(seriesIndex / 2) * 12 : 22 + Math.floor(seriesIndex / 2) * 12);
+      addText(shapes, valueLabel(point), point.x, labelY, {
+        size: series.length > 3 ? 12 : 14,
+        fill: entry.color,
+        anchor: "middle",
+        weight: "bold",
+        family: "mono"
+      });
+    });
+  });
+}
+
 function addArrow(shapes, x1, y1, x2, y2, options = {}) {
   const stroke = options.stroke ?? colors.muted;
   addLine(shapes, x1, y1, x2, y2, { stroke, strokeWidth: options.strokeWidth ?? 2 });
@@ -498,48 +609,23 @@ function buildRouteMetricsFigure(report) {
   );
   const rows = metricRows(report);
   const chart = { x: 120, y: 170, w: 1180, h: 520 };
-  for (let tick = 0; tick <= 4; tick += 1) {
-    const value = tick / 4;
-    const y = chart.y + chart.h - value * chart.h;
-    addLine(shapes, chart.x, y, chart.x + chart.w, y, { stroke: colors.grid, strokeWidth: 1 });
-    addText(shapes, `${Math.round(value * 100)}%`, chart.x - 18, y + 6, {
-      size: 15,
-      fill: colors.muted,
-      anchor: "end"
-    });
-  }
-  addLine(shapes, chart.x, chart.y, chart.x, chart.y + chart.h, { stroke: colors.line, strokeWidth: 2 });
-  addLine(shapes, chart.x, chart.y + chart.h, chart.x + chart.w, chart.y + chart.h, { stroke: colors.line, strokeWidth: 2 });
-  const groupW = chart.w / rows.length;
-  const barW = Math.max(16, Math.min(44, (groupW - 28) / Math.max(routeIds.length, 1) - 8));
-  rows.forEach(([label, metricId], index) => {
-    const center = chart.x + groupW * index + groupW / 2;
-    const totalW = routeIds.length * barW + (routeIds.length - 1) * 8;
-    routeIds.forEach((routeId, routeIndex) => {
+  addProfileLineChart(shapes, {
+    chart,
+    items: rows.map(([label]) => ({ label })),
+    series: routeIds.map((routeId, routeIndex) => {
       const metric = routeMetric(report, routeId);
-      const ratio = metric[metricId];
-      const h = ratioValue(ratio) * chart.h;
-      const x = center - totalW / 2 + routeIndex * (barW + 8);
-      const color = routeColor(routeId, routeIndex);
-      addRect(shapes, x, chart.y + chart.h - h, barW, h, {
-        fill: color,
-        stroke: color,
-        strokeWidth: 1,
-        rx: 3
-      });
-      addText(shapes, ratioExact(ratio), x + barW / 2, chart.y + chart.h - h - 10, {
-        size: routeIds.length > 3 ? 12 : 15,
-        fill: color,
-        anchor: "middle",
-        weight: "bold"
-      });
-    });
-    addWrappedText(shapes, label, center - 78, chart.y + chart.h + 34, 156, {
-      size: 16,
-      fill: colors.ink,
-      anchor: "middle",
-      lineHeight: 20
-    });
+      return {
+        id: routeId,
+        color: routeColor(routeId, routeIndex),
+        points: rows.map(([, metricId]) => ({
+          value: ratioValue(metric[metricId]),
+          label: ratioExact(metric[metricId])
+        }))
+      };
+    }),
+    yLabel: "rate",
+    tickLabel: (value) => `${Math.round(value * 100)}%`,
+    valueLabel: (point) => point.label
   });
   routeIds.forEach((routeId, index) => {
     const color = routeColor(routeId, index);
@@ -571,7 +657,7 @@ function buildRouteMetricsFigure(report) {
   return scene(
     "fig02_route_metrics",
     report.route_experiment?.experiment_id === "exp.m2_lift" ? "M2 route matrix metrics" : "Route matrix metrics",
-    "Route metrics from the current run, shown as exact ratios over the route matrix with direct SMT retained as baseline. Candidate verdict accuracy is rejected-output audit evidence, not admitted lift.",
+    "Route metrics from the current run, shown as exact-ratio profile lines over the route matrix with direct SMT retained as baseline. Candidate verdict accuracy is rejected-output audit evidence, not admitted lift.",
     1600,
     900,
     shapes
@@ -603,44 +689,23 @@ function buildFailureTaxonomyFigure(report) {
     .filter((category) => routeIds.some((routeId) => (counts[routeId]?.[category] ?? 0) > 0) || category === "wrong_verdict")
     .map((category) => [category, categoryColors[category] ?? colors.gray]);
   const chart = { x: 150, y: 170, w: 1120, h: 520 };
-  for (let tick = 0; tick <= 3; tick += 1) {
-    const value = Math.round((sampleCount * tick) / 3);
-    const y = chart.y + chart.h - (value / sampleCount) * chart.h;
-    addLine(shapes, chart.x, y, chart.x + chart.w, y, { stroke: colors.grid, strokeWidth: 1 });
-    addText(shapes, String(value), chart.x - 18, y + 6, { size: 15, fill: colors.muted, anchor: "end" });
-  }
-  addText(shapes, "row hits", chart.x - 86, chart.y - 20, { size: 16, fill: colors.muted });
-  addLine(shapes, chart.x, chart.y, chart.x, chart.y + chart.h, { stroke: colors.line, strokeWidth: 2 });
-  addLine(shapes, chart.x, chart.y + chart.h, chart.x + chart.w, chart.y + chart.h, { stroke: colors.line, strokeWidth: 2 });
-  const groupW = chart.w / categories.length;
-  const barW = Math.max(16, Math.min(44, (groupW - 28) / Math.max(routeIds.length, 1) - 8));
-  categories.forEach(([category, color], index) => {
-    const center = chart.x + groupW * index + groupW / 2;
-    const totalW = routeIds.length * barW + (routeIds.length - 1) * 8;
-    routeIds.forEach((routeId, routeIndex) => {
-      const count = counts[routeId]?.[category] ?? 0;
-      const h = (count / sampleCount) * chart.h;
-      const x = center - totalW / 2 + routeIndex * (barW + 8);
-      const routeColorValue = routeColor(routeId, routeIndex);
-      addRect(shapes, x, chart.y + chart.h - h, barW, h, {
-        fill: routeColorValue,
-        stroke: routeColorValue,
-        strokeWidth: 1,
-        rx: 3
-      });
-      addText(shapes, `${count}/${sampleCount}`, x + barW / 2, chart.y + chart.h - h - 10, {
-        size: routeIds.length > 3 ? 12 : 15,
-        fill: routeColorValue,
-        anchor: "middle",
-        weight: "bold"
-      });
-    });
-    addWrappedText(shapes, category.replace("_", " "), center - 86, chart.y + chart.h + 34, 172, {
-      size: 16,
-      fill: colors.ink,
-      anchor: "middle",
-      lineHeight: 20
-    });
+  addProfileLineChart(shapes, {
+    chart,
+    items: categories.map(([category]) => ({ label: category.replaceAll("_", " ") })),
+    series: routeIds.map((routeId, routeIndex) => ({
+      id: routeId,
+      color: routeColor(routeId, routeIndex),
+      points: categories.map(([category]) => {
+        const count = counts[routeId]?.[category] ?? 0;
+        return { value: count, label: `${count}/${sampleCount}` };
+      })
+    })),
+    yMax: sampleCount,
+    ticks: countTicks(sampleCount),
+    tickLabel: (value) => String(value),
+    valueLabel: (point) => point.label,
+    yLabel: "row hits",
+    itemLabelWidth: 172
   });
   routeIds.forEach((routeId, index) => {
     const routeColorValue = routeColor(routeId, index);
@@ -664,12 +729,12 @@ function buildFailureTaxonomyFigure(report) {
   );
   addFootnote(
     shapes,
-    "Counts come from route_evaluation.route_category_counts. Categories can co-occur in one row, so columns are diagnostic burden rather than a partition of samples."
+    "Counts come from route_evaluation.route_category_counts. Categories can co-occur in one row, so route profiles are diagnostic burden rather than a partition of samples."
   );
   return scene(
     "fig03_failure_taxonomy",
     "Failure taxonomy by route",
-    "Diagnostic row-category hits are shown for every route in the route matrix. Categories can co-occur, so columns show diagnostic burden rather than a partition of samples.",
+    "Diagnostic row-category hits are shown as route profiles over the route matrix. Categories can co-occur, so profiles show diagnostic burden rather than a partition of samples.",
     1600,
     900,
     shapes
@@ -799,49 +864,23 @@ function buildPipelineComparisonFigure(report) {
 
   const rows = pipelineMetricRows();
   const chart = { x: 120, y: 170, w: 1040, h: 510 };
-  for (let tick = 0; tick <= 4; tick += 1) {
-    const value = tick / 4;
-    const y = chart.y + chart.h - value * chart.h;
-    addLine(shapes, chart.x, y, chart.x + chart.w, y, { stroke: colors.grid, strokeWidth: 1 });
-    addText(shapes, `${Math.round(value * 100)}%`, chart.x - 18, y + 6, {
-      size: 15,
-      fill: colors.muted,
-      anchor: "end"
-    });
-  }
-  addLine(shapes, chart.x, chart.y, chart.x, chart.y + chart.h, { stroke: colors.line, strokeWidth: 2 });
-  addLine(shapes, chart.x, chart.y + chart.h, chart.x + chart.w, chart.y + chart.h, { stroke: colors.line, strokeWidth: 2 });
-
-  const groupW = chart.w / rows.length;
-  const barW = Math.max(28, Math.min(58, (groupW - 36) / Math.max(pipelineIds.length, 1) - 10));
-  rows.forEach(([label, metricId], index) => {
-    const center = chart.x + groupW * index + groupW / 2;
-    const totalW = pipelineIds.length * barW + (pipelineIds.length - 1) * 10;
-    pipelineIds.forEach((pipelineId, pipelineIndex) => {
+  addProfileLineChart(shapes, {
+    chart,
+    items: rows.map(([label]) => ({ label })),
+    series: pipelineIds.map((pipelineId, pipelineIndex) => {
       const metric = pipelineMetric(report, pipelineId);
-      const ratio = metric[metricId];
-      const h = ratioValue(ratio) * chart.h;
-      const x = center - totalW / 2 + pipelineIndex * (barW + 10);
-      const color = pipelineColor(pipelineId, pipelineIndex);
-      addRect(shapes, x, chart.y + chart.h - h, barW, h, {
-        fill: color,
-        stroke: color,
-        strokeWidth: 1,
-        rx: 3
-      });
-      addText(shapes, ratioExact(ratio), x + barW / 2, chart.y + chart.h - h - 10, {
-        size: 14,
-        fill: color,
-        anchor: "middle",
-        weight: "bold"
-      });
-    });
-    addWrappedText(shapes, label, center - 78, chart.y + chart.h + 34, 156, {
-      size: 16,
-      fill: colors.ink,
-      anchor: "middle",
-      lineHeight: 20
-    });
+      return {
+        id: pipelineId,
+        color: pipelineColor(pipelineId, pipelineIndex),
+        points: rows.map(([, metricId]) => ({
+          value: ratioValue(metric[metricId]),
+          label: ratioExact(metric[metricId])
+        }))
+      };
+    }),
+    yLabel: "rate",
+    tickLabel: (value) => `${Math.round(value * 100)}%`,
+    valueLabel: (point) => point.label
   });
 
   pipelineIds.forEach((pipelineId, index) => {
@@ -884,7 +923,7 @@ function buildPipelineComparisonFigure(report) {
   return scene(
     "fig05_pipeline_comparison",
     "Deterministic pipeline comparison",
-    "Deterministic pipeline comparison. Direct rule-to-SMT is retained as baseline; the layered CKC pipeline matches verdict and conflict-kind accuracy in the current M3 comparison while component reuse is reported separately from model-route lift.",
+    "Deterministic pipeline comparison. Direct rule-to-SMT is retained as baseline; profile lines show that the layered CKC pipeline matches verdict and conflict-kind accuracy in the current M3 comparison while component reuse is reported separately from model-route lift.",
     1600,
     900,
     shapes

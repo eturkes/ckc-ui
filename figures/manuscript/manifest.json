@@ -1,7 +1,7 @@
 {
   "artifact_kind": "ManuscriptFigureManifest",
   "bundle_pdf_export": "deterministic_pdf_writer_v0",
-  "bundle_pdf_hash": "531a7549d48bd8a3f2bb4404dcb14205848ffff28e8f75c6f1d1ecbef6594473",
+  "bundle_pdf_hash": "df81aedd4d34f838020f07a976b087ee2d4f501dd7f538df486734d95d385717",
   "bundle_pdf_page_count": 5,
   "bundle_pdf_path": "manuscript_figures.pdf",
   "figure_count": 5,
@@ -16,20 +16,20 @@
       "title": "Route mechanics and evidence boundaries"
     },
     {
-      "caption": "Route metrics from the current run, shown as exact ratios over the route matrix with direct SMT retained as baseline. Candidate verdict accuracy is rejected-output audit evidence, not admitted lift.",
+      "caption": "Route metrics from the current run, shown as exact-ratio profile lines over the route matrix with direct SMT retained as baseline. Candidate verdict accuracy is rejected-output audit evidence, not admitted lift.",
       "figure_id": "fig02_route_metrics",
       "pdf_export": "deterministic_pdf_writer_v0",
       "pdf_path": "fig02_route_metrics.pdf",
-      "svg_hash": "926617752a384c150b9f2df3b2cb79868dd8653c957dd761b0ab5eb67240c2a8",
+      "svg_hash": "8836126c1aa3a2ab8f0c6d6dd3495304289f858454a39ee1b6ba7bc1453eb5f5",
       "svg_path": "fig02_route_metrics.svg",
       "title": "Route matrix metrics"
     },
     {
-      "caption": "Diagnostic row-category hits are shown for every route in the route matrix. Categories can co-occur, so columns show diagnostic burden rather than a partition of samples.",
+      "caption": "Diagnostic row-category hits are shown as route profiles over the route matrix. Categories can co-occur, so profiles show diagnostic burden rather than a partition of samples.",
       "figure_id": "fig03_failure_taxonomy",
       "pdf_export": "deterministic_pdf_writer_v0",
       "pdf_path": "fig03_failure_taxonomy.pdf",
-      "svg_hash": "9c0e426ac4627c728b6904d04a961aeec2e5a0f2ad35c1e56255b0a4d312e071",
+      "svg_hash": "ba91198352a28cc21f132b7d4924141a938938b1762bf7ee3a17822b36a6c397",
       "svg_path": "fig03_failure_taxonomy.svg",
       "title": "Failure taxonomy by route"
     },
@@ -43,11 +43,11 @@
       "title": "Real guideline intake scope"
     },
     {
-      "caption": "Deterministic pipeline comparison. Direct rule-to-SMT is retained as baseline; the layered CKC pipeline matches verdict and conflict-kind accuracy in the current M3 comparison while component reuse is reported separately from model-route lift.",
+      "caption": "Deterministic pipeline comparison. Direct rule-to-SMT is retained as baseline; profile lines show that the layered CKC pipeline matches verdict and conflict-kind accuracy in the current M3 comparison while component reuse is reported separately from model-route lift.",
       "figure_id": "fig05_pipeline_comparison",
       "pdf_export": "deterministic_pdf_writer_v0",
       "pdf_path": "fig05_pipeline_comparison.pdf",
-      "svg_hash": "b798d2789276e02110ee20228765dd53e8d11a287b66ca8020bdeb4e4cdbe49e",
+      "svg_hash": "3e49955174d8c02275895456a54e2aca1a121c2b49d4ecb08869944cc9e855dd",
       "svg_path": "fig05_pipeline_comparison.svg",
       "title": "Deterministic pipeline comparison"
     }

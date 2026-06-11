@@ -21,13 +21,13 @@ Route mechanics. Implemented routes consume the same fixture groups and are scor
 
 Files: `fig02_route_metrics.svg`, `fig02_route_metrics.pdf`
 
-Route metrics from the current run, shown as exact ratios over the route matrix with direct SMT retained as baseline. Candidate verdict accuracy is rejected-output audit evidence, not admitted lift.
+Route metrics from the current run, shown as exact-ratio profile lines over the route matrix with direct SMT retained as baseline. Candidate verdict accuracy is rejected-output audit evidence, not admitted lift.
 
 ## Figure 3: Failure taxonomy by route
 
 Files: `fig03_failure_taxonomy.svg`, `fig03_failure_taxonomy.pdf`
 
-Diagnostic row-category hits are shown for every route in the route matrix. Categories can co-occur, so columns show diagnostic burden rather than a partition of samples.
+Diagnostic row-category hits are shown as route profiles over the route matrix. Categories can co-occur, so profiles show diagnostic burden rather than a partition of samples.
 
 ## Figure 4: Real guideline intake scope
 
@@ -39,4 +39,4 @@ Real Japanese guideline sources are represented as candidate-only source-intake 
 
 Files: `fig05_pipeline_comparison.svg`, `fig05_pipeline_comparison.pdf`
 
-Deterministic pipeline comparison. Direct rule-to-SMT is retained as baseline; the layered CKC pipeline matches verdict and conflict-kind accuracy in the current M3 comparison while component reuse is reported separately from model-route lift.
+Deterministic pipeline comparison. Direct rule-to-SMT is retained as baseline; profile lines show that the layered CKC pipeline matches verdict and conflict-kind accuracy in the current M3 comparison while component reuse is reported separately from model-route lift.

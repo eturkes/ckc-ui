@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
   <title id="title">Failure taxonomy by route</title>
-  <desc id="desc">Diagnostic row-category hits are shown for every route in the route matrix. Categories can co-occur, so columns show diagnostic burden rather than a partition of samples.</desc>
+  <desc id="desc">Diagnostic row-category hits are shown as route profiles over the route matrix. Categories can co-occur, so profiles show diagnostic burden rather than a partition of samples.</desc>
   <rect width="1600" height="900" fill="#ffffff"/>
   <text x="54" y="58" font-family="Arial, Helvetica, sans-serif" font-size="32" font-weight="700" fill="#111827" text-anchor="start">Failure taxonomy by route</text>
   <text x="54" y="92" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" fill="#596273" text-anchor="start">Diagnostic categories are non-exclusive row hits over each route&apos;s rows.</text>
@@ -10,68 +10,100 @@
   <text x="132" y="696" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" fill="#596273" text-anchor="end">0</text>
   <line x1="150" y1="560" x2="1270" y2="560" stroke="#e5e9ef" stroke-width="1"/>
   <text x="132" y="566" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" fill="#596273" text-anchor="end">1</text>
+  <line x1="150" y1="430" x2="1270" y2="430" stroke="#e5e9ef" stroke-width="1"/>
+  <text x="132" y="436" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" fill="#596273" text-anchor="end">2</text>
   <line x1="150" y1="300" x2="1270" y2="300" stroke="#e5e9ef" stroke-width="1"/>
   <text x="132" y="306" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" fill="#596273" text-anchor="end">3</text>
   <line x1="150" y1="170" x2="1270" y2="170" stroke="#e5e9ef" stroke-width="1"/>
   <text x="132" y="176" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" fill="#596273" text-anchor="end">4</text>
+  <line x1="150" y1="170" x2="150" y2="690" stroke="#e5e9ef" stroke-width="1" stroke-dasharray="2 10"/>
+  <line x1="150" y1="690" x2="150" y2="698" stroke="#c8d0da" stroke-width="2"/>
+  <text x="150" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">bridge</text>
+  <line x1="430" y1="170" x2="430" y2="690" stroke="#e5e9ef" stroke-width="1" stroke-dasharray="2 10"/>
+  <line x1="430" y1="690" x2="430" y2="698" stroke="#c8d0da" stroke-width="2"/>
+  <text x="430" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">grounding</text>
+  <line x1="710" y1="170" x2="710" y2="690" stroke="#e5e9ef" stroke-width="1" stroke-dasharray="2 10"/>
+  <line x1="710" y1="690" x2="710" y2="698" stroke="#c8d0da" stroke-width="2"/>
+  <text x="710" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">syntax</text>
+  <line x1="990" y1="170" x2="990" y2="690" stroke="#e5e9ef" stroke-width="1" stroke-dasharray="2 10"/>
+  <line x1="990" y1="690" x2="990" y2="698" stroke="#c8d0da" stroke-width="2"/>
+  <text x="990" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">unsupported schema</text>
+  <line x1="1270" y1="170" x2="1270" y2="690" stroke="#e5e9ef" stroke-width="1" stroke-dasharray="2 10"/>
+  <line x1="1270" y1="690" x2="1270" y2="698" stroke="#c8d0da" stroke-width="2"/>
+  <text x="1270" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">wrong verdict</text>
   <text x="64" y="150" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#596273" text-anchor="start">row hits</text>
   <line x1="150" y1="170" x2="150" y2="690" stroke="#c8d0da" stroke-width="2"/>
   <line x1="150" y1="690" x2="1270" y2="690" stroke="#c8d0da" stroke-width="2"/>
-  <rect x="168" y="690" width="31.2" height="0" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
-  <text x="183.6" y="680" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#b45c37" text-anchor="middle">0/4</text>
-  <rect x="207.2" y="690" width="31.2" height="0" rx="3" fill="#1f6f8b" stroke="#1f6f8b" stroke-width="1"/>
-  <text x="222.8" y="680" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#1f6f8b" text-anchor="middle">0/4</text>
-  <rect x="246.4" y="170" width="31.2" height="520" rx="3" fill="#2f6b4f" stroke="#2f6b4f" stroke-width="1"/>
-  <text x="262" y="160" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#2f6b4f" text-anchor="middle">4/4</text>
-  <rect x="285.6" y="170" width="31.2" height="520" rx="3" fill="#355c9a" stroke="#355c9a" stroke-width="1"/>
-  <text x="301.2" y="160" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#355c9a" text-anchor="middle">4/4</text>
-  <rect x="324.8" y="170" width="31.2" height="520" rx="3" fill="#6f4b8b" stroke="#6f4b8b" stroke-width="1"/>
-  <text x="340.4" y="160" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#6f4b8b" text-anchor="middle">4/4</text>
-  <text x="176" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">bridge</text>
-  <rect x="392" y="560" width="31.2" height="130" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
-  <text x="407.6" y="550" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#b45c37" text-anchor="middle">1/4</text>
-  <rect x="431.2" y="170" width="31.2" height="520" rx="3" fill="#1f6f8b" stroke="#1f6f8b" stroke-width="1"/>
-  <text x="446.8" y="160" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#1f6f8b" text-anchor="middle">4/4</text>
-  <rect x="470.4" y="170" width="31.2" height="520" rx="3" fill="#2f6b4f" stroke="#2f6b4f" stroke-width="1"/>
-  <text x="486" y="160" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#2f6b4f" text-anchor="middle">4/4</text>
-  <rect x="509.6" y="170" width="31.2" height="520" rx="3" fill="#355c9a" stroke="#355c9a" stroke-width="1"/>
-  <text x="525.2" y="160" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#355c9a" text-anchor="middle">4/4</text>
-  <rect x="548.8" y="170" width="31.2" height="520" rx="3" fill="#6f4b8b" stroke="#6f4b8b" stroke-width="1"/>
-  <text x="564.4" y="160" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#6f4b8b" text-anchor="middle">4/4</text>
-  <text x="400" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">grounding</text>
-  <rect x="616" y="300" width="31.2" height="390" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
-  <text x="631.6" y="290" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#b45c37" text-anchor="middle">3/4</text>
-  <rect x="655.2" y="690" width="31.2" height="0" rx="3" fill="#1f6f8b" stroke="#1f6f8b" stroke-width="1"/>
-  <text x="670.8" y="680" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#1f6f8b" text-anchor="middle">0/4</text>
-  <rect x="694.4" y="690" width="31.2" height="0" rx="3" fill="#2f6b4f" stroke="#2f6b4f" stroke-width="1"/>
-  <text x="710" y="680" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#2f6b4f" text-anchor="middle">0/4</text>
-  <rect x="733.6" y="690" width="31.2" height="0" rx="3" fill="#355c9a" stroke="#355c9a" stroke-width="1"/>
-  <text x="749.2" y="680" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#355c9a" text-anchor="middle">0/4</text>
-  <rect x="772.8" y="690" width="31.2" height="0" rx="3" fill="#6f4b8b" stroke="#6f4b8b" stroke-width="1"/>
-  <text x="788.4" y="680" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#6f4b8b" text-anchor="middle">0/4</text>
-  <text x="624" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">syntax</text>
-  <rect x="840" y="560" width="31.2" height="130" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
-  <text x="855.6" y="550" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#b45c37" text-anchor="middle">1/4</text>
-  <rect x="879.2" y="690" width="31.2" height="0" rx="3" fill="#1f6f8b" stroke="#1f6f8b" stroke-width="1"/>
-  <text x="894.8" y="680" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#1f6f8b" text-anchor="middle">0/4</text>
-  <rect x="918.4" y="690" width="31.2" height="0" rx="3" fill="#2f6b4f" stroke="#2f6b4f" stroke-width="1"/>
-  <text x="934" y="680" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#2f6b4f" text-anchor="middle">0/4</text>
-  <rect x="957.6" y="690" width="31.2" height="0" rx="3" fill="#355c9a" stroke="#355c9a" stroke-width="1"/>
-  <text x="973.2" y="680" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#355c9a" text-anchor="middle">0/4</text>
-  <rect x="996.8" y="690" width="31.2" height="0" rx="3" fill="#6f4b8b" stroke="#6f4b8b" stroke-width="1"/>
-  <text x="1012.4" y="680" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#6f4b8b" text-anchor="middle">0/4</text>
-  <text x="848" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">unsupported schema</text>
-  <rect x="1064" y="690" width="31.2" height="0" rx="3" fill="#b45c37" stroke="#b45c37" stroke-width="1"/>
-  <text x="1079.6" y="680" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#b45c37" text-anchor="middle">0/4</text>
-  <rect x="1103.2" y="300" width="31.2" height="390" rx="3" fill="#1f6f8b" stroke="#1f6f8b" stroke-width="1"/>
-  <text x="1118.8" y="290" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#1f6f8b" text-anchor="middle">3/4</text>
-  <rect x="1142.4" y="300" width="31.2" height="390" rx="3" fill="#2f6b4f" stroke="#2f6b4f" stroke-width="1"/>
-  <text x="1158" y="290" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#2f6b4f" text-anchor="middle">3/4</text>
-  <rect x="1181.6" y="560" width="31.2" height="130" rx="3" fill="#355c9a" stroke="#355c9a" stroke-width="1"/>
-  <text x="1197.2" y="550" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#355c9a" text-anchor="middle">1/4</text>
-  <rect x="1220.8" y="300" width="31.2" height="390" rx="3" fill="#6f4b8b" stroke="#6f4b8b" stroke-width="1"/>
-  <text x="1236.4" y="290" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#6f4b8b" text-anchor="middle">3/4</text>
-  <text x="1072" y="724" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#111827" text-anchor="middle">wrong verdict</text>
+  <line x1="150" y1="690" x2="430" y2="560" stroke="#b45c37" stroke-width="3"/>
+  <line x1="430" y1="560" x2="710" y2="300" stroke="#b45c37" stroke-width="3"/>
+  <line x1="710" y1="300" x2="990" y2="560" stroke="#b45c37" stroke-width="3"/>
+  <line x1="990" y1="560" x2="1270" y2="690" stroke="#b45c37" stroke-width="3"/>
+  <polygon points="150,684 156,690 150,696 144,690" fill="#b45c37" stroke="none"/>
+  <text x="150" y="678" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="12" font-weight="700" fill="#b45c37" text-anchor="middle">0/4</text>
+  <polygon points="430,554 436,560 430,566 424,560" fill="#b45c37" stroke="none"/>
+  <text x="430" y="546" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="12" font-weight="700" fill="#b45c37" text-anchor="middle">1/4</text>
+  <polygon points="710,294 716,300 710,306 704,300" fill="#b45c37" stroke="none"/>
+  <text x="710" y="286" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="12" font-weight="700" fill="#b45c37" text-anchor="middle">3/4</text>
+  <polygon points="990,554 996,560 990,566 984,560" fill="#b45c37" stroke="none"/>
+  <text x="990" y="546" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="12" font-weight="700" fill="#b45c37" text-anchor="middle">1/4</text>
+  <polygon points="1270,684 1276,690 1270,696 1264,690" fill="#b45c37" stroke="none"/>
+  <text x="1270" y="678" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="12" font-weight="700" fill="#b45c37" text-anchor="middle">0/4</text>
+  <line x1="150" y1="690" x2="430" y2="170" stroke="#1f6f8b" stroke-width="3" stroke-dasharray="9 6"/>
+  <line x1="430" y1="170" x2="710" y2="690" stroke="#1f6f8b" stroke-width="3" stroke-dasharray="9 6"/>
+  <line x1="710" y1="690" x2="990" y2="690" stroke="#1f6f8b" stroke-width="3" stroke-dasharray="9 6"/>
+  <line x1="990" y1="690" x2="1270" y2="300" stroke="#1f6f8b" stroke-width="3" stroke-dasharray="9 6"/>
+  <polygon points="150,684 156,690 150,696 144,690" fill="#1f6f8b" stroke="none"/>
+  <text x="150" y="665" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="12" font-weight="700" fill="#1f6f8b" text-anchor="middle">0/4</text>
+  <polygon points="430,164 436,170 430,176 424,170" fill="#1f6f8b" stroke="none"/>
+  <text x="430" y="203" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="12" font-weight="700" fill="#1f6f8b" text-anchor="middle">4/4</text>
+  <polygon points="710,684 716,690 710,696 704,690" fill="#1f6f8b" stroke="none"/>
+  <text x="710" y="665" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="12" font-weight="700" fill="#1f6f8b" text-anchor="middle">0/4</text>
+  <polygon points="990,684 996,690 990,696 984,690" fill="#1f6f8b" stroke="none"/>
+  <text x="990" y="665" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="12" font-weight="700" fill="#1f6f8b" text-anchor="middle">0/4</text>
+  <polygon points="1270,294 1276,300 1270,306 1264,300" fill="#1f6f8b" stroke="none"/>
+  <text x="1270" y="322" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="12" font-weight="700" fill="#1f6f8b" text-anchor="middle">3/4</text>
+  <line x1="150" y1="170" x2="430" y2="170" stroke="#2f6b4f" stroke-width="3" stroke-dasharray="3 5"/>
+  <line x1="430" y1="170" x2="710" y2="690" stroke="#2f6b4f" stroke-width="3" stroke-dasharray="3 5"/>
+  <line x1="710" y1="690" x2="990" y2="690" stroke="#2f6b4f" stroke-width="3" stroke-dasharray="3 5"/>
+  <line x1="990" y1="690" x2="1270" y2="300" stroke="#2f6b4f" stroke-width="3" stroke-dasharray="3 5"/>
+  <polygon points="150,164 156,170 150,176 144,170" fill="#2f6b4f" stroke="none"/>
+  <text x="150" y="216" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="12" font-weight="700" fill="#2f6b4f" text-anchor="middle">4/4</text>
+  <polygon points="430,164 436,170 430,176 424,170" fill="#2f6b4f" stroke="none"/>
+  <text x="430" y="216" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="12" font-weight="700" fill="#2f6b4f" text-anchor="middle">4/4</text>
+  <polygon points="710,684 716,690 710,696 704,690" fill="#2f6b4f" stroke="none"/>
+  <text x="710" y="652" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="12" font-weight="700" fill="#2f6b4f" text-anchor="middle">0/4</text>
+  <polygon points="990,684 996,690 990,696 984,690" fill="#2f6b4f" stroke="none"/>
+  <text x="990" y="652" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="12" font-weight="700" fill="#2f6b4f" text-anchor="middle">0/4</text>
+  <polygon points="1270,294 1276,300 1270,306 1264,300" fill="#2f6b4f" stroke="none"/>
+  <text x="1270" y="274" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="12" font-weight="700" fill="#2f6b4f" text-anchor="middle">3/4</text>
+  <line x1="150" y1="170" x2="430" y2="170" stroke="#355c9a" stroke-width="3" stroke-dasharray="11 4 3 4"/>
+  <line x1="430" y1="170" x2="710" y2="690" stroke="#355c9a" stroke-width="3" stroke-dasharray="11 4 3 4"/>
+  <line x1="710" y1="690" x2="990" y2="690" stroke="#355c9a" stroke-width="3" stroke-dasharray="11 4 3 4"/>
+  <line x1="990" y1="690" x2="1270" y2="560" stroke="#355c9a" stroke-width="3" stroke-dasharray="11 4 3 4"/>
+  <polygon points="150,164 156,170 150,176 144,170" fill="#355c9a" stroke="none"/>
+  <text x="150" y="229" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="12" font-weight="700" fill="#355c9a" text-anchor="middle">4/4</text>
+  <polygon points="430,164 436,170 430,176 424,170" fill="#355c9a" stroke="none"/>
+  <text x="430" y="229" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="12" font-weight="700" fill="#355c9a" text-anchor="middle">4/4</text>
+  <polygon points="710,684 716,690 710,696 704,690" fill="#355c9a" stroke="none"/>
+  <text x="710" y="639" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="12" font-weight="700" fill="#355c9a" text-anchor="middle">0/4</text>
+  <polygon points="990,684 996,690 990,696 984,690" fill="#355c9a" stroke="none"/>
+  <text x="990" y="639" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="12" font-weight="700" fill="#355c9a" text-anchor="middle">0/4</text>
+  <polygon points="1270,554 1276,560 1270,566 1264,560" fill="#355c9a" stroke="none"/>
+  <text x="1270" y="594" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="12" font-weight="700" fill="#355c9a" text-anchor="middle">1/4</text>
+  <line x1="150" y1="170" x2="430" y2="170" stroke="#6f4b8b" stroke-width="3" stroke-dasharray="2 4 2 7"/>
+  <line x1="430" y1="170" x2="710" y2="690" stroke="#6f4b8b" stroke-width="3" stroke-dasharray="2 4 2 7"/>
+  <line x1="710" y1="690" x2="990" y2="690" stroke="#6f4b8b" stroke-width="3" stroke-dasharray="2 4 2 7"/>
+  <line x1="990" y1="690" x2="1270" y2="300" stroke="#6f4b8b" stroke-width="3" stroke-dasharray="2 4 2 7"/>
+  <polygon points="150,164 156,170 150,176 144,170" fill="#6f4b8b" stroke="none"/>
+  <text x="150" y="242" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="12" font-weight="700" fill="#6f4b8b" text-anchor="middle">4/4</text>
+  <polygon points="430,164 436,170 430,176 424,170" fill="#6f4b8b" stroke="none"/>
+  <text x="430" y="242" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="12" font-weight="700" fill="#6f4b8b" text-anchor="middle">4/4</text>
+  <polygon points="710,684 716,690 710,696 704,690" fill="#6f4b8b" stroke="none"/>
+  <text x="710" y="626" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="12" font-weight="700" fill="#6f4b8b" text-anchor="middle">0/4</text>
+  <polygon points="990,684 996,690 990,696 984,690" fill="#6f4b8b" stroke="none"/>
+  <text x="990" y="626" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="12" font-weight="700" fill="#6f4b8b" text-anchor="middle">0/4</text>
+  <polygon points="1270,294 1276,300 1270,306 1264,300" fill="#6f4b8b" stroke="none"/>
+  <text x="1270" y="262" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="12" font-weight="700" fill="#6f4b8b" text-anchor="middle">3/4</text>
   <rect x="1330" y="178" width="105" height="27" rx="12" fill="#fbfcfd" stroke="#b45c37" stroke-width="1"/>
   <text x="1342" y="196" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#b45c37" text-anchor="start">direct_smt</text>
   <rect x="1330" y="220" width="96.9" height="27" rx="12" fill="#fbfcfd" stroke="#1f6f8b" stroke-width="1"/>
@@ -90,5 +122,5 @@
   <text x="1330" y="550" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#596273" text-anchor="start">template matches</text>
   <text x="1330" y="572" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#596273" text-anchor="start">0/4.</text>
   <line x1="54" y1="844" x2="1546" y2="844" stroke="#e5e9ef" stroke-width="1"/>
-  <text x="54" y="868" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" fill="#596273" text-anchor="start">Counts come from route_evaluation.route_category_counts. Categories can co-occur in one row, so columns are diagnostic burden rather than a partition of samples.</text>
+  <text x="54" y="868" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" fill="#596273" text-anchor="start">Counts come from route_evaluation.route_category_counts. Categories can co-occur in one row, so route profiles are diagnostic burden rather than a partition of samples.</text>
 </svg>
