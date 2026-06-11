@@ -5,6 +5,7 @@
       "shape": "weak local model composes SMT-LIB text directly from shared source-derived cue rows and a target encoding contract",
       "runtime": "project-local llama.cpp subprocess via tools/setup-local-model.mjs",
       "default_model": "Qwen2.5-0.5B-Instruct Q2_K GGUF",
+      "implementation_status": "implemented_fixture_harness",
       "live_model": true
     },
     {
@@ -12,7 +13,37 @@
       "shape": "weak local model maps both source-derived cue rows through one grammar-constrained pair JSON hop into route_rule_ir.v0; deterministic compiler emits SMT-LIB targets before verifier scoring",
       "runtime": "project-local llama.cpp subprocess via tools/setup-local-model.mjs",
       "default_model": "Qwen2.5-0.5B-Instruct Q2_K GGUF",
+      "implementation_status": "implemented_fixture_harness",
+      "schema_notes": "schema.route_rule_ir.v0 fixture-scale cue rows compiled by route_rule_ir_v0_to_smt_v0",
+      "bridge_notes": "deterministic route_rule_ir.v0 to SMT-LIB bridge emits per-group route targets",
       "live_model": true
+    },
+    {
+      "id": "route.stacked_ir",
+      "shape": "model fills a compact stack of existing IR-shaped forms before deterministic compilation, e.g. source_frame -> rule_row -> route_rule_ir.v0",
+      "runtime": "registered M3 scaffold; no model calls until C3 implements route-specific prompting and parsing",
+      "implementation_status": "registered_scaffold_unimplemented",
+      "schema_notes": "planned stacked JSON contract with source_frame, rule_row, and route_rule_ir.v0 stages",
+      "bridge_notes": "planned deterministic bridge from stacked rows into the existing route_rule_ir.v0 to SMT-LIB compiler",
+      "live_model": false
+    },
+    {
+      "id": "route.ir_hop_chain",
+      "shape": "model translates through several adjacent constrained JSON hops, each a deliberately small semantic delta before final route_rule_ir.v0 compilation",
+      "runtime": "registered M3 scaffold; no model calls until C4 implements hop-level prompting and replay",
+      "implementation_status": "registered_scaffold_unimplemented",
+      "schema_notes": "planned per-hop JSON schemas with prompt/response hashes for each hop",
+      "bridge_notes": "planned aggregate bridge records hop lineage, then compiles final route_rule_ir.v0 to SMT-LIB",
+      "live_model": false
+    },
+    {
+      "id": "route.ckc_layered",
+      "shape": "model fills CKC-native stages aligned to the fixture spine: segment-like spans, statement-like normalized facts, then rule-like route IR",
+      "runtime": "registered M3 scaffold; no model calls until C5 implements stage-level prompting and diagnostics",
+      "implementation_status": "registered_scaffold_unimplemented",
+      "schema_notes": "planned CKC layer JSON contracts for segments, normalized statements, and route_rule_ir.v0-compatible rules",
+      "bridge_notes": "planned deterministic bridge reuses CKC fixture helpers where possible and preserves stage-level lineage to SMT-LIB",
+      "live_model": false
     }
   ]
 }

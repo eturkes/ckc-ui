@@ -13,10 +13,28 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const runId = "m2-one-shot";
+const cliArgs = process.argv.slice(2);
+function flagValue(flag, defaultValue = null) {
+  const equalsArg = cliArgs.find((entry) => entry.startsWith(`${flag}=`));
+  if (equalsArg) return equalsArg.slice(flag.length + 1);
+  const index = cliArgs.indexOf(flag);
+  if (index >= 0 && cliArgs[index + 1] && !cliArgs[index + 1].startsWith("--")) return cliArgs[index + 1];
+  return defaultValue;
+}
+
+const selectedExperimentId = flagValue("--experiment", process.env.CKC_EXPERIMENT_ID ?? "exp.m2_lift");
+const scaffoldRoutes = process.argv.includes("--scaffold-routes");
+const printConfig = process.argv.includes("--print-config");
+const runId = flagValue(
+  "--run-id",
+  selectedExperimentId === "exp.m2_lift"
+    ? "m2-one-shot"
+    : selectedExperimentId.replace(/^exp\./, "").replaceAll(".", "-").replaceAll("_", "-")
+);
 const runDir = path.join(root, "runs", runId);
 const corporaRegistryPath = path.join(root, "registry", "corpora.json");
 const experimentsRegistryPath = path.join(root, "registry", "experiments.json");
+const routesRegistryPath = path.join(root, "registry", "routes.json");
 const fixtureSemanticsPath = path.join(root, "corpus", "fixtures", "m1_fixture_semantics.json");
 const goldExpectationsPath = path.join(root, "corpus", "gold", "m1_expected.json");
 const realGuidelineRegistryPath = path.join(root, "corpus", "real_guidelines", "japanese_guidelines.json");
@@ -30,12 +48,16 @@ const modelName = process.env.CKC_MODEL_NAME ?? "Qwen2.5-0.5B-Instruct-Q2_K";
 const modelTimeoutMs = Number(process.env.CKC_MODEL_TIMEOUT_MS ?? "120000");
 
 let fixtureRegistry = [];
+let routeRegistry = [];
 let m1Groups = [];
 let groups = [];
 let routeIds = ["route.direct_smt", "route.single_ir"];
 let sampleSeeds = [11, 22, 33];
 let m1InputRefs = null;
+let selectedExperiment = null;
+let unimplementedRouteIds = [];
 const baselineRouteId = "route.direct_smt";
+const implementedRouteIds = new Set(["route.direct_smt", "route.single_ir"]);
 const comparisonMetricIds = [
   "target_syntax_validity",
   "admission_rate",
@@ -43,6 +65,14 @@ const comparisonMetricIds = [
   "candidate_verdict_accuracy",
   "k_sample_stability"
 ];
+
+function routeImplemented(routeId) {
+  return implementedRouteIds.has(routeId);
+}
+
+function routeRegistryEntry(routeId) {
+  return routeRegistry.find((entry) => entry.id === routeId) ?? null;
+}
 
 function stable(value) {
   if (Array.isArray(value)) return value.map(stable);
@@ -143,9 +173,12 @@ async function loadM1FixtureInputs() {
   const corporaRegistry = await readJsonArtifact(corporaRegistryPath);
   const fixtureSemantics = await readJsonArtifact(fixtureSemanticsPath);
   const experimentsRegistry = await readJsonArtifact(experimentsRegistryPath);
+  const routesRegistry = await readJsonArtifact(routesRegistryPath);
   const goldExpectations = await readJsonArtifact(goldExpectationsPath);
   const corpusFixturesById = expectUniqueById(corporaRegistry.fixtures, "corpus fixture");
   const semanticsById = expectUniqueById(fixtureSemantics.fixtures, "fixture semantics");
+  const routesById = expectUniqueById(routesRegistry.routes, "route");
+  routeRegistry = cloneData(routesRegistry.routes ?? []);
 
   fixtureRegistry = (corporaRegistry.fixtures ?? []).map((corpusFixture) => {
     const semantics = semanticsById.get(corpusFixture.id);
@@ -171,9 +204,13 @@ async function loadM1FixtureInputs() {
 
   const experimentsById = expectUniqueById(experimentsRegistry.experiments, "experiment");
   const m1Experiment = experimentsById.get("exp.m1_spine");
-  const m2Experiment = experimentsById.get("exp.m2_lift");
+  const routeExperiment = experimentsById.get(selectedExperimentId);
   if (!m1Experiment) throw new Error("experiment missing: exp.m1_spine");
-  if (!m2Experiment) throw new Error("experiment missing: exp.m2_lift");
+  if (!routeExperiment) throw new Error(`experiment missing: ${selectedExperimentId}`);
+  if (!Array.isArray(routeExperiment.routes)) {
+    throw new Error(`experiment ${selectedExperimentId} is not a route-comparison experiment`);
+  }
+  selectedExperiment = cloneData(routeExperiment);
 
   const goldByGroup = new Map((goldExpectations ?? []).map((entry) => [entry.group_id, entry]));
   function loadGroupSpec(group, label) {
@@ -195,19 +232,31 @@ async function loadM1FixtureInputs() {
   }
 
   m1Groups = (m1Experiment.fixture_groups ?? []).map((group) => loadGroupSpec(group, "M1 group"));
-  const m2EvaluationGroups = m2Experiment.evaluation_groups ?? m1Experiment.fixture_groups ?? [];
-  groups = m2EvaluationGroups.map((group) => loadGroupSpec(group, "M2 evaluation group"));
+  const routeEvaluationGroups = routeExperiment.evaluation_groups ?? m1Experiment.fixture_groups ?? [];
+  groups = routeEvaluationGroups.map((group) => loadGroupSpec(group, `${selectedExperimentId} evaluation group`));
 
-  routeIds = cloneData(m2Experiment.routes ?? routeIds);
-  if (!Array.isArray(routeIds) || routeIds.length === 0) throw new Error("exp.m2_lift routes must contain at least one route");
-  if (new Set(routeIds).size !== routeIds.length) throw new Error("exp.m2_lift routes must be unique");
+  routeIds = cloneData(routeExperiment.routes ?? routeIds);
+  if (!Array.isArray(routeIds) || routeIds.length === 0) throw new Error(`${selectedExperimentId} routes must contain at least one route`);
+  if (new Set(routeIds).size !== routeIds.length) throw new Error(`${selectedExperimentId} routes must be unique`);
   if (!routeIds.includes(baselineRouteId)) {
-    throw new Error(`exp.m2_lift routes must include baseline route: ${baselineRouteId}`);
+    throw new Error(`${selectedExperimentId} routes must include baseline route: ${baselineRouteId}`);
   }
-  sampleSeeds = cloneData(m2Experiment.sample_seeds ?? sampleSeeds);
+  for (const routeId of routeIds) {
+    if (!routesById.has(routeId)) throw new Error(`${selectedExperimentId} references unregistered route: ${routeId}`);
+  }
+  unimplementedRouteIds = routeIds.filter((routeId) => !routeImplemented(routeId));
+  if (unimplementedRouteIds.length > 0 && !scaffoldRoutes) {
+    throw new Error(
+      `experiment ${selectedExperimentId} contains registered but unimplemented routes: ${unimplementedRouteIds.join(", ")}. ` +
+      "Use --scaffold-routes to emit closed scaffold rows; no model output will be fabricated."
+    );
+  }
+  sampleSeeds = cloneData(routeExperiment.sample_seeds ?? sampleSeeds);
   m1InputRefs = {
     corpora_registry_path: path.relative(root, corporaRegistryPath),
     corpora_registry_hash: sha256(corporaRegistry),
+    routes_registry_path: path.relative(root, routesRegistryPath),
+    routes_registry_hash: sha256(routesRegistry),
     fixture_semantics_path: path.relative(root, fixtureSemanticsPath),
     fixture_semantics_hash: sha256(fixtureSemantics),
     experiments_registry_path: path.relative(root, experimentsRegistryPath),
@@ -1040,6 +1089,34 @@ function simulateRoute(routeId, groupId, seed) {
   };
 }
 
+function scaffoldUnimplementedRoute(routeId, groupId, seed) {
+  const route = routeRegistryEntry(routeId);
+  return {
+    route_id: routeId,
+    group_id: groupId,
+    seed,
+    syntax_valid: false,
+    target_syntax_valid: false,
+    model_output_syntax_valid: false,
+    admitted: false,
+    verdict: "route_unimplemented",
+    diagnostics: ["deferred_gate_required"],
+    response: `closed scaffold: ${routeId} is registered but not implemented; no model call was made`,
+    parsed_response: {
+      route_id: routeId,
+      implementation_status: route?.implementation_status ?? "unimplemented",
+      schema_notes: route?.schema_notes ?? null,
+      bridge_notes: route?.bridge_notes ?? null,
+      scaffold_mode: true
+    },
+    compiled_target: null,
+    subprocess: null,
+    live_call_count: 0,
+    model_call_recorded: false,
+    measurement_status: "scaffold_closed_unimplemented"
+  };
+}
+
 function modelCaseForGroup(groupId) {
   const group = groups.find((entry) => entry.id === groupId);
   if (!group) throw new Error(`unknown group: ${groupId}`);
@@ -1408,6 +1485,7 @@ const diagnosticCategoryDefinitions = {
   grounding: ["ai_hallucinated_source", "semantic_slot_missing"],
   unsupported_schema: ["unsupported_ir_fragment"],
   wrong_verdict: ["false_positive_conflict", "false_negative_conflict"],
+  scaffold: ["deferred_gate_required"],
   process: ["process_crash", "solver_execution_failure"]
 };
 
@@ -1759,6 +1837,9 @@ function extractSmtCandidateText(output) {
 }
 
 function runLiveRoute(routeId, groupId, seed, expected) {
+  if (!routeImplemented(routeId)) {
+    throw new Error(`route ${routeId} is registered but unimplemented; use --scaffold-routes for closed scaffold rows`);
+  }
   if (routeId === "route.single_ir") return runLiveSingleIrRoute(groupId, seed, expected);
   const prompt = promptFor(routeId, groupId, seed);
   const subprocess = runLlama(prompt, seed, routeId, groupId);
@@ -1901,19 +1982,26 @@ function scoreRows() {
   for (const routeId of routes) {
     for (const seed of seeds) {
       for (const group of groups) {
-        const simulated = liveModel
-          ? runLiveRoute(routeId, group.id, seed, group.expectedOutcome)
-          : simulateRoute(routeId, group.id, seed);
-        if (liveModel) liveCalls += simulated.live_call_count ?? 1;
+        const simulated = routeImplemented(routeId)
+          ? (
+              liveModel
+                ? runLiveRoute(routeId, group.id, seed, group.expectedOutcome)
+                : simulateRoute(routeId, group.id, seed)
+            )
+          : scaffoldUnimplementedRoute(routeId, group.id, seed);
+        if (liveModel) liveCalls += simulated.live_call_count ?? 0;
         const expected = group.expectedOutcome;
         const candidate_verdict_correct = simulated.verdict === expected;
         const verdict_correct = simulated.admitted && candidate_verdict_correct;
-        const prompt = simulated.prompt ?? promptFor(routeId, group.id, seed);
+        const modelCallRecorded = simulated.model_call_recorded ?? true;
+        const prompt = modelCallRecorded ? (simulated.prompt ?? promptFor(routeId, group.id, seed)) : null;
         const row = {
           route_id: routeId,
           group_id: group.id,
           measurement_role: group.measurementRole,
           seed,
+          measurement_status: simulated.measurement_status ?? "route_row_observed",
+          model_call_recorded: modelCallRecorded,
           syntax_valid: simulated.syntax_valid,
           target_syntax_valid: simulated.target_syntax_valid ?? simulated.syntax_valid,
           model_output_syntax_valid: simulated.model_output_syntax_valid ?? simulated.syntax_valid,
@@ -1933,7 +2021,7 @@ function scoreRows() {
           group_id: group.id,
           seed,
           prompt,
-          prompt_hash: sha256Text(prompt),
+          prompt_hash: prompt === null ? null : sha256Text(prompt),
           response: simulated.response,
           parsed_response: simulated.parsed_response ?? null,
           compiled_target: simulated.compiled_target ?? null,
@@ -1941,6 +2029,7 @@ function scoreRows() {
           source_calls: simulated.source_calls ?? null,
           response_hash: sha256(simulated.response),
           subprocess: simulated.subprocess ?? null,
+          model_call_recorded: modelCallRecorded,
           row
         });
       }
@@ -1959,6 +2048,10 @@ function scoreRows() {
     byRoute.set(routeId, {
       route_id: routeId,
       samples: total,
+      implementation_status: routeRegistryEntry(routeId)?.implementation_status ?? "unknown",
+      measurement_statuses: [...new Set(rows.map((row) => row.measurement_status))].sort(),
+      model_call_count: rows.filter((row) => row.model_call_recorded).length,
+      scaffolded_closed_row_count: rows.filter((row) => row.measurement_status === "scaffold_closed_unimplemented").length,
       target_syntax_validity: ratio(rows.filter((row) => row.syntax_valid).length, total),
       model_output_syntax_validity: ratio(rows.filter((row) => row.model_output_syntax_valid).length, total),
       admission_rate: ratio(rows.filter((row) => row.admitted).length, total),
@@ -1981,7 +2074,7 @@ function buildSourceCueLayer() {
     artifact_kind: "SourceCueLayer",
     extractor_id: "lexical_cue_v1",
     scope: "shared_route_input",
-    fairness_note: "Both M2 routes are evaluated against the same deterministic source-derived cue rows. R3 prompts no longer include the filled single_ir answer object; route.direct_smt composes SMT-LIB directly from source excerpts, while route.single_ir derives bounded JSON rows under cue definitions before deterministic route_rule_ir.v0 to SMT-LIB compilation.",
+    fairness_note: "Implemented route rows are evaluated against the same deterministic source-derived cue rows. R3 prompts no longer include the filled single_ir answer object; route.direct_smt composes SMT-LIB directly from source excerpts, while route.single_ir derives bounded JSON rows under cue definitions before deterministic route_rule_ir.v0 to SMT-LIB compilation. Unimplemented registered routes produce closed scaffold rows only when --scaffold-routes is explicit.",
     cues: Object.fromEntries(labels.map((label) => [label, {
       ...sourceCuesForLabel(label),
       resolved_fields: expectedCueFields(label)
@@ -2074,14 +2167,24 @@ function buildRouteEvaluation(rawRows) {
       routeRows.filter((row) => row.diagnostic_categories.includes(category)).length
     ]))];
   }));
+  const scaffoldedRouteIds = scaffoldRoutes ? [...unimplementedRouteIds] : [];
+  const hasScaffoldedRoutes = scaffoldedRouteIds.length > 0;
   return {
     artifact_kind: "RouteEvaluationAudit",
     schema_version: "route_evaluation_audit.v0",
+    experiment_id: selectedExperimentId,
     evaluator_id: "source_derived_route_pair_evaluator.v2",
-    scope: "Both M2 routes are scored over the same source-derived expected cue rows and group verdicts.",
-    evaluation_strength: "scaffolded_cue_translation_test",
-    evaluation_strength_note: "R3 removes exact filled JSON payloads from route.single_ir prompts and adds a holdout mutation group. The prompt still supplies schema and cue definitions, so this remains a scaffolded cue-translation test rather than raw Japanese guideline understanding.",
+    scope: hasScaffoldedRoutes
+      ? "Registered M3 route scaffold over the frozen M2 groups; unimplemented routes emit closed diagnostic rows and no model calls."
+      : "Both M2 routes are scored over the same source-derived expected cue rows and group verdicts.",
+    evaluation_strength: hasScaffoldedRoutes ? "route_registry_scaffold_check" : "scaffolded_cue_translation_test",
+    evaluation_strength_note: hasScaffoldedRoutes
+      ? "This run proves route registry wiring only for unimplemented routes. Closed scaffold rows are excluded from model-call provenance and carry deferred_gate_required diagnostics instead of fabricated outputs."
+      : "R3 removes exact filled JSON payloads from route.single_ir prompts and adds a holdout mutation group. The prompt still supplies schema and cue definitions, so this remains a scaffolded cue-translation test rather than raw Japanese guideline understanding.",
     harness_change_note: "C1 generalizes the comparison harness from a fixed lift table to a baseline-aware route matrix and per-route target summaries; current route raw rows are still the measurement source.",
+    scaffold_mode: scaffoldRoutes,
+    unimplemented_route_ids: [...unimplementedRouteIds],
+    scaffolded_route_ids: scaffoldedRouteIds,
     diagnostic_categories: diagnosticCategoryDefinitions,
     evaluation_groups: evaluationGroups,
     holdout_group_ids: evaluationGroups
@@ -2236,7 +2339,8 @@ function promptCatalogPath(routeId, groupId, promptHash) {
 }
 
 function buildPromptCatalog(ioRecords) {
-  const calls = ioRecords.map((record) => {
+  const modelCallRecords = ioRecords.filter((record) => record.model_call_recorded !== false);
+  const calls = modelCallRecords.map((record) => {
     const routeCall = record.route_call;
     const granularity = routeCall?.granularity ?? "route";
     const promptText = routeCall?.prompt ?? record.prompt;
@@ -2267,7 +2371,7 @@ function buildPromptCatalog(ioRecords) {
 
   const byHash = new Map();
   for (const call of calls) {
-    const record = ioRecords.find((entry) => entry.record_id === call.model_io_record_id);
+    const record = modelCallRecords.find((entry) => entry.record_id === call.model_io_record_id);
     const promptText = record.route_call?.prompt ?? record.prompt;
     if (!byHash.has(call.prompt_hash)) {
       byHash.set(call.prompt_hash, {
@@ -2578,7 +2682,7 @@ ${rows}`;
 }
 
 function markdownReport(report) {
-  const rawRows = report.metrics.raw_rows.map((row) => `| ${row.route_id} | ${row.group_id} | ${row.measurement_role} | ${row.seed} | ${row.model_output_syntax_valid} | ${row.target_syntax_valid} | ${row.admitted} | ${row.verdict} | ${row.verdict_correct} | ${row.candidate_verdict_correct} | ${row.diagnostic_categories.join(", ") || "none"} |`).join("\n");
+  const rawRows = report.metrics.raw_rows.map((row) => `| ${row.route_id} | ${row.group_id} | ${row.measurement_role} | ${row.measurement_status} | ${row.model_call_recorded} | ${row.seed} | ${row.model_output_syntax_valid} | ${row.target_syntax_valid} | ${row.admitted} | ${row.verdict} | ${row.verdict_correct} | ${row.candidate_verdict_correct} | ${row.diagnostic_categories.join(", ") || "none"} |`).join("\n");
   const groupRows = report.m2_evaluation.evaluation_groups.map((group) => `| \`${group.group_id}\` | ${group.measurement_role} | ${group.source_labels.join(", ")} | ${group.expected_outcome} | ${group.mutation_note ?? "none"} |`).join("\n");
   const diagnosticCategoryRows = Object.entries(report.m2_evaluation.diagnostic_categories).map(([category, codes]) => `| ${category} | ${codes.map((code) => `\`${code}\``).join(", ")} |`).join("\n");
   const diagnostics = Object.entries(report.diagnostics_summary).map(([code, count]) => `- ${code}: ${count}`).join("\n") || "- none: 0";
@@ -2649,8 +2753,8 @@ ${routeTargetSummaryMarkdown(report.route_target_summary)}
 
 ## Raw route rows
 
-| Route | Group | Role | Seed | Model syntax valid | Target syntax valid | Admitted | Verdict | Admitted correct | Candidate correct | Diagnostic categories |
-| --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |
+| Route | Group | Role | Status | Model call | Seed | Model syntax valid | Target syntax valid | Admitted | Verdict | Admitted correct | Candidate correct | Diagnostic categories |
+| --- | --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |
 ${rawRows}
 
 ## Route evaluator diagnostics
@@ -2797,9 +2901,35 @@ async function modelMetadata(liveCalls) {
   };
 }
 
+function buildRunConfigSummary() {
+  return {
+    selected_experiment_id: selectedExperimentId,
+    run_id: runId,
+    run_dir: path.relative(root, runDir),
+    model_mode: liveModel ? "live_local_llama_cpp" : "recorded_unsupported",
+    scaffold_mode: scaffoldRoutes,
+    routes: routeIds.map((routeId) => {
+      const route = routeRegistryEntry(routeId);
+      return {
+        route_id: routeId,
+        implementation_status: route?.implementation_status ?? "unknown",
+        implemented_in_harness: routeImplemented(routeId),
+        scaffolded_closed: scaffoldRoutes && !routeImplemented(routeId)
+      };
+    }),
+    unimplemented_route_ids: [...unimplementedRouteIds],
+    evaluation_group_ids: groups.map((group) => group.id),
+    sample_seeds: [...sampleSeeds]
+  };
+}
+
 async function main() {
-  if (liveModel) requireLiveModelReady();
   await loadM1FixtureInputs();
+  if (printConfig) {
+    console.log(JSON.stringify(buildRunConfigSummary(), null, 2));
+    return;
+  }
+  if (liveModel) requireLiveModelReady();
   await rm(runDir, { recursive: true, force: true });
   await mkdir(runDir, { recursive: true });
 
@@ -2930,7 +3060,15 @@ async function main() {
     artifact_kind: "Report",
     run_id: runId,
     generated_by: "tools/build-run.mjs",
-    experiments: ["exp.m1_spine", "exp.m2_lift"],
+    experiments: ["exp.m1_spine", selectedExperimentId],
+    route_experiment: {
+      experiment_id: selectedExperimentId,
+      basis: selectedExperiment?.basis ?? null,
+      route_ids: [...routeIds],
+      sample_seeds: [...sampleSeeds],
+      scaffold_mode: scaffoldRoutes,
+      unimplemented_route_ids: [...unimplementedRouteIds]
+    },
     corpus_hash: sha256({
       synthetic_fixtures: fixtureRegistry.map((fixture) => ({ id: fixture.id, path: fixture.path })),
       fixture_semantics: m1InputRefs.fixture_semantics_hash,
@@ -2977,10 +3115,14 @@ async function main() {
       cue_hash: sha256(sourceCueLayer)
     },
     m2_evaluation: {
+      experiment_id: routeEvaluation.experiment_id,
       evaluator_id: routeEvaluation.evaluator_id,
       evaluation_strength: routeEvaluation.evaluation_strength,
       evaluation_strength_note: routeEvaluation.evaluation_strength_note,
       harness_change_note: routeEvaluation.harness_change_note,
+      scaffold_mode: routeEvaluation.scaffold_mode,
+      unimplemented_route_ids: routeEvaluation.unimplemented_route_ids,
+      scaffolded_route_ids: routeEvaluation.scaffolded_route_ids,
       evaluation_groups: routeEvaluation.evaluation_groups,
       holdout_group_ids: routeEvaluation.holdout_group_ids,
       diagnostic_categories: routeEvaluation.diagnostic_categories
@@ -3075,6 +3217,7 @@ async function main() {
     model_mode: modelMeta.model_mode,
     model_identity: modelMeta.model_identity,
     model_runtime: modelMeta.model_runtime,
+    selected_experiment_id: selectedExperimentId,
     experiments: report.experiments,
     fixture_ids: fixtureRegistry.map((fixture) => fixture.id),
     real_guideline_source_ids: realGuidelineIntake.sources.map((source) => source.id),
@@ -3087,6 +3230,8 @@ async function main() {
     prompt_catalog_hash: sha256(promptCatalog),
     prompt_template_hashes: Object.fromEntries(promptCatalog.entries.map((entry) => [entry.prompt_id, entry.prompt_hash])),
     route_ids: routeIds,
+    scaffold_mode: scaffoldRoutes,
+    unimplemented_route_ids: [...unimplementedRouteIds],
     report_hash: sha256(report)
   };
   await writeJson("manifest.json", manifest);
@@ -3102,14 +3247,22 @@ async function main() {
       blocking_residuals: realGuidelineIntake.blocking_residual_count
     },
     { event: "m1_spine_completed", outcome: "ok" },
-    { event: "m2_lift_completed", outcome: "ok", model_mode: modelMeta.model_mode, live_model_calls: modelMeta.live_model_calls },
+    {
+      event: "route_experiment_completed",
+      experiment_id: selectedExperimentId,
+      outcome: "ok",
+      model_mode: modelMeta.model_mode,
+      live_model_calls: modelMeta.live_model_calls,
+      scaffold_mode: scaffoldRoutes,
+      unimplemented_route_ids: [...unimplementedRouteIds]
+    },
     { event: "run_completed", outcome: "ok" }
   ];
   await writeText("logs/events.jsonl", events.map((entry) => JSON.stringify(stable(entry))).join("\n"));
   const diagnostics = [
     ...metrics.rawRows.flatMap((row) => row.diagnostics.map((code) => ({
       code,
-      outcome: code === "false_positive_conflict" ? "incoherence" : "invalid",
+      outcome: code === "false_positive_conflict" ? "incoherence" : code === "deferred_gate_required" ? "deferred" : "invalid",
       route_id: row.route_id,
       group_id: row.group_id,
       seed: row.seed
@@ -3137,7 +3290,10 @@ async function main() {
     const single = routeMetricsById.get("route.single_ir");
     const compiledTargetRecords = metrics.ioRecords.filter((record) => record.compiled_target);
     const compiledSmtFiles = routeTargetSummary.routes.flatMap((route) => route.smt_files);
-    const uniquePromptHashCount = new Set(metrics.ioRecords.map((record) => sha256Text(record.route_call?.prompt ?? record.prompt))).size;
+    const modelCallRecords = metrics.ioRecords.filter((record) => record.model_call_recorded !== false);
+    const scaffoldRecords = metrics.ioRecords.filter((record) => record.model_call_recorded === false);
+    const scaffoldRows = metrics.rawRows.filter((row) => row.measurement_status === "scaffold_closed_unimplemented");
+    const uniquePromptHashCount = new Set(modelCallRecords.map((record) => sha256Text(record.route_call?.prompt ?? record.prompt))).size;
     const requiredFiles = [
       "report.json",
       "report.md",
@@ -3159,6 +3315,11 @@ async function main() {
       `model_io/${baselineRouteId}/${conflictGroupResult.compiled.group_id}/seed-${sampleSeeds[0]}.json`
     ];
     const commonAssertions = [
+      selectedExperiment?.id === selectedExperimentId,
+      report.experiments.includes(selectedExperimentId),
+      report.route_experiment.experiment_id === selectedExperimentId,
+      report.route_experiment.scaffold_mode === scaffoldRoutes,
+      report.route_experiment.unimplemented_route_ids.join("\u0000") === unimplementedRouteIds.join("\u0000"),
       finding?.conflict_kind === "deontic_direction_conflict",
       nullResult?.classification === "documented_null_result",
       direct.samples === groups.length * sampleSeeds.length,
@@ -3172,6 +3333,9 @@ async function main() {
       metrics.routeMatrix.rows.length === routeIds.length,
       metrics.routeMatrix.cells.length === routeIds.length * comparisonMetricIds.length,
       metrics.routeMatrix.rows.every((row) => routeIds.includes(row.route_id) && comparisonMetricIds.every((metric) => row.metrics[metric]?.value?.exact)),
+      metrics.routeMetrics.every((entry) => routeIds.includes(entry.route_id)),
+      metrics.routeMetrics.every((entry) => Array.isArray(entry.measurement_statuses)),
+      metrics.routeMetrics.every((entry) => entry.model_call_count + entry.scaffolded_closed_row_count === entry.samples),
       routeTargetSummary.route_ids.join("\u0000") === routeIds.join("\u0000"),
       routeTargetSummary.routes.length === routeIds.length,
       routeTargetSummary.total_compiled_row_count === compiledTargetRecords.length,
@@ -3195,20 +3359,31 @@ async function main() {
       report.real_guideline_intake.rejected_residuals.length === realGuidelineIntake.blocking_residual_count,
       report.real_guideline_intake.scoring_scope === "not_in_locked_m1_m2_measurement",
       promptCatalog.prompt_count === uniquePromptHashCount,
-      promptCatalog.call_count === metrics.ioRecords.length,
+      promptCatalog.call_count === modelCallRecords.length,
       promptCatalog.entries.every((entry) => !/Import payload:\n\{/.test(entry.prompt_text)),
       promptCatalog.entries.every((entry) => !/normalized fields for /.test(entry.prompt_text)),
       report.prompt_catalog.catalog_hash === sha256(promptCatalog),
-      report.m2_evaluation.evaluation_strength === "scaffolded_cue_translation_test",
+      report.m2_evaluation.experiment_id === selectedExperimentId,
+      report.m2_evaluation.evaluation_strength === (unimplementedRouteIds.length > 0 ? "route_registry_scaffold_check" : "scaffolded_cue_translation_test"),
       report.m2_evaluation.harness_change_note === routeEvaluation.harness_change_note,
+      report.m2_evaluation.scaffold_mode === scaffoldRoutes,
+      report.m2_evaluation.unimplemented_route_ids.join("\u0000") === unimplementedRouteIds.join("\u0000"),
+      report.m2_evaluation.scaffolded_route_ids.join("\u0000") === (scaffoldRoutes ? unimplementedRouteIds.join("\u0000") : ""),
       report.m2_evaluation.holdout_group_ids.includes("group.m2_holdout_conflict"),
       report.realism_audit.audit_hash === realismAuditHash,
       realismAudit.surfaces.some((surface) => surface.surface_id === "fixture_regions" && surface.classification === "data_driven"),
       realismAudit.surfaces.some((surface) => surface.surface_id === "context_overlap_and_smt_encoding" && surface.classification === "hardcoded"),
       realismAudit.surfaces.some((surface) => surface.surface_id === "llm_prompt_templates" && surface.classification === "prompt_scaffolded"),
       realismAudit.surfaces.some((surface) => surface.surface_id === "report_renderer" && surface.evidence_paths.every((entry) => entry !== "index.html")),
-      metrics.ioRecords.every((record) => record.prompt_hash === sha256Text(record.prompt)),
-      metrics.ioRecords.every((record) => !record.route_call || record.route_call.prompt_hash === sha256Text(record.route_call.prompt)),
+      modelCallRecords.every((record) => record.prompt_hash === sha256Text(record.prompt)),
+      modelCallRecords.every((record) => !record.route_call || record.route_call.prompt_hash === sha256Text(record.route_call.prompt)),
+      unimplementedRouteIds.length === 0 || scaffoldRoutes,
+      scaffoldRecords.length === scaffoldRows.length,
+      scaffoldRecords.every((record) => unimplementedRouteIds.includes(record.route_id)),
+      scaffoldRecords.every((record) => record.prompt === null && record.prompt_hash === null && record.subprocess === null),
+      scaffoldRows.every((row) => unimplementedRouteIds.includes(row.route_id)),
+      scaffoldRows.every((row) => row.model_call_recorded === false && row.diagnostics.includes("deferred_gate_required")),
+      scaffoldRows.every((row) => row.admitted === false && row.verdict === "route_unimplemented"),
       ...requiredFiles.map((relative) => existsSync(path.join(runDir, relative)))
     ];
     const modelAssertions = liveModel
@@ -3220,7 +3395,7 @@ async function main() {
           report.route_target_summary.total_compiled_row_count === compiledTargetRecords.length,
           report.route_target_summary.total_smt_file_count === compiledTargetRecords.flatMap((record) => record.compiled_target?.smt_files ?? []).length,
           compiledTargetRecords.every((record) => record.compiled_target?.target_profile === "smt-lib-2"),
-          metrics.ioRecords.every((record) => record.subprocess?.exit_status === 0),
+          modelCallRecords.every((record) => record.subprocess?.exit_status === 0),
           metrics.ioRecords.every((record) => record.response_hash && record.response_hash.length === 64),
           direct.target_syntax_validity.denominator === direct.samples,
           ...(single ? [single.target_syntax_validity.denominator === single.samples] : []),
@@ -3246,6 +3421,9 @@ async function main() {
     run_dir: path.relative(root, runDir),
     report: path.relative(root, path.join(runDir, "report.json")),
     manuscript_figures: "figures/manuscript",
+    experiment_id: selectedExperimentId,
+    scaffold_mode: scaffoldRoutes,
+    unimplemented_route_ids: [...unimplementedRouteIds],
     model_mode: report.model_mode,
     live_model_calls: report.live_model_calls,
     findings: report.findings.length,

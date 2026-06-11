@@ -58,7 +58,7 @@ Gate:
 - `npm run verify:figures`
 
 ### C2 Route Registry And Experiment Scaffold
-status: pending
+status: done
 
 Intent: register the comparison expansion without requiring every route to be
 implemented in the same session.

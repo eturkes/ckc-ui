@@ -46,6 +46,6 @@
   "generated_by": "tools/build-figures.mjs",
   "output_dir": "figures/manuscript",
   "schema_version": "manuscript_figures.v0",
-  "source_report_hash": "c5a2113622a37cd34e5088589c642d33666f7eeb31cbacdba5e5a17f735548fb",
+  "source_report_hash": "8e8966f010451a239c470dd2979a02976d0e6abc01e5ef1ddf0594fff64f2671",
   "source_report_path": "runs/m2-one-shot/report.json"
 }
