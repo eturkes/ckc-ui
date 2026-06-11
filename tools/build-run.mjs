@@ -411,7 +411,7 @@ function contextSmt(rule) {
   return `(and ${terms.join(" ")})`;
 }
 
-function makeSmt(groupId, left, right, overlap) {
+function makeSmtQueryTexts(left, right, overlap) {
   const declarations = [
     "(declare-const |q.age_years| Real)",
     "(declare-const |cond.sepsis| Bool)",
@@ -441,8 +441,16 @@ function makeSmt(groupId, left, right, overlap) {
   ].join("\n");
 
   return {
-    [`q.${groupId}.overlap.smt2`]: `${q1}\n`,
-    ...(overlap.overlaps ? { [`q.${groupId}.deontic.smt2`]: `${polarity}\n` } : {})
+    overlap: q1,
+    ...(overlap.overlaps ? { deontic: polarity } : {})
+  };
+}
+
+function makeSmt(groupId, left, right, overlap) {
+  const queries = makeSmtQueryTexts(left, right, overlap);
+  return {
+    [`q.${groupId}.overlap.smt2`]: `${queries.overlap}\n`,
+    ...(queries.deontic ? { [`q.${groupId}.deontic.smt2`]: `${queries.deontic}\n` } : {})
   };
 }
 
@@ -554,6 +562,8 @@ function simulateRoute(routeId, groupId, seed) {
     group_id: groupId,
     seed,
     syntax_valid: false,
+    target_syntax_valid: false,
+    model_output_syntax_valid: false,
     admitted: false,
     verdict: "replay_identity_unsupported",
     diagnostics: ["replay_identity_unsupported"],
@@ -788,7 +798,7 @@ function promptFor(routeId, groupId, seed) {
     `Fill one cue-schema JSON object for each source label: ${modelCase.labels.join(", ")}.`,
     "Do not decide whether the pair conflicts; emit only source cue fields.",
     "Output only JSON. Do not use Markdown.",
-    "Use the shared lexical source cues; admitted rows are later bridged deterministically into CKC rule fields."
+    "Use the shared lexical source cues; admitted rows are later bridged into route_rule_ir.v0 and compiled deterministically to SMT-LIB."
   ].join("\n");
 }
 
@@ -1013,6 +1023,27 @@ function ruleFromIrRow(label, row) {
   };
 }
 
+function routeRuleIrFromRows(parsed, groupId) {
+  const labels = modelCaseForGroup(groupId).labels;
+  const rules = labels
+    .filter((label) => validIrRow(parsed?.[label]))
+    .map((label) => ({
+      source_label: label,
+      cue_row: parsed[label],
+      rule: ruleFromIrRow(label, parsed[label])
+    }));
+  return {
+    artifact_kind: "RouteRuleIR",
+    schema_id: "schema.route_rule_ir.v0",
+    description: "Contrived fixture-scale IR: one source-local cue row compiles to one NormRule-like route rule.",
+    route_id: "route.single_ir",
+    group_id: groupId,
+    labels,
+    rows: labels.map((label) => ({ source_label: label, cue_row: parsed?.[label] ?? null })),
+    rules
+  };
+}
+
 function evaluateIrRows(parsed, groupId) {
   const labels = modelCaseForGroup(groupId).labels;
   if (!labels.every((label) => validIrRow(parsed?.[label]))) {
@@ -1036,40 +1067,159 @@ function evaluateIrRows(parsed, groupId) {
   };
 }
 
+function compileRouteIrToSmt(routeIr, groupId, seed, expected) {
+  const rules = routeIr.rules.map((entry) => entry.rule);
+  const complete = rules.length === 2
+    && rules.every((rule) => (
+      rule.action_key !== "unknown"
+      && rule.direction !== "unknown"
+      && Object.keys(rule.context.age_years).length > 0
+    ));
+  if (!complete) {
+    return {
+      artifact_kind: "RouteCompiledTarget",
+      route_id: routeIr.route_id,
+      group_id: groupId,
+      seed,
+      compiler_id: "route_rule_ir_v0_to_smt_v0",
+      source_ir_schema_id: routeIr.schema_id,
+      target_profile: "smt-lib-2",
+      syntax_valid: false,
+      admitted: false,
+      verdict: "unknown",
+      diagnostics: ["unsupported_ir_fragment"],
+      smt_files: [],
+      assertion_map: []
+    };
+  }
+
+  const [left, right] = rules;
+  const overlap = contextsOverlap(left.context, right.context);
+  const sameAction = left.action_key === right.action_key;
+  const opposed = opposedDirections(left, right);
+  const conflict = sameAction && opposed && overlap.overlaps;
+  const queryTexts = makeSmtQueryTexts(left, right, overlap);
+  const baseDir = `route_targets/${routeIr.route_id}/${groupId}/seed-${seed}/smt`;
+  const smtFiles = [
+    {
+      query_id: `q.${routeIr.route_id}.${groupId}.seed-${seed}.overlap`,
+      kind: "context_overlap",
+      file: `${baseDir}/q.overlap.smt2`,
+      logic: "QF_LRA",
+      text: `${queryTexts.overlap}\n`
+    },
+    ...(queryTexts.deontic ? [
+      {
+        query_id: `q.${routeIr.route_id}.${groupId}.seed-${seed}.deontic`,
+        kind: "deontic_consistency",
+        file: `${baseDir}/q.deontic.smt2`,
+        logic: "QF_UF",
+        text: `${queryTexts.deontic}\n`
+      }
+    ] : [])
+  ].map((entry) => ({
+    ...entry,
+    sha256: sha256Bytes(Buffer.from(entry.text))
+  }));
+  const assertionMap = [...makeAssertions(left), ...makeAssertions(right)];
+  const verdict = conflict ? "semantic_contradiction" : "semantic_no_conflict";
+  const diagnostics = [];
+  if (verdict === "semantic_contradiction" && expected === "semantic_no_conflict") diagnostics.push("false_positive_conflict");
+  if (verdict === "semantic_no_conflict" && expected === "semantic_contradiction") diagnostics.push("false_negative_conflict");
+
+  return {
+    artifact_kind: "RouteCompiledTarget",
+    route_id: routeIr.route_id,
+    group_id: groupId,
+    seed,
+    compiler_id: "route_rule_ir_v0_to_smt_v0",
+    source_ir_schema_id: routeIr.schema_id,
+    target_profile: "smt-lib-2",
+    input_ir_hash: sha256(routeIr),
+    target_hash: sha256(smtFiles.map((entry) => ({
+      query_id: entry.query_id,
+      kind: entry.kind,
+      file: entry.file,
+      logic: entry.logic,
+      sha256: entry.sha256,
+      text: entry.text
+    }))),
+    syntax_valid: smtFiles.every((entry) => entry.text.includes("(check-sat)") && balancedParens(entry.text)),
+    admitted: diagnostics.every((code) => !blocksAdmission(code)),
+    verdict,
+    diagnostics,
+    eligibility: {
+      same_action: sameAction,
+      opposed_directions: opposed,
+      context_overlap: overlap
+    },
+    verifier: {
+      solver_identity: "one-shot-js-symbolic-verifier",
+      results: [
+        {
+          query_id: smtFiles[0].query_id,
+          status: overlap.overlaps ? "sat" : "unsat",
+          category: overlap.overlaps ? "semantic_overlap" : "semantic_no_conflict",
+          model: overlap.witness
+        },
+        ...(conflict ? [
+          {
+            query_id: smtFiles.find((entry) => entry.kind === "deontic_consistency").query_id,
+            status: "unsat",
+            category: "semantic_contradiction",
+            unsat_core: assertionMap.map((entry) => entry.assertion_id).sort()
+          }
+        ] : [])
+      ],
+      outcome: verdict
+    },
+    smt_files: smtFiles,
+    assertion_map: assertionMap
+  };
+}
+
 function blocksAdmission(code) {
   return code !== "false_positive_conflict" && code !== "false_negative_conflict";
 }
 
 function classifySingleIr(output, groupId, expected) {
-  return classifySingleIrCandidate(extractJsonObject(output), groupId, expected);
+  return classifySingleIrCandidate(extractJsonObject(output), groupId, expected, "candidate");
 }
 
-function classifySingleIrCandidate(extracted, groupId, expected) {
+function classifySingleIrCandidate(extracted, groupId, expected, seed) {
   const diagnostics = [];
   const parsed = extracted?.value;
-  const syntax_valid = Boolean(parsed);
-  if (!syntax_valid) diagnostics.push("ai_schema_violation");
+  const model_output_syntax_valid = Boolean(parsed);
+  if (!model_output_syntax_valid) diagnostics.push("ai_schema_violation");
 
-  const schemaDiagnostics = syntax_valid ? irSchemaDiagnostics(parsed, groupId) : [];
+  const schemaDiagnostics = model_output_syntax_valid ? irSchemaDiagnostics(parsed, groupId) : [];
   const groundingDiagnostics = schemaDiagnostics.length === 0 ? irGroundingDiagnostics(parsed, groupId) : [];
   diagnostics.push(...schemaDiagnostics, ...groundingDiagnostics);
 
-  const evaluated = syntax_valid ? evaluateIrRows(parsed, groupId) : { verdict: "target_syntax_failure", route_ir_rules: [], overlap: null };
-  const verdict = evaluated.verdict;
-  if (syntax_valid && verdict === "unknown") diagnostics.push("unsupported_ir_fragment");
+  const routeIr = model_output_syntax_valid ? routeRuleIrFromRows(parsed, groupId) : null;
+  const evaluated = model_output_syntax_valid ? evaluateIrRows(parsed, groupId) : { verdict: "target_syntax_failure", route_ir_rules: [], overlap: null };
+  const compiledTarget = routeIr ? compileRouteIrToSmt(routeIr, groupId, seed, expected) : null;
+  const target_syntax_valid = Boolean(compiledTarget?.syntax_valid);
+  const verdict = compiledTarget?.verdict ?? evaluated.verdict;
+  if (model_output_syntax_valid && verdict === "unknown") diagnostics.push("unsupported_ir_fragment");
+  if (compiledTarget) diagnostics.push(...compiledTarget.diagnostics);
   if (verdict === "semantic_contradiction" && expected === "semantic_no_conflict") diagnostics.push("false_positive_conflict");
   if (verdict === "semantic_no_conflict" && expected === "semantic_contradiction") diagnostics.push("false_negative_conflict");
   const uniqueDiagnostics = [...new Set(diagnostics)];
 
   return {
-    syntax_valid,
-    admitted: syntax_valid && uniqueDiagnostics.every((code) => !blocksAdmission(code)),
-    verdict: syntax_valid ? verdict : "target_syntax_failure",
+    syntax_valid: target_syntax_valid,
+    target_syntax_valid,
+    model_output_syntax_valid,
+    admitted: target_syntax_valid && uniqueDiagnostics.every((code) => !blocksAdmission(code)),
+    verdict: target_syntax_valid ? verdict : "target_syntax_failure",
     diagnostics: uniqueDiagnostics,
-    parsed: syntax_valid ? {
+    parsed: model_output_syntax_valid ? {
       candidate: parsed,
+      route_ir: routeIr,
       deterministic_bridge: evaluated
     } : null,
+    compiled_target: compiledTarget,
     candidate_text: extracted?.text ?? ""
   };
 }
@@ -1103,6 +1253,8 @@ function runLiveRoute(routeId, groupId, seed, expected, sourceCache) {
     group_id: groupId,
     seed,
     syntax_valid: classified.syntax_valid,
+    target_syntax_valid: classified.syntax_valid,
+    model_output_syntax_valid: classified.syntax_valid,
     admitted: classified.admitted && processDiagnostics.length === 0,
     verdict: processDiagnostics.length === 0 ? classified.verdict : "solver_execution_failure",
     diagnostics: [...new Set([...classified.diagnostics, ...processDiagnostics])],
@@ -1169,7 +1321,7 @@ function runLiveSingleIrRoute(groupId, seed, expected, sourceCache) {
     sourceCalls.push(sourceCall);
   }
   const candidateText = JSON.stringify(stable(candidate), null, 2);
-  const classified = classifySingleIrCandidate({ value: candidate, text: candidateText }, groupId, expected);
+  const classified = classifySingleIrCandidate({ value: candidate, text: candidateText }, groupId, expected, seed);
   const combinedPrompt = sourceCalls
     .map((call) => `# source ${call.label}\n${JSON.stringify(call.cue_inputs, null, 2)}`)
     .join("\n\n");
@@ -1202,12 +1354,15 @@ function runLiveSingleIrRoute(groupId, seed, expected, sourceCache) {
     group_id: groupId,
     seed,
     syntax_valid: classified.syntax_valid,
+    target_syntax_valid: classified.target_syntax_valid,
+    model_output_syntax_valid: classified.model_output_syntax_valid,
     admitted: classified.admitted && processDiagnostics.every((code) => code !== "process_crash"),
     verdict: processDiagnostics.includes("process_crash") ? "solver_execution_failure" : classified.verdict,
     diagnostics: [...new Set([...classified.diagnostics, ...processDiagnostics])],
     prompt: combinedPrompt,
     response: classified.candidate_text,
     parsed_response: classified.parsed ?? null,
+    compiled_target: classified.compiled_target ?? null,
     subprocess: aggregateSubprocess,
     source_calls: sourceCalls,
     live_call_count: liveCallCount
@@ -1236,6 +1391,8 @@ function scoreRows() {
           group_id: group.id,
           seed,
           syntax_valid: simulated.syntax_valid,
+          target_syntax_valid: simulated.target_syntax_valid ?? simulated.syntax_valid,
+          model_output_syntax_valid: simulated.model_output_syntax_valid ?? simulated.syntax_valid,
           admitted: simulated.admitted,
           verdict: simulated.verdict,
           expected,
@@ -1252,6 +1409,7 @@ function scoreRows() {
           prompt: simulated.prompt ?? promptFor(routeId, group.id, seed),
           response: simulated.response,
           parsed_response: simulated.parsed_response ?? null,
+          compiled_target: simulated.compiled_target ?? null,
           source_calls: simulated.source_calls ?? null,
           response_hash: sha256(simulated.response),
           subprocess: simulated.subprocess ?? null,
@@ -1274,6 +1432,7 @@ function scoreRows() {
       route_id: routeId,
       samples: total,
       target_syntax_validity: ratio(rows.filter((row) => row.syntax_valid).length, total),
+      model_output_syntax_validity: ratio(rows.filter((row) => row.model_output_syntax_valid).length, total),
       admission_rate: ratio(rows.filter((row) => row.admitted).length, total),
       admitted_verdict_accuracy: ratio(rows.filter((row) => row.verdict_correct).length, total),
       candidate_verdict_accuracy: ratio(rows.filter((row) => row.candidate_verdict_correct).length, total),
@@ -1305,7 +1464,7 @@ function buildSourceCueLayer() {
     artifact_kind: "SourceCueLayer",
     extractor_id: "lexical_cue_v1",
     scope: "shared_route_input",
-    fairness_note: "Both M2 routes receive the same deterministic source-derived raw cues and resolved cue rows; route.direct_smt still composes SMT-LIB directly, while route.single_ir copies each resolved cue field through grammar-constrained short hops before deterministic bridge scoring.",
+    fairness_note: "Both M2 routes receive the same deterministic source-derived raw cues and resolved cue rows; route.direct_smt composes SMT-LIB directly, while route.single_ir copies each resolved cue field through grammar-constrained short hops into route_rule_ir.v0, then deterministically compiles that IR to SMT-LIB before verifier scoring.",
     cues: Object.fromEntries(labels.map((label) => [label, {
       ...sourceCuesForLabel(label),
       resolved_fields: expectedCueFields(label)
@@ -1346,6 +1505,26 @@ function buildDirectSmtAudit(ioRecords) {
     missing_named_assertion_rate: ratio(missingNamedAssertions, sampleCount),
     negated_sepsis_assertion_rate: ratio(negatedSepsisAssertions, sampleCount),
     interpretation: "Direct SMT receives the same source cue layer as single_ir, but must still compose SMT-LIB directly. This audit records whether failed direct outputs collapsed to fixture-like templates or missed trace naming; it is not used to admit rows."
+  };
+}
+
+function buildRouteTargetSummary(ioRecords) {
+  const targetRecords = ioRecords.filter((record) => record.compiled_target);
+  const smtFiles = targetRecords.flatMap((record) => record.compiled_target.smt_files.map(({ text, ...metadata }) => ({
+    route_id: record.route_id,
+    group_id: record.group_id,
+    seed: record.seed,
+    ...metadata
+  })));
+  return {
+    artifact_kind: "RouteTargetSummary",
+    route_id: "route.single_ir",
+    source_ir_schema_id: "schema.route_rule_ir.v0",
+    target_profile: "smt-lib-2",
+    compiler_id: "route_rule_ir_v0_to_smt_v0",
+    compiled_row_count: targetRecords.length,
+    smt_file_count: smtFiles.length,
+    smt_files: smtFiles
   };
 }
 
@@ -1407,7 +1586,7 @@ function buildTrace(artifactsByDoc, groupResults, finding, nullResult, realGuide
 
 function markdownReport(report) {
   const liftRows = report.metrics.lift_table.map((row) => `| ${row.metric} | ${row.baseline.exact} | ${row.lifted.exact} | ${row.delta.exact} |`).join("\n");
-  const rawRows = report.metrics.raw_rows.map((row) => `| ${row.route_id} | ${row.group_id} | ${row.seed} | ${row.syntax_valid} | ${row.admitted} | ${row.verdict} | ${row.verdict_correct} | ${row.candidate_verdict_correct} |`).join("\n");
+  const rawRows = report.metrics.raw_rows.map((row) => `| ${row.route_id} | ${row.group_id} | ${row.seed} | ${row.model_output_syntax_valid} | ${row.target_syntax_valid} | ${row.admitted} | ${row.verdict} | ${row.verdict_correct} | ${row.candidate_verdict_correct} |`).join("\n");
   const diagnostics = Object.entries(report.diagnostics_summary).map(([code, count]) => `- ${code}: ${count}`).join("\n") || "- none: 0";
   const directMetric = report.metrics.route_metrics.find((entry) => entry.route_id === "route.direct_smt");
   const irMetric = report.metrics.route_metrics.find((entry) => entry.route_id === "route.single_ir");
@@ -1449,7 +1628,7 @@ ${realGuidelineRows}
 
 ## M2 lift table
 
-Shared route input: \`${report.source_cue_layer.extractor_id}\` / cue hash \`${report.source_cue_layer.cue_hash}\`. Both routes receive the same resolved source-cue rows; direct SMT composes target text, single IR copies cue fields through grammar-constrained short hops before deterministic bridge scoring.
+Shared route input: \`${report.source_cue_layer.extractor_id}\` / cue hash \`${report.source_cue_layer.cue_hash}\`. Both routes finish at SMT-LIB: direct SMT asks the model for target text, while single IR copies cue fields through grammar-constrained short hops into \`route_rule_ir.v0\`, then compiles that IR deterministically to SMT-LIB before verifier scoring.
 
 | Metric | direct_smt | single_ir | delta |
 | --- | ---: | ---: | ---: |
@@ -1461,10 +1640,17 @@ ${directAuditConclusion}
 
 ${irConclusion}
 
+## route.single_ir compiled SMT target
+
+- IR schema: \`${report.route_target_summary.source_ir_schema_id}\`
+- Compiler: \`${report.route_target_summary.compiler_id}\`
+- Compiled rows: ${report.route_target_summary.compiled_row_count}
+- SMT files: ${report.route_target_summary.smt_file_count}
+
 ## Raw route rows
 
-| Route | Group | Seed | Syntax valid | Admitted | Verdict | Admitted correct | Candidate correct |
-| --- | --- | ---: | --- | --- | --- | --- | --- |
+| Route | Group | Seed | Model syntax valid | Target syntax valid | Admitted | Verdict | Admitted correct | Candidate correct |
+| --- | --- | ---: | --- | --- | --- | --- | --- | --- |
 ${rawRows}
 
 ## Failure taxonomy
@@ -1519,7 +1705,7 @@ ${realGuidelineRows}
 
 ## M2 lift table
 
-shared route input: \`${report.source_cue_layer.extractor_id}\` / cue hash \`${report.source_cue_layer.cue_hash}\`。両 route は同じ resolved source-cue rows を受け取る。direct SMT は target text を直接構成し、single IR は grammar-constrained short hops で cue fields を写してから deterministic bridge で score する。
+shared route input: \`${report.source_cue_layer.extractor_id}\` / cue hash \`${report.source_cue_layer.cue_hash}\`。両 route は SMT-LIB を final target とする。direct SMT は model が target text を直接構成し、single IR は grammar-constrained short hops で cue fields を \`route_rule_ir.v0\` に写してから deterministic compiler で SMT-LIB に変換し、verifier で score する。
 
 | metric | direct_smt | single_ir | delta |
 | --- | ---: | ---: | ---: |
@@ -1530,6 +1716,13 @@ ${comparisonConclusion}
 ${directAuditConclusion}
 
 ${irConclusion}
+
+## route.single_ir compiled SMT target
+
+- IR schema: \`${report.route_target_summary.source_ir_schema_id}\`
+- compiler: \`${report.route_target_summary.compiler_id}\`
+- compiled rows: ${report.route_target_summary.compiled_row_count}
+- SMT files: ${report.route_target_summary.smt_file_count}
 `;
 }
 
@@ -1577,7 +1770,7 @@ function renderBasicUi(data) {
   const direct = data.route_metrics.find((entry) => entry.route_id === "route.direct_smt");
   const single = data.route_metrics.find((entry) => entry.route_id === "route.single_ir");
   const irConclusion = single.admission_rate.numerator > 0
-    ? `IR path: ${single.admission_rate.exact} admitted rows and ${single.admitted_verdict_accuracy.exact} admitted accuracy after deterministic bridge checks; this harness does not emit per-route single_ir SMT.`
+    ? `IR path: ${single.admission_rate.exact} admitted rows and ${single.admitted_verdict_accuracy.exact} admitted accuracy after deterministic route_rule_ir.v0 -> SMT-LIB compilation.`
     : "IR route produced no admitted rows; rejected candidate verdicts are audit data only.";
   const comparisonConclusion = direct.admitted_verdict_accuracy.numerator >= single.admitted_verdict_accuracy.numerator
     ? `Direct SMT is ${direct.admitted_verdict_accuracy.exact} on admitted accuracy here, so this run does not show IR lift.`
@@ -1595,6 +1788,7 @@ function renderBasicUi(data) {
           <tr>
             <td><code>${escapeHtml(entry.route_id)}</code></td>
             <td>${escapeHtml(entry.target_syntax_validity.exact)}</td>
+            <td>${escapeHtml(entry.model_output_syntax_validity.exact)}</td>
             <td>${escapeHtml(entry.admission_rate.exact)}</td>
             <td>${escapeHtml(entry.admitted_verdict_accuracy.exact)}</td>
             <td>${escapeHtml(entry.candidate_verdict_accuracy.exact)}</td>
@@ -1605,7 +1799,8 @@ function renderBasicUi(data) {
             <td><code>${escapeHtml(row.route_id)}</code></td>
             <td><code>${escapeHtml(row.group_id)}</code></td>
             <td>${escapeHtml(row.seed)}</td>
-            <td>${row.syntax_valid ? "yes" : "no"}</td>
+            <td>${row.model_output_syntax_valid ? "yes" : "no"}</td>
+            <td>${row.target_syntax_valid ? "yes" : "no"}</td>
             <td>${row.admitted ? "yes" : "no"}</td>
             <td>${escapeHtml(row.verdict)}</td>
             <td>${row.verdict_correct ? "yes" : "no"}</td>
@@ -1629,6 +1824,17 @@ function renderBasicUi(data) {
   const directDiagnostics = directExample?.row?.diagnostics?.join(", ") || "none";
   const irConflictBridge = irConflictExample?.parsed_response?.deterministic_bridge ?? null;
   const irConflictCandidate = irConflictExample?.parsed_response?.candidate ?? null;
+  const irConflictTarget = irConflictExample?.compiled_target ?? null;
+  const irTargetSummary = irConflictTarget
+    ? `${irConflictTarget.target_profile}; ${irConflictTarget.smt_files.length} query file(s); ${shortDigest(irConflictTarget.target_hash)}`
+    : "missing";
+  const irTargetFileRows = (irConflictTarget?.smt_files ?? []).map((file) => `
+          <tr>
+            <td><code>${escapeHtml(file.kind)}</code></td>
+            <td><code>${escapeHtml(file.file)}</code></td>
+            <td>${escapeHtml(file.logic)}</td>
+            <td><code>${escapeHtml(shortDigest(file.sha256))}</code></td>
+          </tr>`).join("");
   const irFieldSummaries = ["A", "B"].map((label) => irFieldSummary(label, irConflictCandidate?.[label]));
   const irConflictFieldCalls = (irConflictExample?.source_calls ?? [])
     .reduce((count, call) => count + (call.field_calls?.length ?? 0), 0);
@@ -1662,10 +1868,10 @@ function renderBasicUi(data) {
           </tr>`).join("");
   const routeBurdenRows = [
     ["Model input", "same source cues", "same source cues"],
-    ["Model output target", "SMT-LIB text", "IR JSON fields"],
-    ["End of route in this harness", "candidate SMT-LIB admission check", "deterministic IR bridge/verdict check"],
-    ["Per-route SMT artifact", "model output itself", "not materialized in this JS harness"],
-    ["Spec target path", "direct formal target", "IR should compile to SMT-LIB in the normative compiler"],
+    ["Model output", "SMT-LIB text", "bounded JSON cue fields"],
+    ["End of route in this harness", "candidate SMT-LIB admission check", "route_rule_ir.v0 -> deterministic SMT-LIB compile -> verifier check"],
+    ["Per-route SMT artifact", "model output itself", irConflictTarget?.smt_files?.[0]?.file ?? "route_targets/route.single_ir/..."],
+    ["Spec target path", "direct formal target", "IR deterministically compiles to SMT-LIB"],
     ["Representative row", `rejected: ${directDiagnostics}`, `admitted: ${irConflictBridge?.verdict ?? "missing"}`],
     ["Full run", `${direct.admitted_verdict_accuracy.exact} admitted accuracy`, `${single.admitted_verdict_accuracy.exact} admitted accuracy`]
   ].map(([label, directValue, irValue]) => `
@@ -1745,6 +1951,16 @@ function renderBasicUi(data) {
       sourceCalls,
       "          <h3>Response</h3>",
       `          <pre>${escapePre(record.response)}</pre>`,
+      record.compiled_target ? "          <h3>Compiled SMT target</h3>" : "",
+      record.compiled_target ? `          <pre>${escapePre(JSON.stringify({
+        compiler_id: record.compiled_target.compiler_id,
+        source_ir_schema_id: record.compiled_target.source_ir_schema_id,
+        target_profile: record.compiled_target.target_profile,
+        input_ir_hash: record.compiled_target.input_ir_hash,
+        target_hash: record.compiled_target.target_hash,
+        smt_files: record.compiled_target.smt_files.map(({ text, ...metadata }) => metadata),
+        verifier: record.compiled_target.verifier
+      }, null, 2))}</pre>` : "",
       "          <h3>Scored row</h3>",
       `          <pre>${escapePre(JSON.stringify(record.row, null, 2))}</pre>`,
       "        </details>"
@@ -1870,9 +2086,9 @@ function renderBasicUi(data) {
       <h2>How IR improves this pipeline</h2>
       <div class="takeaway">
         <strong>Short version</strong>
-        <p>The two M2 routes do not both ask the model to write SMT. Direct asks for SMT-LIB. IR asks for bounded JSON fields; this JS harness then runs deterministic bridge checks. In the normative compiler path, admitted IR is the thing that should compile to SMT-LIB.</p>
+        <p>Both M2 routes now finish at SMT-LIB. Direct asks the model to write SMT-LIB; IR asks the model for bounded JSON fields, bridges them into <code>route_rule_ir.v0</code>, then compiles that IR deterministically to SMT-LIB.</p>
       </div>
-      <p>Both routes use <code>${escapeHtml(data.source_cue_layer.extractor_id)}</code> (cue hash <code>${escapeHtml(shortDigest(report.source_cue_layer.cue_hash))}</code>). The current lift measurement is about moving formal-target burden away from the weak model, not about proving that both route outputs already materialize SMT artifacts.</p>
+      <p>Both routes use <code>${escapeHtml(data.source_cue_layer.extractor_id)}</code> (cue hash <code>${escapeHtml(shortDigest(report.source_cue_layer.cue_hash))}</code>). The current lift measurement is about moving formal-target burden away from the weak model while keeping the final target comparable.</p>
       <div class="flow">
         <div class="flow-step">
           <strong>1. Same input</strong>
@@ -1884,7 +2100,7 @@ function renderBasicUi(data) {
         </div>
         <div class="flow-step ok">
           <strong>3. IR route</strong>
-          <span><code>route.single_ir</code> asks for tiny JSON fields; this harness checks the derived rule predicates without writing route SMT.</span>
+          <span><code>route.single_ir</code> asks for tiny JSON fields; this harness emits a per-row SMT-LIB target from the admitted route IR.</span>
         </div>
       </div>
       <h3>What changed</h3>
@@ -1901,7 +2117,7 @@ function renderBasicUi(data) {
           <span class="status warn">not admitted in representative conflict row</span>
           <dl>
             <dt>group</dt><dd><code>${escapeHtml(directExample?.group_id ?? "missing")}</code> / seed ${escapeHtml(directExample?.seed ?? "missing")}</dd>
-            <dt>syntax</dt><dd>${escapeHtml(yesNo(directExample?.row?.syntax_valid))}</dd>
+            <dt>target syntax</dt><dd>${escapeHtml(yesNo(directExample?.row?.target_syntax_valid))}</dd>
             <dt>admitted</dt><dd>${escapeHtml(yesNo(directExample?.row?.admitted))}</dd>
             <dt>diagnostics</dt><dd><code>${escapeHtml(directDiagnostics)}</code></dd>
           </dl>
@@ -1913,8 +2129,11 @@ function renderBasicUi(data) {
           <dl>
             <dt>group</dt><dd><code>${escapeHtml(irConflictExample?.group_id ?? "missing")}</code> / seed ${escapeHtml(irConflictExample?.seed ?? "missing")}</dd>
             <dt>field calls</dt><dd>${escapeHtml(irConflictFieldCalls)} source-local schema calls</dd>
+            <dt>model syntax</dt><dd>${escapeHtml(yesNo(irConflictExample?.row?.model_output_syntax_valid))}</dd>
+            <dt>target syntax</dt><dd>${escapeHtml(yesNo(irConflictExample?.row?.target_syntax_valid))}</dd>
             <dt>admitted</dt><dd>${escapeHtml(yesNo(irConflictExample?.row?.admitted))}</dd>
             <dt>bridge verdict</dt><dd><code>${escapeHtml(irConflictBridge?.verdict ?? "missing")}</code></dd>
+            <dt>SMT target</dt><dd><code>${escapeHtml(irTargetSummary)}</code></dd>
           </dl>
           <p>${escapeHtml(irFieldSummaries[0])}</p>
           <p>${escapeHtml(irFieldSummaries[1])}</p>
@@ -1929,8 +2148,8 @@ function renderBasicUi(data) {
         </table>
       </div>
       <details>
-        <summary>Evidence details: shared cues, bridge checks, and IR internals</summary>
-        <p>M1 compiled group artifacts still emit SMT-LIB under <code>groups/&lt;group&gt;/smt/</code>. The M2 <code>route.single_ir</code> comparison rows shown here are model-route evidence: they record IR JSON, deterministic bridge predicates, and verdicts, but no per-route SMT-LIB file.</p>
+        <summary>Evidence details: shared cues, route IR, compiled SMT, and checks</summary>
+        <p>M1 compiled group artifacts emit SMT-LIB under <code>groups/&lt;group&gt;/smt/</code>. M2 <code>route.single_ir</code> rows also emit per-route SMT-LIB under <code>route_targets/route.single_ir/</code> after deterministic compilation from <code>route_rule_ir.v0</code>.</p>
         <h3>Shared source cues</h3>
         <div class="table-wrap">
           <table class="extra-wide">
@@ -1944,6 +2163,14 @@ function renderBasicUi(data) {
           <table class="wide">
             <thead><tr><th>Group</th><th>Seed</th><th>Same action</th><th>Opposed direction</th><th>Context overlap</th><th>Reasons</th><th>Verdict</th></tr></thead>
             <tbody>${bridgeRows}
+            </tbody>
+          </table>
+        </div>
+        <h3>Compiled route SMT target</h3>
+        <div class="table-wrap">
+          <table class="wide">
+            <thead><tr><th>Query</th><th>File</th><th>Logic</th><th>SHA-256</th></tr></thead>
+            <tbody>${irTargetFileRows}
             </tbody>
           </table>
         </div>
@@ -1990,7 +2217,7 @@ function renderBasicUi(data) {
       <h2>Route metrics</h2>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Route</th><th>Syntax</th><th>Admission</th><th>Admitted accuracy</th><th>Candidate accuracy</th><th>Stability</th></tr></thead>
+          <thead><tr><th>Route</th><th>Target syntax</th><th>Model syntax</th><th>Admission</th><th>Admitted accuracy</th><th>Candidate accuracy</th><th>Stability</th></tr></thead>
           <tbody>${routeRows}
           </tbody>
         </table>
@@ -2001,7 +2228,7 @@ function renderBasicUi(data) {
       <h2>Raw rows</h2>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Route</th><th>Group</th><th>Seed</th><th>Syntax</th><th>Admitted</th><th>Verdict</th><th>Admitted correct</th><th>Candidate correct</th><th>Diagnostics</th></tr></thead>
+          <thead><tr><th>Route</th><th>Group</th><th>Seed</th><th>Model syntax</th><th>Target syntax</th><th>Admitted</th><th>Verdict</th><th>Admitted correct</th><th>Candidate correct</th><th>Diagnostics</th></tr></thead>
           <tbody>${rawRows}
           </tbody>
         </table>
@@ -2169,15 +2396,20 @@ async function main() {
   const metrics = scoreRows();
   const sourceCueLayer = buildSourceCueLayer();
   const directSmtAudit = buildDirectSmtAudit(metrics.ioRecords);
+  const routeTargetSummary = buildRouteTargetSummary(metrics.ioRecords);
   const modelMeta = await modelMetadata(metrics.liveCalls);
   for (const record of metrics.ioRecords) {
     await writeJson(`model_io/${record.route_id}/${record.group_id}/seed-${record.seed}.json`, record);
+    for (const smtFile of record.compiled_target?.smt_files ?? []) {
+      await writeText(smtFile.file, smtFile.text);
+    }
   }
   await writeJson("metrics/raw_rows.json", metrics.rawRows);
   await writeJson("metrics/route_metrics.json", metrics.routeMetrics);
   await writeJson("metrics/lift_table.json", metrics.liftTable);
   await writeJson("metrics/direct_smt_audit.json", directSmtAudit);
   await writeJson("metrics/source_cues.json", sourceCueLayer);
+  await writeJson("metrics/route_targets.json", routeTargetSummary);
 
   const diagnosticsSummary = {};
   for (const row of metrics.rawRows) {
@@ -2210,6 +2442,7 @@ async function main() {
       lift_table: metrics.liftTable
     },
     direct_smt_audit: directSmtAudit,
+    route_target_summary: routeTargetSummary,
     source_cue_layer: {
       artifact_kind: sourceCueLayer.artifact_kind,
       extractor_id: sourceCueLayer.extractor_id,
@@ -2283,6 +2516,7 @@ async function main() {
     real_guideline_source_ids: realGuidelineIntake.sources.map((source) => source.id),
     real_guideline_intake_hash: sha256(realGuidelineIntake),
     source_cue_layer_hash: sha256(sourceCueLayer),
+    route_target_summary_hash: sha256(routeTargetSummary),
     route_ids: ["route.direct_smt", "route.single_ir"],
     report_hash: sha256(report)
   };
@@ -2318,6 +2552,7 @@ async function main() {
     lift_table: metrics.liftTable,
     raw_rows: metrics.rawRows,
     direct_smt_audit: directSmtAudit,
+    route_target_summary: routeTargetSummary,
     source_cue_layer: sourceCueLayer,
     real_guideline_intake: realGuidelineIntake,
     model_io: metrics.ioRecords,
@@ -2346,6 +2581,8 @@ async function main() {
       "metrics/raw_rows.json",
       "metrics/direct_smt_audit.json",
       "metrics/source_cues.json",
+      "metrics/route_targets.json",
+      ...(liveModel ? ["route_targets/route.single_ir/group.m1_conflict/seed-11/smt/q.overlap.smt2"] : []),
       "model_io/route.direct_smt/group.m1_conflict/seed-11.json"
     ];
     const commonAssertions = [
@@ -2368,6 +2605,9 @@ async function main() {
           report.live_model_calls === 60,
           report.model_identity.startsWith("Qwen2.5-0.5B-Instruct-Q2_K:"),
           report.source_cue_layer.extractor_id === "lexical_cue_v1",
+          report.route_target_summary.compiled_row_count === 6,
+          report.route_target_summary.smt_file_count === 9,
+          metrics.ioRecords.filter((record) => record.route_id === "route.single_ir").every((record) => record.compiled_target?.target_profile === "smt-lib-2"),
           metrics.ioRecords.every((record) => record.subprocess?.exit_status === 0),
           metrics.ioRecords.every((record) => record.response_hash && record.response_hash.length === 64),
           direct.target_syntax_validity.exact === "0/6",

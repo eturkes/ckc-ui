@@ -108,16 +108,16 @@
       </div>
       <p>Plain result: with the same source cues, the IR path produced accepted correct rows where direct SMT produced none.</p>
       <p>Direct failure mode: 6/6 direct outputs lacked named assertions, and admitted accuracy stayed 0/6.</p>
-      <p>IR path: 6/6 admitted rows and 6/6 admitted accuracy after deterministic bridge checks; this harness does not emit per-route single_ir SMT.</p>
+      <p>IR path: 6/6 admitted rows and 6/6 admitted accuracy after deterministic route_rule_ir.v0 -&gt; SMT-LIB compilation.</p>
     </section>
 
     <section>
       <h2>How IR improves this pipeline</h2>
       <div class="takeaway">
         <strong>Short version</strong>
-        <p>The two M2 routes do not both ask the model to write SMT. Direct asks for SMT-LIB. IR asks for bounded JSON fields; this JS harness then runs deterministic bridge checks. In the normative compiler path, admitted IR is the thing that should compile to SMT-LIB.</p>
+        <p>Both M2 routes now finish at SMT-LIB. Direct asks the model to write SMT-LIB; IR asks the model for bounded JSON fields, bridges them into <code>route_rule_ir.v0</code>, then compiles that IR deterministically to SMT-LIB.</p>
       </div>
-      <p>Both routes use <code>lexical_cue_v1</code> (cue hash <code>4a2f00546f6a0ce6...2496b4</code>). The current lift measurement is about moving formal-target burden away from the weak model, not about proving that both route outputs already materialize SMT artifacts.</p>
+      <p>Both routes use <code>lexical_cue_v1</code> (cue hash <code>536ddd8179ed37ec...ab428c</code>). The current lift measurement is about moving formal-target burden away from the weak model while keeping the final target comparable.</p>
       <div class="flow">
         <div class="flow-step">
           <strong>1. Same input</strong>
@@ -129,7 +129,7 @@
         </div>
         <div class="flow-step ok">
           <strong>3. IR route</strong>
-          <span><code>route.single_ir</code> asks for tiny JSON fields; this harness checks the derived rule predicates without writing route SMT.</span>
+          <span><code>route.single_ir</code> asks for tiny JSON fields; this harness emits a per-row SMT-LIB target from the admitted route IR.</span>
         </div>
       </div>
       <h3>What changed</h3>
@@ -143,24 +143,24 @@
             <td>same source cues</td>
           </tr>
           <tr>
-            <th>Model output target</th>
+            <th>Model output</th>
             <td>SMT-LIB text</td>
-            <td>IR JSON fields</td>
+            <td>bounded JSON cue fields</td>
           </tr>
           <tr>
             <th>End of route in this harness</th>
             <td>candidate SMT-LIB admission check</td>
-            <td>deterministic IR bridge/verdict check</td>
+            <td>route_rule_ir.v0 -&gt; deterministic SMT-LIB compile -&gt; verifier check</td>
           </tr>
           <tr>
             <th>Per-route SMT artifact</th>
             <td>model output itself</td>
-            <td>not materialized in this JS harness</td>
+            <td>route_targets/route.single_ir/group.m1_conflict/seed-11/smt/q.overlap.smt2</td>
           </tr>
           <tr>
             <th>Spec target path</th>
             <td>direct formal target</td>
-            <td>IR should compile to SMT-LIB in the normative compiler</td>
+            <td>IR deterministically compiles to SMT-LIB</td>
           </tr>
           <tr>
             <th>Representative row</th>
@@ -181,7 +181,7 @@
           <span class="status warn">not admitted in representative conflict row</span>
           <dl>
             <dt>group</dt><dd><code>group.m1_conflict</code> / seed 11</dd>
-            <dt>syntax</dt><dd>no</dd>
+            <dt>target syntax</dt><dd>no</dd>
             <dt>admitted</dt><dd>no</dd>
             <dt>diagnostics</dt><dd><code>target_parse_error, ai_schema_violation</code></dd>
           </dl>
@@ -194,8 +194,11 @@ assert (not (contraindicated))  # 禁忌</pre>
           <dl>
             <dt>group</dt><dd><code>group.m1_conflict</code> / seed 11</dd>
             <dt>field calls</dt><dd>12 source-local schema calls</dd>
+            <dt>model syntax</dt><dd>yes</dd>
+            <dt>target syntax</dt><dd>yes</dd>
             <dt>admitted</dt><dd>yes</dd>
             <dt>bridge verdict</dt><dd><code>semantic_contradiction</code></dd>
+            <dt>SMT target</dt><dd><code>smt-lib-2; 2 query file(s); 6387ff217412f182...219257</code></dd>
           </dl>
           <p>A: direction=for; action=present; age=adult; sepsis=present; pregnancy=absent; renal_exception=yes</p>
           <p>B: direction=contraindicate; action=present; age=adult; sepsis=present; pregnancy=present; renal_exception=no</p>
@@ -234,8 +237,8 @@ assert (not (contraindicated))  # 禁忌</pre>
         </table>
       </div>
       <details>
-        <summary>Evidence details: shared cues, bridge checks, and IR internals</summary>
-        <p>M1 compiled group artifacts still emit SMT-LIB under <code>groups/&lt;group&gt;/smt/</code>. The M2 <code>route.single_ir</code> comparison rows shown here are model-route evidence: they record IR JSON, deterministic bridge predicates, and verdicts, but no per-route SMT-LIB file.</p>
+        <summary>Evidence details: shared cues, route IR, compiled SMT, and checks</summary>
+        <p>M1 compiled group artifacts emit SMT-LIB under <code>groups/&lt;group&gt;/smt/</code>. M2 <code>route.single_ir</code> rows also emit per-route SMT-LIB under <code>route_targets/route.single_ir/</code> after deterministic compilation from <code>route_rule_ir.v0</code>.</p>
         <h3>Shared source cues</h3>
         <div class="table-wrap">
           <table class="extra-wide">
@@ -296,6 +299,26 @@ assert (not (contraindicated))  # 禁忌</pre>
             <td>no</td>
             <td>age_intervals_disjoint, concepts_compatible</td>
             <td><code>semantic_no_conflict</code></td>
+          </tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>Compiled route SMT target</h3>
+        <div class="table-wrap">
+          <table class="wide">
+            <thead><tr><th>Query</th><th>File</th><th>Logic</th><th>SHA-256</th></tr></thead>
+            <tbody>
+          <tr>
+            <td><code>context_overlap</code></td>
+            <td><code>route_targets/route.single_ir/group.m1_conflict/seed-11/smt/q.overlap.smt2</code></td>
+            <td>QF_LRA</td>
+            <td><code>b30d53f3120bc0af...1052f3</code></td>
+          </tr>
+          <tr>
+            <td><code>deontic_consistency</code></td>
+            <td><code>route_targets/route.single_ir/group.m1_conflict/seed-11/smt/q.deontic.smt2</code></td>
+            <td>QF_UF</td>
+            <td><code>4080509bae7b3482...8e1823</code></td>
           </tr>
             </tbody>
           </table>
@@ -493,10 +516,11 @@ assert (not (contraindicated))  # 禁忌</pre>
       <h2>Route metrics</h2>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Route</th><th>Syntax</th><th>Admission</th><th>Admitted accuracy</th><th>Candidate accuracy</th><th>Stability</th></tr></thead>
+          <thead><tr><th>Route</th><th>Target syntax</th><th>Model syntax</th><th>Admission</th><th>Admitted accuracy</th><th>Candidate accuracy</th><th>Stability</th></tr></thead>
           <tbody>
           <tr>
             <td><code>route.direct_smt</code></td>
+            <td>0/6</td>
             <td>0/6</td>
             <td>0/6</td>
             <td>0/6</td>
@@ -505,6 +529,7 @@ assert (not (contraindicated))  # 禁忌</pre>
           </tr>
           <tr>
             <td><code>route.single_ir</code></td>
+            <td>6/6</td>
             <td>6/6</td>
             <td>6/6</td>
             <td>6/6</td>
@@ -520,7 +545,7 @@ assert (not (contraindicated))  # 禁忌</pre>
       <h2>Raw rows</h2>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Route</th><th>Group</th><th>Seed</th><th>Syntax</th><th>Admitted</th><th>Verdict</th><th>Admitted correct</th><th>Candidate correct</th><th>Diagnostics</th></tr></thead>
+          <thead><tr><th>Route</th><th>Group</th><th>Seed</th><th>Model syntax</th><th>Target syntax</th><th>Admitted</th><th>Verdict</th><th>Admitted correct</th><th>Candidate correct</th><th>Diagnostics</th></tr></thead>
           <tbody>
           <tr>
             <td><code>route.direct_smt</code></td>
@@ -528,6 +553,7 @@ assert (not (contraindicated))  # 禁忌</pre>
             <td>11</td>
             <td>no</td>
             <td>no</td>
+            <td>no</td>
             <td>target_syntax_failure</td>
             <td>no</td>
             <td>no</td>
@@ -539,6 +565,7 @@ assert (not (contraindicated))  # 禁忌</pre>
             <td>11</td>
             <td>no</td>
             <td>no</td>
+            <td>no</td>
             <td>target_syntax_failure</td>
             <td>no</td>
             <td>no</td>
@@ -548,6 +575,7 @@ assert (not (contraindicated))  # 禁忌</pre>
             <td><code>route.direct_smt</code></td>
             <td><code>group.m1_conflict</code></td>
             <td>22</td>
+            <td>no</td>
             <td>no</td>
             <td>no</td>
             <td>target_syntax_failure</td>
@@ -561,6 +589,7 @@ assert (not (contraindicated))  # 禁忌</pre>
             <td>22</td>
             <td>no</td>
             <td>no</td>
+            <td>no</td>
             <td>target_syntax_failure</td>
             <td>no</td>
             <td>no</td>
@@ -572,6 +601,7 @@ assert (not (contraindicated))  # 禁忌</pre>
             <td>33</td>
             <td>no</td>
             <td>no</td>
+            <td>no</td>
             <td>target_syntax_failure</td>
             <td>no</td>
             <td>no</td>
@@ -581,6 +611,7 @@ assert (not (contraindicated))  # 禁忌</pre>
             <td><code>route.direct_smt</code></td>
             <td><code>group.m1_null</code></td>
             <td>33</td>
+            <td>no</td>
             <td>no</td>
             <td>no</td>
             <td>target_syntax_failure</td>
@@ -592,6 +623,7 @@ assert (not (contraindicated))  # 禁忌</pre>
             <td><code>route.single_ir</code></td>
             <td><code>group.m1_conflict</code></td>
             <td>11</td>
+            <td>yes</td>
             <td>yes</td>
             <td>yes</td>
             <td>semantic_contradiction</td>
@@ -603,6 +635,7 @@ assert (not (contraindicated))  # 禁忌</pre>
             <td><code>route.single_ir</code></td>
             <td><code>group.m1_null</code></td>
             <td>11</td>
+            <td>yes</td>
             <td>yes</td>
             <td>yes</td>
             <td>semantic_no_conflict</td>
@@ -616,6 +649,7 @@ assert (not (contraindicated))  # 禁忌</pre>
             <td>22</td>
             <td>yes</td>
             <td>yes</td>
+            <td>yes</td>
             <td>semantic_contradiction</td>
             <td>yes</td>
             <td>yes</td>
@@ -625,6 +659,7 @@ assert (not (contraindicated))  # 禁忌</pre>
             <td><code>route.single_ir</code></td>
             <td><code>group.m1_null</code></td>
             <td>22</td>
+            <td>yes</td>
             <td>yes</td>
             <td>yes</td>
             <td>semantic_no_conflict</td>
@@ -638,6 +673,7 @@ assert (not (contraindicated))  # 禁忌</pre>
             <td>33</td>
             <td>yes</td>
             <td>yes</td>
+            <td>yes</td>
             <td>semantic_contradiction</td>
             <td>yes</td>
             <td>yes</td>
@@ -647,6 +683,7 @@ assert (not (contraindicated))  # 禁忌</pre>
             <td><code>route.single_ir</code></td>
             <td><code>group.m1_null</code></td>
             <td>33</td>
+            <td>yes</td>
             <td>yes</td>
             <td>yes</td>
             <td>semantic_no_conflict</td>
@@ -706,9 +743,11 @@ assert (not (contraindicated))  # 禁忌</pre>
   ],
   &quot;expected&quot;: &quot;semantic_contradiction&quot;,
   &quot;group_id&quot;: &quot;group.m1_conflict&quot;,
+  &quot;model_output_syntax_valid&quot;: false,
   &quot;route_id&quot;: &quot;route.direct_smt&quot;,
   &quot;seed&quot;: 11,
   &quot;syntax_valid&quot;: false,
+  &quot;target_syntax_valid&quot;: false,
   &quot;verdict&quot;: &quot;target_syntax_failure&quot;,
   &quot;verdict_correct&quot;: false
 }</pre>
@@ -756,9 +795,11 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
   ],
   &quot;expected&quot;: &quot;semantic_no_conflict&quot;,
   &quot;group_id&quot;: &quot;group.m1_null&quot;,
+  &quot;model_output_syntax_valid&quot;: false,
   &quot;route_id&quot;: &quot;route.direct_smt&quot;,
   &quot;seed&quot;: 11,
   &quot;syntax_valid&quot;: false,
+  &quot;target_syntax_valid&quot;: false,
   &quot;verdict&quot;: &quot;target_syntax_failure&quot;,
   &quot;verdict_correct&quot;: false
 }</pre>
@@ -807,9 +848,11 @@ assert (not (contraindicated))  # 禁忌</pre>
   ],
   &quot;expected&quot;: &quot;semantic_contradiction&quot;,
   &quot;group_id&quot;: &quot;group.m1_conflict&quot;,
+  &quot;model_output_syntax_valid&quot;: false,
   &quot;route_id&quot;: &quot;route.direct_smt&quot;,
   &quot;seed&quot;: 22,
   &quot;syntax_valid&quot;: false,
+  &quot;target_syntax_valid&quot;: false,
   &quot;verdict&quot;: &quot;target_syntax_failure&quot;,
   &quot;verdict_correct&quot;: false
 }</pre>
@@ -857,9 +900,11 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
   ],
   &quot;expected&quot;: &quot;semantic_no_conflict&quot;,
   &quot;group_id&quot;: &quot;group.m1_null&quot;,
+  &quot;model_output_syntax_valid&quot;: false,
   &quot;route_id&quot;: &quot;route.direct_smt&quot;,
   &quot;seed&quot;: 22,
   &quot;syntax_valid&quot;: false,
+  &quot;target_syntax_valid&quot;: false,
   &quot;verdict&quot;: &quot;target_syntax_failure&quot;,
   &quot;verdict_correct&quot;: false
 }</pre>
@@ -908,9 +953,11 @@ assert (not (contraindicated))  # 禁忌</pre>
   ],
   &quot;expected&quot;: &quot;semantic_contradiction&quot;,
   &quot;group_id&quot;: &quot;group.m1_conflict&quot;,
+  &quot;model_output_syntax_valid&quot;: false,
   &quot;route_id&quot;: &quot;route.direct_smt&quot;,
   &quot;seed&quot;: 33,
   &quot;syntax_valid&quot;: false,
+  &quot;target_syntax_valid&quot;: false,
   &quot;verdict&quot;: &quot;target_syntax_failure&quot;,
   &quot;verdict_correct&quot;: false
 }</pre>
@@ -958,9 +1005,11 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
   ],
   &quot;expected&quot;: &quot;semantic_no_conflict&quot;,
   &quot;group_id&quot;: &quot;group.m1_null&quot;,
+  &quot;model_output_syntax_valid&quot;: false,
   &quot;route_id&quot;: &quot;route.direct_smt&quot;,
   &quot;seed&quot;: 33,
   &quot;syntax_valid&quot;: false,
+  &quot;target_syntax_valid&quot;: false,
   &quot;verdict&quot;: &quot;target_syntax_failure&quot;,
   &quot;verdict_correct&quot;: false
 }</pre>
@@ -1110,6 +1159,57 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
     &quot;sepsis&quot;: &quot;present&quot;
   }
 }</pre>
+          <h3>Compiled SMT target</h3>
+          <pre>{
+  &quot;compiler_id&quot;: &quot;route_rule_ir_v0_to_smt_v0&quot;,
+  &quot;source_ir_schema_id&quot;: &quot;schema.route_rule_ir.v0&quot;,
+  &quot;target_profile&quot;: &quot;smt-lib-2&quot;,
+  &quot;input_ir_hash&quot;: &quot;b7ce5e659fb74b5b14a4b07a4b643271e29392bef2b67c43a75d7d13e09fcb11&quot;,
+  &quot;target_hash&quot;: &quot;6387ff217412f18243f8e57656d9a277e21b7eaa9bb29cfba50f9e552a219257&quot;,
+  &quot;smt_files&quot;: [
+    {
+      &quot;file&quot;: &quot;route_targets/route.single_ir/group.m1_conflict/seed-11/smt/q.overlap.smt2&quot;,
+      &quot;kind&quot;: &quot;context_overlap&quot;,
+      &quot;logic&quot;: &quot;QF_LRA&quot;,
+      &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_conflict.seed-11.overlap&quot;,
+      &quot;sha256&quot;: &quot;b30d53f3120bc0af1f31d099e08207e2cfb272452f3f3791d60b382eaa1052f3&quot;
+    },
+    {
+      &quot;file&quot;: &quot;route_targets/route.single_ir/group.m1_conflict/seed-11/smt/q.deontic.smt2&quot;,
+      &quot;kind&quot;: &quot;deontic_consistency&quot;,
+      &quot;logic&quot;: &quot;QF_UF&quot;,
+      &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_conflict.seed-11.deontic&quot;,
+      &quot;sha256&quot;: &quot;4080509bae7b3482f6de08957b1d1dc7a3999145cd13a3284f6188c0ea8e1823&quot;
+    }
+  ],
+  &quot;verifier&quot;: {
+    &quot;outcome&quot;: &quot;semantic_contradiction&quot;,
+    &quot;results&quot;: [
+      {
+        &quot;category&quot;: &quot;semantic_overlap&quot;,
+        &quot;model&quot;: {
+          &quot;age_years&quot;: 18,
+          &quot;concepts&quot;: [
+            &quot;cond.pregnancy&quot;,
+            &quot;cond.sepsis&quot;
+          ]
+        },
+        &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_conflict.seed-11.overlap&quot;,
+        &quot;status&quot;: &quot;sat&quot;
+      },
+      {
+        &quot;category&quot;: &quot;semantic_contradiction&quot;,
+        &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_conflict.seed-11.deontic&quot;,
+        &quot;status&quot;: &quot;unsat&quot;,
+        &quot;unsat_core&quot;: [
+          &quot;assert.route.rule.a.pos&quot;,
+          &quot;assert.route.rule.b.neg&quot;
+        ]
+      }
+    ],
+    &quot;solver_identity&quot;: &quot;one-shot-js-symbolic-verifier&quot;
+  }
+}</pre>
           <h3>Scored row</h3>
           <pre>{
   &quot;admitted&quot;: true,
@@ -1117,9 +1217,11 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
   &quot;diagnostics&quot;: [],
   &quot;expected&quot;: &quot;semantic_contradiction&quot;,
   &quot;group_id&quot;: &quot;group.m1_conflict&quot;,
+  &quot;model_output_syntax_valid&quot;: true,
   &quot;route_id&quot;: &quot;route.single_ir&quot;,
   &quot;seed&quot;: 11,
   &quot;syntax_valid&quot;: true,
+  &quot;target_syntax_valid&quot;: true,
   &quot;verdict&quot;: &quot;semantic_contradiction&quot;,
   &quot;verdict_correct&quot;: true
 }</pre>
@@ -1269,6 +1371,35 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
     &quot;sepsis&quot;: &quot;present&quot;
   }
 }</pre>
+          <h3>Compiled SMT target</h3>
+          <pre>{
+  &quot;compiler_id&quot;: &quot;route_rule_ir_v0_to_smt_v0&quot;,
+  &quot;source_ir_schema_id&quot;: &quot;schema.route_rule_ir.v0&quot;,
+  &quot;target_profile&quot;: &quot;smt-lib-2&quot;,
+  &quot;input_ir_hash&quot;: &quot;76dde253f18fabc55da8a783ff23def6dd2a72a9ffafc6c6e04d33a386528b65&quot;,
+  &quot;target_hash&quot;: &quot;c47d7541ac7736d3d64de715c82e8517048467f8b01cfcc09a2f7273fb567e7c&quot;,
+  &quot;smt_files&quot;: [
+    {
+      &quot;file&quot;: &quot;route_targets/route.single_ir/group.m1_null/seed-11/smt/q.overlap.smt2&quot;,
+      &quot;kind&quot;: &quot;context_overlap&quot;,
+      &quot;logic&quot;: &quot;QF_LRA&quot;,
+      &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_null.seed-11.overlap&quot;,
+      &quot;sha256&quot;: &quot;b90b13072b4f3b4876c471d135f0d05c2899a76c56fc76dde9d27da01f1b70bf&quot;
+    }
+  ],
+  &quot;verifier&quot;: {
+    &quot;outcome&quot;: &quot;semantic_no_conflict&quot;,
+    &quot;results&quot;: [
+      {
+        &quot;category&quot;: &quot;semantic_no_conflict&quot;,
+        &quot;model&quot;: null,
+        &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_null.seed-11.overlap&quot;,
+        &quot;status&quot;: &quot;unsat&quot;
+      }
+    ],
+    &quot;solver_identity&quot;: &quot;one-shot-js-symbolic-verifier&quot;
+  }
+}</pre>
           <h3>Scored row</h3>
           <pre>{
   &quot;admitted&quot;: true,
@@ -1276,9 +1407,11 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
   &quot;diagnostics&quot;: [],
   &quot;expected&quot;: &quot;semantic_no_conflict&quot;,
   &quot;group_id&quot;: &quot;group.m1_null&quot;,
+  &quot;model_output_syntax_valid&quot;: true,
   &quot;route_id&quot;: &quot;route.single_ir&quot;,
   &quot;seed&quot;: 11,
   &quot;syntax_valid&quot;: true,
+  &quot;target_syntax_valid&quot;: true,
   &quot;verdict&quot;: &quot;semantic_no_conflict&quot;,
   &quot;verdict_correct&quot;: true
 }</pre>
@@ -1428,6 +1561,57 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
     &quot;sepsis&quot;: &quot;present&quot;
   }
 }</pre>
+          <h3>Compiled SMT target</h3>
+          <pre>{
+  &quot;compiler_id&quot;: &quot;route_rule_ir_v0_to_smt_v0&quot;,
+  &quot;source_ir_schema_id&quot;: &quot;schema.route_rule_ir.v0&quot;,
+  &quot;target_profile&quot;: &quot;smt-lib-2&quot;,
+  &quot;input_ir_hash&quot;: &quot;b7ce5e659fb74b5b14a4b07a4b643271e29392bef2b67c43a75d7d13e09fcb11&quot;,
+  &quot;target_hash&quot;: &quot;ecac65bbec0324707ae5a4a198817f8c74c3fb1a6b8858011b7e628c72454774&quot;,
+  &quot;smt_files&quot;: [
+    {
+      &quot;file&quot;: &quot;route_targets/route.single_ir/group.m1_conflict/seed-22/smt/q.overlap.smt2&quot;,
+      &quot;kind&quot;: &quot;context_overlap&quot;,
+      &quot;logic&quot;: &quot;QF_LRA&quot;,
+      &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_conflict.seed-22.overlap&quot;,
+      &quot;sha256&quot;: &quot;b30d53f3120bc0af1f31d099e08207e2cfb272452f3f3791d60b382eaa1052f3&quot;
+    },
+    {
+      &quot;file&quot;: &quot;route_targets/route.single_ir/group.m1_conflict/seed-22/smt/q.deontic.smt2&quot;,
+      &quot;kind&quot;: &quot;deontic_consistency&quot;,
+      &quot;logic&quot;: &quot;QF_UF&quot;,
+      &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_conflict.seed-22.deontic&quot;,
+      &quot;sha256&quot;: &quot;4080509bae7b3482f6de08957b1d1dc7a3999145cd13a3284f6188c0ea8e1823&quot;
+    }
+  ],
+  &quot;verifier&quot;: {
+    &quot;outcome&quot;: &quot;semantic_contradiction&quot;,
+    &quot;results&quot;: [
+      {
+        &quot;category&quot;: &quot;semantic_overlap&quot;,
+        &quot;model&quot;: {
+          &quot;age_years&quot;: 18,
+          &quot;concepts&quot;: [
+            &quot;cond.pregnancy&quot;,
+            &quot;cond.sepsis&quot;
+          ]
+        },
+        &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_conflict.seed-22.overlap&quot;,
+        &quot;status&quot;: &quot;sat&quot;
+      },
+      {
+        &quot;category&quot;: &quot;semantic_contradiction&quot;,
+        &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_conflict.seed-22.deontic&quot;,
+        &quot;status&quot;: &quot;unsat&quot;,
+        &quot;unsat_core&quot;: [
+          &quot;assert.route.rule.a.pos&quot;,
+          &quot;assert.route.rule.b.neg&quot;
+        ]
+      }
+    ],
+    &quot;solver_identity&quot;: &quot;one-shot-js-symbolic-verifier&quot;
+  }
+}</pre>
           <h3>Scored row</h3>
           <pre>{
   &quot;admitted&quot;: true,
@@ -1435,9 +1619,11 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
   &quot;diagnostics&quot;: [],
   &quot;expected&quot;: &quot;semantic_contradiction&quot;,
   &quot;group_id&quot;: &quot;group.m1_conflict&quot;,
+  &quot;model_output_syntax_valid&quot;: true,
   &quot;route_id&quot;: &quot;route.single_ir&quot;,
   &quot;seed&quot;: 22,
   &quot;syntax_valid&quot;: true,
+  &quot;target_syntax_valid&quot;: true,
   &quot;verdict&quot;: &quot;semantic_contradiction&quot;,
   &quot;verdict_correct&quot;: true
 }</pre>
@@ -1587,6 +1773,35 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
     &quot;sepsis&quot;: &quot;present&quot;
   }
 }</pre>
+          <h3>Compiled SMT target</h3>
+          <pre>{
+  &quot;compiler_id&quot;: &quot;route_rule_ir_v0_to_smt_v0&quot;,
+  &quot;source_ir_schema_id&quot;: &quot;schema.route_rule_ir.v0&quot;,
+  &quot;target_profile&quot;: &quot;smt-lib-2&quot;,
+  &quot;input_ir_hash&quot;: &quot;76dde253f18fabc55da8a783ff23def6dd2a72a9ffafc6c6e04d33a386528b65&quot;,
+  &quot;target_hash&quot;: &quot;d8c2853cc4c456c0eaed9b4bf53a4f6d28c1eea91311192e1722439c1e63ad50&quot;,
+  &quot;smt_files&quot;: [
+    {
+      &quot;file&quot;: &quot;route_targets/route.single_ir/group.m1_null/seed-22/smt/q.overlap.smt2&quot;,
+      &quot;kind&quot;: &quot;context_overlap&quot;,
+      &quot;logic&quot;: &quot;QF_LRA&quot;,
+      &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_null.seed-22.overlap&quot;,
+      &quot;sha256&quot;: &quot;b90b13072b4f3b4876c471d135f0d05c2899a76c56fc76dde9d27da01f1b70bf&quot;
+    }
+  ],
+  &quot;verifier&quot;: {
+    &quot;outcome&quot;: &quot;semantic_no_conflict&quot;,
+    &quot;results&quot;: [
+      {
+        &quot;category&quot;: &quot;semantic_no_conflict&quot;,
+        &quot;model&quot;: null,
+        &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_null.seed-22.overlap&quot;,
+        &quot;status&quot;: &quot;unsat&quot;
+      }
+    ],
+    &quot;solver_identity&quot;: &quot;one-shot-js-symbolic-verifier&quot;
+  }
+}</pre>
           <h3>Scored row</h3>
           <pre>{
   &quot;admitted&quot;: true,
@@ -1594,9 +1809,11 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
   &quot;diagnostics&quot;: [],
   &quot;expected&quot;: &quot;semantic_no_conflict&quot;,
   &quot;group_id&quot;: &quot;group.m1_null&quot;,
+  &quot;model_output_syntax_valid&quot;: true,
   &quot;route_id&quot;: &quot;route.single_ir&quot;,
   &quot;seed&quot;: 22,
   &quot;syntax_valid&quot;: true,
+  &quot;target_syntax_valid&quot;: true,
   &quot;verdict&quot;: &quot;semantic_no_conflict&quot;,
   &quot;verdict_correct&quot;: true
 }</pre>
@@ -1746,6 +1963,57 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
     &quot;sepsis&quot;: &quot;present&quot;
   }
 }</pre>
+          <h3>Compiled SMT target</h3>
+          <pre>{
+  &quot;compiler_id&quot;: &quot;route_rule_ir_v0_to_smt_v0&quot;,
+  &quot;source_ir_schema_id&quot;: &quot;schema.route_rule_ir.v0&quot;,
+  &quot;target_profile&quot;: &quot;smt-lib-2&quot;,
+  &quot;input_ir_hash&quot;: &quot;b7ce5e659fb74b5b14a4b07a4b643271e29392bef2b67c43a75d7d13e09fcb11&quot;,
+  &quot;target_hash&quot;: &quot;b9f33dc7bfb7ef9d49d5861b68928d56efcde3e4922ea8709d5877ff7a352893&quot;,
+  &quot;smt_files&quot;: [
+    {
+      &quot;file&quot;: &quot;route_targets/route.single_ir/group.m1_conflict/seed-33/smt/q.overlap.smt2&quot;,
+      &quot;kind&quot;: &quot;context_overlap&quot;,
+      &quot;logic&quot;: &quot;QF_LRA&quot;,
+      &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_conflict.seed-33.overlap&quot;,
+      &quot;sha256&quot;: &quot;b30d53f3120bc0af1f31d099e08207e2cfb272452f3f3791d60b382eaa1052f3&quot;
+    },
+    {
+      &quot;file&quot;: &quot;route_targets/route.single_ir/group.m1_conflict/seed-33/smt/q.deontic.smt2&quot;,
+      &quot;kind&quot;: &quot;deontic_consistency&quot;,
+      &quot;logic&quot;: &quot;QF_UF&quot;,
+      &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_conflict.seed-33.deontic&quot;,
+      &quot;sha256&quot;: &quot;4080509bae7b3482f6de08957b1d1dc7a3999145cd13a3284f6188c0ea8e1823&quot;
+    }
+  ],
+  &quot;verifier&quot;: {
+    &quot;outcome&quot;: &quot;semantic_contradiction&quot;,
+    &quot;results&quot;: [
+      {
+        &quot;category&quot;: &quot;semantic_overlap&quot;,
+        &quot;model&quot;: {
+          &quot;age_years&quot;: 18,
+          &quot;concepts&quot;: [
+            &quot;cond.pregnancy&quot;,
+            &quot;cond.sepsis&quot;
+          ]
+        },
+        &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_conflict.seed-33.overlap&quot;,
+        &quot;status&quot;: &quot;sat&quot;
+      },
+      {
+        &quot;category&quot;: &quot;semantic_contradiction&quot;,
+        &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_conflict.seed-33.deontic&quot;,
+        &quot;status&quot;: &quot;unsat&quot;,
+        &quot;unsat_core&quot;: [
+          &quot;assert.route.rule.a.pos&quot;,
+          &quot;assert.route.rule.b.neg&quot;
+        ]
+      }
+    ],
+    &quot;solver_identity&quot;: &quot;one-shot-js-symbolic-verifier&quot;
+  }
+}</pre>
           <h3>Scored row</h3>
           <pre>{
   &quot;admitted&quot;: true,
@@ -1753,9 +2021,11 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
   &quot;diagnostics&quot;: [],
   &quot;expected&quot;: &quot;semantic_contradiction&quot;,
   &quot;group_id&quot;: &quot;group.m1_conflict&quot;,
+  &quot;model_output_syntax_valid&quot;: true,
   &quot;route_id&quot;: &quot;route.single_ir&quot;,
   &quot;seed&quot;: 33,
   &quot;syntax_valid&quot;: true,
+  &quot;target_syntax_valid&quot;: true,
   &quot;verdict&quot;: &quot;semantic_contradiction&quot;,
   &quot;verdict_correct&quot;: true
 }</pre>
@@ -1905,6 +2175,35 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
     &quot;sepsis&quot;: &quot;present&quot;
   }
 }</pre>
+          <h3>Compiled SMT target</h3>
+          <pre>{
+  &quot;compiler_id&quot;: &quot;route_rule_ir_v0_to_smt_v0&quot;,
+  &quot;source_ir_schema_id&quot;: &quot;schema.route_rule_ir.v0&quot;,
+  &quot;target_profile&quot;: &quot;smt-lib-2&quot;,
+  &quot;input_ir_hash&quot;: &quot;76dde253f18fabc55da8a783ff23def6dd2a72a9ffafc6c6e04d33a386528b65&quot;,
+  &quot;target_hash&quot;: &quot;49b666e8232bbc00c4d443e79c51b79621a8828d6d670ce85263bfc9b545ca4b&quot;,
+  &quot;smt_files&quot;: [
+    {
+      &quot;file&quot;: &quot;route_targets/route.single_ir/group.m1_null/seed-33/smt/q.overlap.smt2&quot;,
+      &quot;kind&quot;: &quot;context_overlap&quot;,
+      &quot;logic&quot;: &quot;QF_LRA&quot;,
+      &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_null.seed-33.overlap&quot;,
+      &quot;sha256&quot;: &quot;b90b13072b4f3b4876c471d135f0d05c2899a76c56fc76dde9d27da01f1b70bf&quot;
+    }
+  ],
+  &quot;verifier&quot;: {
+    &quot;outcome&quot;: &quot;semantic_no_conflict&quot;,
+    &quot;results&quot;: [
+      {
+        &quot;category&quot;: &quot;semantic_no_conflict&quot;,
+        &quot;model&quot;: null,
+        &quot;query_id&quot;: &quot;q.route.single_ir.group.m1_null.seed-33.overlap&quot;,
+        &quot;status&quot;: &quot;unsat&quot;
+      }
+    ],
+    &quot;solver_identity&quot;: &quot;one-shot-js-symbolic-verifier&quot;
+  }
+}</pre>
           <h3>Scored row</h3>
           <pre>{
   &quot;admitted&quot;: true,
@@ -1912,9 +2211,11 @@ source C resolved cue row: {&quot;direction&quot;:&quot;contraindicate&quot;,&qu
   &quot;diagnostics&quot;: [],
   &quot;expected&quot;: &quot;semantic_no_conflict&quot;,
   &quot;group_id&quot;: &quot;group.m1_null&quot;,
+  &quot;model_output_syntax_valid&quot;: true,
   &quot;route_id&quot;: &quot;route.single_ir&quot;,
   &quot;seed&quot;: 33,
   &quot;syntax_valid&quot;: true,
+  &quot;target_syntax_valid&quot;: true,
   &quot;verdict&quot;: &quot;semantic_no_conflict&quot;,
   &quot;verdict_correct&quot;: true
 }</pre>
