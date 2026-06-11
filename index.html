@@ -3,640 +3,135 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>CKC M3 evidence surface</title>
+  <title>CKC Route Ranking</title>
   <style>
     :root {
       color-scheme: light;
       --bg: #f4f6f8;
       --surface: #ffffff;
-      --surface-soft: #f8fafc;
       --line: #d8e0e7;
       --ink: #18202a;
       --muted: #5e6b78;
       --green: #0f6f5c;
-      --green-soft: #e8f5f0;
-      --blue: #2459a6;
-      --blue-soft: #edf4ff;
       --amber: #8a5b00;
-      --amber-soft: #fff5dc;
       --red: #a23b35;
-      --red-soft: #fff0ee;
-      --violet: #6246a0;
-      --violet-soft: #f3f0ff;
+      --amber-soft: #fff5dc;
       font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       font-size: 15px;
     }
     * { box-sizing: border-box; }
     body { margin: 0; background: var(--bg); color: var(--ink); }
     main { min-width: 0; }
-    h1, h2, h3, p { margin: 0; }
-    h1 { font-size: clamp(1.75rem, 3vw, 2.65rem); line-height: 1.05; letter-spacing: 0; max-width: 880px; }
-    h2 { font-size: 1rem; line-height: 1.25; margin-bottom: 10px; }
-    h3 { font-size: .86rem; line-height: 1.25; margin-bottom: 6px; }
+    h1, p { margin: 0; }
+    h1 { font-size: clamp(1.6rem, 3vw, 2.45rem); line-height: 1.08; letter-spacing: 0; }
     p { color: var(--muted); line-height: 1.45; max-width: 920px; }
-    code, pre { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; font-size: .82rem; }
-    code { overflow-wrap: anywhere; }
-    a { color: var(--blue); text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    .band { border-bottom: 1px solid var(--line); background: var(--surface); }
-    .band.alt { background: var(--surface-soft); }
-    .wrap { width: min(1240px, calc(100vw - 32px)); margin: 0 auto; padding: 18px 0; }
-    .mast { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 18px; align-items: stretch; }
-    .kicker { color: var(--blue); font-size: .76rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 8px; }
-    .lede { margin-top: 10px; font-size: .98rem; }
-    .claim-box { border: 1px solid #efbeb8; border-left: 4px solid var(--red); border-radius: 6px; padding: 12px; background: var(--red-soft); min-width: 0; }
-    .claim-box strong { display: block; font-size: .88rem; margin-bottom: 5px; }
-    .claim-box p { color: var(--ink); font-size: .84rem; }
-    .pill-row { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
-    .pill, .tag { display: inline-flex; align-items: center; min-height: 24px; border: 1px solid var(--line); border-radius: 999px; padding: 3px 8px; background: #fff; color: var(--muted); font-size: .74rem; font-weight: 750; white-space: nowrap; }
-    .tag.green { color: var(--green); background: var(--green-soft); border-color: #acd9cb; }
-    .tag.blue { color: var(--blue); background: var(--blue-soft); border-color: #bfd4f1; }
-    .tag.amber { color: var(--amber); background: var(--amber-soft); border-color: #ead295; }
-    .tag.red { color: var(--red); background: var(--red-soft); border-color: #efbeb8; }
-    .tag.violet { color: var(--violet); background: var(--violet-soft); border-color: #d4c7f5; }
-    .metric-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
-    .metric { border: 1px solid var(--line); border-radius: 6px; background: #fff; padding: 11px; min-width: 0; min-height: 118px; display: grid; align-content: start; gap: 5px; }
-    .metric strong { display: block; font-size: 1.42rem; line-height: 1.05; letter-spacing: 0; }
-    .metric span { color: var(--muted); font-size: .78rem; line-height: 1.35; }
-    .metric small { color: var(--ink); font-size: .72rem; font-weight: 750; overflow-wrap: anywhere; }
-    .lanes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
-    .panel { border: 1px solid var(--line); border-radius: 6px; background: #fff; padding: 12px; min-width: 0; }
-    .panel p { font-size: .82rem; }
-    .panel .tag { margin-top: 10px; }
-    .flow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 9px; margin-top: 12px; }
-    .flow-step { position: relative; border: 1px solid var(--line); border-radius: 6px; background: #fff; padding: 10px; min-width: 0; min-height: 104px; }
-    .flow-step:not(:last-child)::after { content: "->"; position: absolute; top: 18px; right: -16px; color: var(--muted); font-weight: 800; z-index: 1; }
-    .flow-step strong { display: block; font-size: .82rem; margin-bottom: 6px; }
-    .flow-step span { display: block; color: var(--muted); font-size: .76rem; line-height: 1.35; overflow-wrap: anywhere; }
-    .rank-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+    code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; font-size: .82rem; overflow-wrap: anywhere; }
+    .wrap { width: min(1120px, calc(100vw - 32px)); margin: 0 auto; padding: 22px 0; }
+    .lede { margin-top: 8px; font-size: .96rem; }
+    .rank-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
     .rank-fact { border-left: 3px solid var(--line); padding: 2px 0 2px 10px; min-width: 0; }
     .rank-fact strong { display: block; font-size: .82rem; margin-bottom: 5px; }
     .rank-fact span { display: block; color: var(--muted); font-size: .76rem; line-height: 1.35; overflow-wrap: anywhere; }
-    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: #fff; margin-top: 10px; }
-    table { width: 100%; border-collapse: collapse; min-width: 760px; }
-    table.wide { min-width: 980px; }
-    table.extra-wide { min-width: 1040px; }
-    th, td { border-bottom: 1px solid var(--line); padding: 8px 9px; text-align: left; vertical-align: top; font-size: .81rem; line-height: 1.32; }
-    tr:last-child th, tr:last-child td { border-bottom: 0; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); margin-top: 16px; }
+    table { width: 100%; min-width: 900px; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid var(--line); padding: 9px 10px; text-align: left; vertical-align: top; font-size: .82rem; line-height: 1.35; }
+    tr:last-child td { border-bottom: 0; }
     th { color: var(--muted); background: #f7fafc; font-weight: 800; }
     td { overflow-wrap: anywhere; }
     .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
     .ratio { display: grid; grid-template-columns: minmax(72px, 1fr) max-content; gap: 8px; align-items: center; min-width: 140px; }
     .track { height: 8px; border-radius: 999px; background: #e7edf3; overflow: hidden; }
-    .fill { display: block; height: 100%; border-radius: inherit; background: var(--blue); }
+    .fill { display: block; height: 100%; border-radius: inherit; }
     .fill.green { background: var(--green); }
     .fill.amber { background: var(--amber); }
     .fill.red { background: var(--red); }
-    .artifact-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
-    .artifact { border-left: 3px solid var(--line); padding: 2px 0 2px 10px; min-width: 0; }
-    .artifact strong { display: block; font-size: .82rem; margin-bottom: 5px; }
-    .artifact code { display: block; color: var(--muted); font-size: .74rem; margin-top: 4px; }
-    .note { border-left: 4px solid var(--amber); background: var(--amber-soft); padding: 10px 12px; border-radius: 6px; margin-top: 12px; }
+    .note { border-left: 4px solid var(--amber); background: var(--amber-soft); padding: 10px 12px; border-radius: 6px; margin-top: 14px; }
     .note p { color: var(--ink); font-size: .83rem; }
-    details { border: 1px solid var(--line); border-radius: 6px; background: #fff; padding: 10px 12px; margin-top: 10px; }
-    summary { cursor: pointer; font-weight: 800; font-size: .86rem; }
-    details .table-wrap { margin-top: 10px; }
-    .tight { margin-top: 8px; }
-    @media (max-width: 1060px) {
-      .mast { grid-template-columns: 1fr; }
-      .metric-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-      .lanes { grid-template-columns: 1fr; }
-      .flow { grid-template-columns: 1fr; }
-      .flow-step:not(:last-child)::after { display: none; }
+    @media (max-width: 860px) {
       .rank-strip { grid-template-columns: 1fr; }
-      .artifact-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 680px) {
-      .wrap { width: min(100vw - 20px, 1240px); padding: 14px 0; }
-      .metric-grid { grid-template-columns: 1fr 1fr; }
-      .metric { min-height: 104px; }
-      .artifact-grid { grid-template-columns: 1fr; }
-      th, td { padding: 7px; }
-      .pill, .tag { white-space: normal; }
+      .wrap { width: min(100vw - 20px, 1120px); padding: 16px 0; }
+      th, td { padding: 8px; }
     }
   </style>
 </head>
 <body>
   <main>
-    <section class="band">
-      <div class="wrap">
-        <div class="mast">
-          <div>
-            <p class="kicker">CKC / SPEC r3 / Stage I</p>
-            <h1>Evidence surface for route comparison, deterministic ablation, and model-free coverage</h1>
-            <p class="lede">Root <code>index.html</code> now presents the current M3 contract in <code>SPEC.md</code>: route-axis measurements, pipeline comparison, coverage evidence, traceable artifacts, and gates. Values are copied from the current ignored run artifacts under <code>runs/</code>.</p>
-            <div class="pill-row">
-              <span class="pill">research harness</span>
-              <span class="pill">synthetic fixture measurement</span>
-              <span class="pill">raw benchmark output</span>
-              <span class="pill">documented null result</span>
-              <span class="pill">s0/s1 evidence only unless stated</span>
-            </div>
-          </div>
-          <div class="claim-box">
-            <strong>Claim boundary</strong>
-            <p>No clinical, patient-care, CDS-runtime, SaMD, deployment, or regulatory claim is made here. Real guideline rows are candidate-only source intake; stronger claims require the gates in <code>SPEC.md §15</code>.</p>
-          </div>
-        </div>
+    <div class="wrap">
+      <h1>Route Ranking</h1>
+      <p class="lede">Routes are ranked by accuracy: how often the generated target reached the expected verdict on the current trial rows.</p>
 
-        <div class="metric-grid" aria-label="Current M3 evidence summary">
-          <div class="metric">
-            <strong>5 routes</strong>
-            <span><code>exp.m3_routes</code> includes direct SMT, single IR, stacked IR, hop-chain, and CKC-layered routes.</span>
-            <small>48 model calls in latest live route run</small>
-          </div>
-          <div class="metric">
-            <strong>0/4</strong>
-            <span>Admitted verdict accuracy for every model route over selected M3 trial groups.</span>
-            <small>route null result</small>
-          </div>
-          <div class="metric">
-            <strong>4/4</strong>
-            <span>Target syntax validity for every non-direct route versus <code>1/4</code> for direct SMT.</span>
-            <small>target-syntax delta only</small>
-          </div>
-          <div class="metric">
-            <strong>10/10</strong>
-            <span>Deterministic layered and direct pipelines both match verdict and conflict-kind gold.</span>
-            <small><code>exp.m3_compare</code></small>
-          </div>
-          <div class="metric">
-            <strong>35/36</strong>
-            <span>Model-free component coverage over fresh apply groups, with <code>0</code> apply-phase model calls.</span>
-            <small><code>exp.m3_coverage</code></small>
-          </div>
-          <div class="metric">
-            <strong>10 groups</strong>
-            <span>M3 group audit covers original, holdout, metamorphic, and expanded conflict-kind fixtures.</span>
-            <small>4 selected for quick route trial</small>
-          </div>
+      <div class="rank-strip" aria-label="Route ranking summary">
+        <div class="rank-fact">
+          <strong>Highest accuracy</strong>
+          <span><code>route.ir_hop_chain</code> reached the expected verdict on <code>3/4</code> trial rows.</span>
+        </div>
+        <div class="rank-fact">
+          <strong>Middle group</strong>
+          <span><code>route.single_ir</code>, <code>route.stacked_ir</code>, and <code>route.ckc_layered</code> each reached <code>1/4</code>.</span>
+        </div>
+        <div class="rank-fact">
+          <strong>Least complex</strong>
+          <span><code>route.direct_smt</code> is complexity rank <code>1</code>, but reached <code>0/4</code>.</span>
         </div>
       </div>
-    </section>
 
-    <section class="band alt">
-      <div class="wrap">
-        <h2>Spec-R3 Work Lanes</h2>
-        <div class="lanes">
-          <div class="panel">
-            <h3>Route axis</h3>
-            <p>Weak local model routes are compared against <code>route.direct_smt</code>. Rankings are exact-ratio, raw-row backed, and lexicographic over admitted accuracy, admission, target syntax, and stability.</p>
-            <span class="tag amber">candidate accuracy is audit-only</span>
-          </div>
-          <div class="panel">
-            <h3>Architecture ablation</h3>
-            <p><code>pipe.direct_rule_to_smt</code> and <code>pipe.one_shot_js_ckcir_to_smt</code> run deterministically over all ten M3 groups. The layered-minus-direct delta appears as reuse, not verdict lift.</p>
-            <span class="tag green">reuse_delta_only</span>
-          </div>
-          <div class="panel">
-            <h3>Model-free coverage</h3>
-            <p>Mappings are built from fixture set A and applied to fresh fixture set B with <code>runtime_ai: false</code>. Apply-phase path evidence contains zero model nodes.</p>
-            <span class="tag blue">claim 2 fixture evidence</span>
-          </div>
-        </div>
-
-        <div class="flow" aria-label="Evidence flow">
-          <div class="flow-step">
-            <strong>1. Source spans</strong>
-            <span>Fixture HTML, real-source registry rows, permission hashes, and source-region ids.</span>
-          </div>
-          <div class="flow-step">
-            <strong>2. IR components</strong>
-            <span>Segments, bindings, statements, NormRules, and run-scoped component hashes.</span>
-          </div>
-          <div class="flow-step">
-            <strong>3. Routes and pipelines</strong>
-            <span>Model routes emit constrained artifacts; deterministic pipelines bypass runtime model calls.</span>
-          </div>
-          <div class="flow-step">
-            <strong>4. SMT and verifier</strong>
-            <span>Compiled SMT-LIB, assertion maps, expected outcomes, and conflict-kind checks.</span>
-          </div>
-          <div class="flow-step">
-            <strong>5. Reports and ledgers</strong>
-            <span>Raw rows, rankings, score breakdowns, trace bundles, replay manifests, diagnostics.</span>
-          </div>
-        </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Success rank</th>
+              <th>Route</th>
+              <th>Accuracy</th>
+              <th>Route description</th>
+              <th>Complexity rank</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="num">1</td>
+              <td><code>route.ir_hop_chain</code></td>
+              <td><span class="ratio"><span class="track"><span class="fill green" style="width:75%"></span></span><code>3/4</code></span></td>
+              <td>Breaks the translation into several small structured JSON steps before compiling the final target.</td>
+              <td class="num">4</td>
+            </tr>
+            <tr>
+              <td class="num">2</td>
+              <td><code>route.single_ir</code></td>
+              <td><span class="ratio"><span class="track"><span class="fill amber" style="width:25%"></span></span><code>1/4</code></span></td>
+              <td>Asks the model for one structured JSON draft, then compiles that draft into the final target.</td>
+              <td class="num">2</td>
+            </tr>
+            <tr>
+              <td class="num">2</td>
+              <td><code>route.stacked_ir</code></td>
+              <td><span class="ratio"><span class="track"><span class="fill amber" style="width:25%"></span></span><code>1/4</code></span></td>
+              <td>Asks the model for a short stack of structured drafts, from source summary to rule-like output.</td>
+              <td class="num">3</td>
+            </tr>
+            <tr>
+              <td class="num">2</td>
+              <td><code>route.ckc_layered</code></td>
+              <td><span class="ratio"><span class="track"><span class="fill amber" style="width:25%"></span></span><code>1/4</code></span></td>
+              <td>Asks the model to fill CKC stages separately: source spans, normalized statements, then rules.</td>
+              <td class="num">5</td>
+            </tr>
+            <tr>
+              <td class="num">3</td>
+              <td><code>route.direct_smt</code></td>
+              <td><span class="ratio"><span class="track"><span class="fill red" style="width:0%"></span></span><code>0/4</code></span></td>
+              <td>Asks the model to write the final formal solver target directly in one step.</td>
+              <td class="num">1</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-    </section>
 
-    <section class="band">
-      <div class="wrap">
-        <h2>M3 Route Ranking</h2>
-        <p>This view ranks route methods by accuracy: how often the generated route target reached the expected verdict on the current M3 trial rows.</p>
-        <div class="rank-strip" aria-label="Route ranking summary">
-          <div class="rank-fact">
-            <strong>Highest accuracy</strong>
-            <span><code>route.ir_hop_chain</code> reached the expected target verdict on <code>3/4</code> trial rows.</span>
-          </div>
-          <div class="rank-fact">
-            <strong>Middle group</strong>
-            <span><code>route.single_ir</code>, <code>route.stacked_ir</code>, and <code>route.ckc_layered</code> each reached <code>1/4</code>.</span>
-          </div>
-          <div class="rank-fact">
-            <strong>Least complex</strong>
-            <span><code>route.direct_smt</code> is complexity rank <code>1</code>, but reached <code>0/4</code> target verdicts.</span>
-          </div>
-        </div>
-        <div class="table-wrap">
-          <table class="extra-wide">
-            <thead>
-              <tr>
-                <th>Success rank</th>
-                <th>Route</th>
-                <th>Accuracy</th>
-                <th>Route description</th>
-                <th>Complexity rank</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="num">1</td>
-                <td><code>route.ir_hop_chain</code></td>
-                <td><span class="ratio"><span class="track"><span class="fill green" style="width:75%"></span></span><code>3/4</code></span></td>
-                <td>Breaks the translation into several small structured JSON steps before compiling the final target.</td>
-                <td class="num">4</td>
-              </tr>
-              <tr>
-                <td class="num">2</td>
-                <td><code>route.single_ir</code></td>
-                <td><span class="ratio"><span class="track"><span class="fill amber" style="width:25%"></span></span><code>1/4</code></span></td>
-                <td>Asks the model for one structured JSON draft, then compiles that draft into the final target.</td>
-                <td class="num">2</td>
-              </tr>
-              <tr>
-                <td class="num">2</td>
-                <td><code>route.stacked_ir</code></td>
-                <td><span class="ratio"><span class="track"><span class="fill amber" style="width:25%"></span></span><code>1/4</code></span></td>
-                <td>Asks the model for a short stack of structured drafts, from source summary to rule-like output.</td>
-                <td class="num">3</td>
-              </tr>
-              <tr>
-                <td class="num">2</td>
-                <td><code>route.ckc_layered</code></td>
-                <td><span class="ratio"><span class="track"><span class="fill amber" style="width:25%"></span></span><code>1/4</code></span></td>
-                <td>Asks the model to fill CKC stages separately: source spans, normalized statements, then rules.</td>
-                <td class="num">5</td>
-              </tr>
-              <tr>
-                <td class="num">3</td>
-                <td><code>route.direct_smt</code></td>
-                <td><span class="ratio"><span class="track"><span class="fill red" style="width:0%"></span></span><code>0/4</code></span></td>
-                <td>Asks the model to write the final formal solver target directly in one step.</td>
-                <td class="num">1</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="note">
-          <p>Accuracy is the current <code>candidate_verdict_accuracy</code> metric from <code>score_breakdown.json</code>. The current admission gate remains <code>0/4</code> for every route, so this is route-method comparison evidence, not an admitted performance claim.</p>
-        </div>
+      <div class="note">
+        <p>Accuracy is the current <code>candidate_verdict_accuracy</code> metric from <code>score_breakdown.json</code>. The current admission gate remains <code>0/4</code> for every route, so this is route-method comparison evidence, not an admitted performance claim.</p>
       </div>
-    </section>
-
-    <section class="band alt">
-      <div class="wrap">
-        <h2>Deterministic Pipeline Comparison</h2>
-        <p><code>exp.m3_compare</code> isolates the architecture ablation from model-route behavior. Both deterministic pipelines are correct on the current fixture set; component reuse is where the layered pipeline differs.</p>
-        <div class="table-wrap">
-          <table class="wide">
-            <thead>
-              <tr>
-                <th>Pipeline</th>
-                <th>Role</th>
-                <th>Compile success</th>
-                <th>Verdict accuracy</th>
-                <th>Conflict-kind accuracy</th>
-                <th>Component reuse</th>
-                <th>Classification</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><code>pipe.one_shot_js_ckcir_to_smt</code></td>
-                <td>layered comparator</td>
-                <td><code>10/10</code></td>
-                <td><code>10/10</code></td>
-                <td><code>10/10</code></td>
-                <td><span class="ratio"><span class="track"><span class="fill green" style="width:84.5%"></span></span><code>60/71</code></span></td>
-                <td><span class="tag green">reuse_delta_only</span></td>
-              </tr>
-              <tr>
-                <td><code>pipe.direct_rule_to_smt</code></td>
-                <td>baseline</td>
-                <td><code>10/10</code></td>
-                <td><code>10/10</code></td>
-                <td><code>10/10</code></td>
-                <td><span class="ratio"><span class="track"><span class="fill" style="width:0%"></span></span><code>0/20</code></span></td>
-                <td><span class="tag blue">direct baseline</span></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <details>
-          <summary>Comparison artifacts</summary>
-          <div class="artifact-grid">
-            <div class="artifact">
-              <strong>Ranked rows</strong>
-              <code>runs/m3-compare/ranking.csv</code>
-              <code>runs/m3-compare/score_breakdown.json</code>
-            </div>
-            <div class="artifact">
-              <strong>Matrix</strong>
-              <code>runs/m3-compare/metrics/pipeline_matrix.json</code>
-              <code>runs/m3-compare/metrics/pipeline_raw_rows.json</code>
-            </div>
-            <div class="artifact">
-              <strong>Diff</strong>
-              <code>runs/m3-compare/candidate_diff.json</code>
-            </div>
-            <div class="artifact">
-              <strong>Reuse and compactness</strong>
-              <code>runs/m3-compare/component_reuse_graph.json</code>
-              <code>runs/m3-compare/compactness_front.json</code>
-            </div>
-          </div>
-        </details>
-      </div>
-    </section>
-
-    <section class="band">
-      <div class="wrap">
-        <h2>Model-Free Coverage</h2>
-        <p><code>exp.m3_coverage</code> tests claim 2 at fixture scale: admitted mappings built from three fixtures cover fresh apply documents without runtime model calls.</p>
-        <div class="table-wrap">
-          <table class="wide">
-            <thead>
-              <tr>
-                <th>Metric</th>
-                <th>Value</th>
-                <th>Scope</th>
-                <th>Artifact</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Component coverage</td>
-                <td><span class="ratio"><span class="track"><span class="fill green" style="width:97.2%"></span></span><code>35/36</code></span></td>
-                <td>Three apply groups, five apply fixtures, mapping set size <code>12</code>.</td>
-                <td><code>runs/m3-coverage/metrics/coverage_metrics.json</code></td>
-              </tr>
-              <tr>
-                <td>Group verdict accuracy</td>
-                <td><code>3/3</code></td>
-                <td>Holdout conflict, metamorphic conflict, exception-resolved null.</td>
-                <td><code>runs/m3-coverage/coverage.csv</code></td>
-              </tr>
-              <tr>
-                <td>Conflict-kind accuracy</td>
-                <td><code>3/3</code></td>
-                <td>Deontic direction and exception-resolved cases.</td>
-                <td><code>runs/m3-coverage/coverage.csv</code></td>
-              </tr>
-              <tr>
-                <td>Apply-phase model calls</td>
-                <td><code>0</code></td>
-                <td>Model-per-document baseline call count is <code>5</code>.</td>
-                <td><code>runs/m3-coverage/model_free_coverage.json</code></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="note">
-          <p>This is a model-free runtime measurement over synthetic fixtures, not a runtime-CDS oracle claim. Runtime-oracle fidelity remains behind <code>G-RUNTIME-ORACLE</code>.</p>
-        </div>
-      </div>
-    </section>
-
-    <section class="band alt">
-      <div class="wrap">
-        <h2>M3 Group Audit</h2>
-        <p>The route group audit covers all ten configured groups even when the live route trial samples four groups for iteration.</p>
-        <div class="table-wrap">
-          <table class="extra-wide">
-            <thead>
-              <tr>
-                <th>Group</th>
-                <th>Set</th>
-                <th>Trial</th>
-                <th>Expected outcome</th>
-                <th>Expected conflict kind</th>
-                <th>Fixtures</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><code>group.m1_conflict</code></td>
-                <td>original M1</td>
-                <td><span class="tag green">selected</span></td>
-                <td><code>semantic_contradiction</code></td>
-                <td><code>deontic_direction_conflict</code></td>
-                <td><code>fixture.m1_guideline_a</code>; <code>fixture.m1_guideline_b</code></td>
-              </tr>
-              <tr>
-                <td><code>group.m1_null</code></td>
-                <td>original M1</td>
-                <td><span class="tag green">selected</span></td>
-                <td><code>semantic_no_conflict</code></td>
-                <td><code>documented_null_result</code></td>
-                <td><code>fixture.m1_guideline_a</code>; <code>fixture.m1_control</code></td>
-              </tr>
-              <tr>
-                <td><code>group.m2_holdout_conflict</code></td>
-                <td>M2 holdout</td>
-                <td><span class="tag green">selected</span></td>
-                <td><code>semantic_contradiction</code></td>
-                <td><code>deontic_direction_conflict</code></td>
-                <td><code>fixture.m1_guideline_a</code>; <code>fixture.m2_guideline_d</code></td>
-              </tr>
-              <tr>
-                <td><code>group.m3_threshold_conflict</code></td>
-                <td>M3 expanded</td>
-                <td><span class="tag green">selected</span></td>
-                <td><code>semantic_contradiction</code></td>
-                <td><code>numeric_threshold_empty_intersection</code></td>
-                <td><code>fixture.m3_threshold_adult</code>; <code>fixture.m3_threshold_child</code></td>
-              </tr>
-              <tr>
-                <td><code>group.m3_metamorphic_conflict</code></td>
-                <td>M3 metamorphic</td>
-                <td><span class="tag blue">audited</span></td>
-                <td><code>semantic_contradiction</code></td>
-                <td><code>deontic_direction_conflict</code></td>
-                <td><code>fixture.m3_guideline_a_metamorphic</code>; <code>fixture.m3_guideline_b_metamorphic</code></td>
-              </tr>
-              <tr>
-                <td><code>group.m3_metamorphic_null</code></td>
-                <td>M3 metamorphic</td>
-                <td><span class="tag blue">audited</span></td>
-                <td><code>semantic_no_conflict</code></td>
-                <td><code>documented_null_result</code></td>
-                <td><code>fixture.m3_guideline_a_metamorphic</code>; <code>fixture.m1_control</code></td>
-              </tr>
-              <tr>
-                <td><code>group.m3_factual_conflict</code></td>
-                <td>M3 expanded</td>
-                <td><span class="tag blue">audited</span></td>
-                <td><code>semantic_contradiction</code></td>
-                <td><code>strict_factual_contradiction</code></td>
-                <td><code>fixture.m3_factual_positive</code>; <code>fixture.m3_factual_negative</code></td>
-              </tr>
-              <tr>
-                <td><code>group.m3_terminology_incoherence</code></td>
-                <td>M3 expanded</td>
-                <td><span class="tag blue">audited</span></td>
-                <td><code>semantic_contradiction</code></td>
-                <td><code>terminology_incoherence</code></td>
-                <td><code>fixture.m3_factual_positive</code>; <code>fixture.m3_factual_negative</code></td>
-              </tr>
-              <tr>
-                <td><code>group.m3_condition_unsatisfiable</code></td>
-                <td>M3 expanded</td>
-                <td><span class="tag blue">audited</span></td>
-                <td><code>semantic_contradiction</code></td>
-                <td><code>condition_unsatisfiable</code></td>
-                <td><code>fixture.m3_condition_unsat</code>; <code>fixture.m1_guideline_a</code></td>
-              </tr>
-              <tr>
-                <td><code>group.m3_exception_resolved</code></td>
-                <td>M3 expanded</td>
-                <td><span class="tag blue">audited</span></td>
-                <td><code>semantic_no_conflict</code></td>
-                <td><code>exception_resolved_conflict</code></td>
-                <td><code>fixture.m1_guideline_a</code>; <code>fixture.m3_exception_renal</code></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <p class="tight"><code>runs/m3-routes/metrics/group_audit.json</code>: original M1 <code>2</code>, M2 holdout <code>1</code>, M3 metamorphic <code>2</code>, M3 expanded <code>5</code>; all rows have gold, fixture semantics, and source paths.</p>
-      </div>
-    </section>
-
-    <section class="band">
-      <div class="wrap">
-        <h2>Real-Source Candidate Intake</h2>
-        <p>Current public-source rows are permission-aware candidate artifacts. They stay outside locked route and pipeline scoring and carry <code>clinical_claim_scope: none</code>.</p>
-        <div class="table-wrap">
-          <table class="extra-wide">
-            <thead>
-              <tr>
-                <th>Source</th>
-                <th>Source hash</th>
-                <th>Permission hash</th>
-                <th>Candidate spans</th>
-                <th>Admitted candidates</th>
-                <th>Blocking residuals</th>
-                <th>Raw cache</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><code>real.jstage.thyroid_tumor_2024.cq_recommendations</code></td>
-                <td><code>7dff117dd06a</code></td>
-                <td><code>6f0d9f3a96c7</code></td>
-                <td class="num">4</td>
-                <td class="num">4</td>
-                <td class="num">0</td>
-                <td>complete</td>
-              </tr>
-              <tr>
-                <td><code>real.jstage.sepsis_dic_2025.guideline_article</code></td>
-                <td><code>161c59eb8f98</code></td>
-                <td><code>652c31add5e2</code></td>
-                <td class="num">3</td>
-                <td class="num">0</td>
-                <td class="num">6</td>
-                <td>complete</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="note">
-          <p>Aggregate: <code>2</code> sources, <code>7</code> candidate spans, <code>4</code> admitted candidate rules, <code>20</code> residuals, <code>6</code> blocking residuals. Schema: <code>schema.real_source_route_rule_candidate.v0</code>. Scope: <code>source_intake_candidate_only</code>.</p>
-        </div>
-      </div>
-    </section>
-
-    <section class="band alt">
-      <div class="wrap">
-        <h2>Gate Posture</h2>
-        <div class="table-wrap">
-          <table class="wide">
-            <thead>
-              <tr>
-                <th>Gate</th>
-                <th>Status on this surface</th>
-                <th>Allowed wording</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><code>G-RUNTIME-ORACLE</code></td>
-                <td><span class="tag amber">not enabled</span></td>
-                <td>Report <code>runtime_ai: false</code> and zero apply-phase model calls; do not claim runtime oracle fidelity.</td>
-              </tr>
-              <tr>
-                <td><code>G-SOURCE-PERMISSION</code></td>
-                <td><span class="tag amber">permission hashes recorded</span></td>
-                <td>Describe real-source rows as candidate-only source intake with permission-aware cache records.</td>
-              </tr>
-              <tr>
-                <td><code>G-EXEC-EVAL</code></td>
-                <td><span class="tag red">not triggered</span></td>
-                <td>No patient-context rule-evaluation semantics are shipped.</td>
-              </tr>
-              <tr>
-                <td><code>G-LIVE-PATIENT</code></td>
-                <td><span class="tag red">not triggered</span></td>
-                <td>No patient-derived data enters CKC.</td>
-              </tr>
-              <tr>
-                <td><code>G-S3</code></td>
-                <td><span class="tag red">not triggered</span></td>
-                <td>No clinical, regulatory, deployment, or SaMD authority claim.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <section class="band">
-      <div class="wrap">
-        <h2>Artifact Index</h2>
-        <p>Run directories are intentionally ignored; this page is the tracked browser presentation over the latest local evidence snapshot.</p>
-        <div class="artifact-grid">
-          <div class="artifact">
-            <strong>Routes</strong>
-            <code>runs/m3-routes/ranking.csv</code>
-            <code>runs/m3-routes/score_breakdown.json</code>
-            <code>runs/m3-routes/metrics/route_matrix.json</code>
-            <code>runs/m3-routes/metrics/raw_rows.json</code>
-          </div>
-          <div class="artifact">
-            <strong>Route audit</strong>
-            <code>runs/m3-routes/metrics/group_audit.json</code>
-            <code>runs/m3-routes/prompts/catalog.json</code>
-            <code>runs/m3-routes/trace_bundle.json</code>
-            <code>runs/m3-routes/replay_manifest.json</code>
-          </div>
-          <div class="artifact">
-            <strong>Compare</strong>
-            <code>runs/m3-compare/ranking.csv</code>
-            <code>runs/m3-compare/score_breakdown.json</code>
-            <code>runs/m3-compare/candidate_diff.json</code>
-            <code>runs/m3-compare/component_reuse_graph.json</code>
-          </div>
-          <div class="artifact">
-            <strong>Coverage</strong>
-            <code>runs/m3-coverage/coverage.csv</code>
-            <code>runs/m3-coverage/model_free_coverage.json</code>
-            <code>runs/m3-coverage/metrics/coverage_metrics.json</code>
-            <code>runs/m3-coverage/compactness_front.json</code>
-          </div>
-        </div>
-      </div>
-    </section>
+    </div>
   </main>
 </body>
 </html>
