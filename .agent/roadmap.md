@@ -38,7 +38,9 @@ repair / selection / feedback signal stays answer-agnostic (never reads gold
 Per-route integration surface (S1 reference): `implementedRouteIds`, `llamaArgs`
 route-args branch, `runLiveRoute` dispatch, a `runLive<Route>` runner reusing
 `classifyCkcLayeredCandidate`, `registry/routes.json` entry, `exp.m3_routes`
-`.routes` in `registry/experiments.json`, plus the EN + JA row in `index.html`.
+`.routes` in `registry/experiments.json`, plus three EN + JA surfaces in
+`index.html` (ranking-table row with scenario pips, per-scenario matrix row,
+pipeline card).
 Gate: `node tools/build-run.mjs --verify --live-model --experiment exp.m3_routes`
 returns exit 0. `simulateRoute` (recorded mode) needs no per-route branch.
 

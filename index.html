@@ -36,12 +36,26 @@
     th { color: var(--muted); background: #f7fafc; font-weight: 800; }
     td { overflow-wrap: anywhere; }
     .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
-    .ratio { display: grid; grid-template-columns: minmax(72px, 1fr) max-content; gap: 8px; align-items: center; min-width: 140px; }
-    .track { height: 8px; border-radius: 999px; background: #e7edf3; overflow: hidden; }
-    .fill { display: block; height: 100%; border-radius: inherit; }
-    .fill.green { background: var(--green); }
-    .fill.amber { background: var(--amber); }
-    .fill.red { background: var(--red); }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+    .acc { display: inline-flex; align-items: center; gap: 9px; }
+    .acc code { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; overflow-wrap: normal; }
+    .pips { display: inline-grid; grid-auto-flow: column; gap: 3px; }
+    .pip { width: 11px; height: 11px; border-radius: 3px; background: #e7edf3; box-shadow: inset 0 0 0 1px #d3dbe3; }
+    .pip.green { background: var(--green); box-shadow: none; }
+    .pip.amber { background: var(--amber); box-shadow: none; }
+    .pip.red { background: var(--red); box-shadow: none; }
+    /* per-scenario matrix */
+    .matrix { min-width: 760px; }
+    .matrix th, .matrix td { text-align: center; }
+    .matrix thead th { vertical-align: bottom; }
+    .matrix th[scope="row"] { text-align: left; font-weight: 400; background: var(--surface); }
+    .matrix th[scope="row"] code { font-weight: 700; }
+    .col-exp { display: block; margin-top: 3px; font-weight: 600; font-size: .72rem; color: var(--muted); }
+    .m { font-size: .98rem; font-weight: 700; line-height: 1; }
+    .m.fail { color: #c2cad3; }
+    .m.pass.green { color: var(--green); background: rgba(15, 111, 92, .09); }
+    .m.pass.amber { color: var(--amber); background: rgba(138, 91, 0, .10); }
+    .m.pass.red { color: var(--red); background: rgba(162, 59, 53, .09); }
     @media (max-width: 680px) {
       .wrap { width: min(100vw - 20px, 1120px); padding: 16px 0; }
       th, td { padding: 8px; }
@@ -81,7 +95,8 @@
   <main>
     <div class="wrap">
       <h1>Route Ranking</h1>
-      <p class="lede">Routes are ranked by accuracy: how often the generated target reached the expected verdict on the current trial rows.</p>
+      <p class="lede">Routes are ranked by accuracy on a shared set of four test scenarios.</p>
+      <p class="lede"><strong>Accuracy</strong> is how many of the four scenarios a route gets right. In each scenario the route drafts a rule, the draft is compiled to the solver target, and the solver returns a verdict &mdash; <em>conflict</em> or <em>no conflict</em>. The scenario is right when that verdict matches the answer it expects. Every route runs once per scenario at a fixed seed, so each score is a count out of four.</p>
 
       <div class="table-wrap">
         <table>
@@ -99,50 +114,117 @@
               <td class="num">1</td>
               <td class="num">4</td>
               <td><code>route.ir_hop_chain</code></td>
-              <td><span class="ratio"><span class="track"><span class="fill green" style="width:75%"></span></span><code>3/4</code></span></td>
+              <td><span class="acc"><span class="pips" aria-hidden="true"><i class="pip green"></i><i class="pip green"></i><i class="pip green"></i><i class="pip"></i></span><code>3/4</code></span></td>
               <td>Breaks the translation into several small structured JSON steps before compiling the final target.</td>
             </tr>
             <tr>
               <td class="num">2</td>
               <td class="num">2</td>
               <td><code>route.single_ir</code></td>
-              <td><span class="ratio"><span class="track"><span class="fill amber" style="width:25%"></span></span><code>1/4</code></span></td>
+              <td><span class="acc"><span class="pips" aria-hidden="true"><i class="pip"></i><i class="pip amber"></i><i class="pip"></i><i class="pip"></i></span><code>1/4</code></span></td>
               <td>Asks the model for one structured JSON draft, then compiles that draft into the final target.</td>
             </tr>
             <tr>
               <td class="num">2</td>
               <td class="num">3</td>
               <td><code>route.stacked_ir</code></td>
-              <td><span class="ratio"><span class="track"><span class="fill amber" style="width:25%"></span></span><code>1/4</code></span></td>
+              <td><span class="acc"><span class="pips" aria-hidden="true"><i class="pip"></i><i class="pip amber"></i><i class="pip"></i><i class="pip"></i></span><code>1/4</code></span></td>
               <td>Asks the model for a short stack of structured drafts, from source summary to rule-like output.</td>
             </tr>
             <tr>
               <td class="num">2</td>
               <td class="num">5</td>
               <td><code>route.ckc_layered</code></td>
-              <td><span class="ratio"><span class="track"><span class="fill amber" style="width:25%"></span></span><code>1/4</code></span></td>
+              <td><span class="acc"><span class="pips" aria-hidden="true"><i class="pip"></i><i class="pip amber"></i><i class="pip"></i><i class="pip"></i></span><code>1/4</code></span></td>
               <td>Uses an in-development project-native IR to turn sources into normalized statements and rules.</td>
             </tr>
             <tr>
               <td class="num">2</td>
               <td class="num">6</td>
               <td><code>route.ckc_repair</code></td>
-              <td><span class="ratio"><span class="track"><span class="fill amber" style="width:25%"></span></span><code>1/4</code></span></td>
+              <td><span class="acc"><span class="pips" aria-hidden="true"><i class="pip"></i><i class="pip amber"></i><i class="pip"></i><i class="pip"></i></span><code>1/4</code></span></td>
               <td>Extends the project-native IR route with a self-repair pass that feeds failed structure checks back so the model can revise its draft.</td>
             </tr>
             <tr>
               <td class="num">3</td>
               <td class="num">1</td>
               <td><code>route.direct_smt</code></td>
-              <td><span class="ratio"><span class="track"><span class="fill red" style="width:0%"></span></span><code>0/4</code></span></td>
+              <td><span class="acc"><span class="pips" aria-hidden="true"><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i></span><code>0/4</code></span></td>
               <td>Asks the model to write the final formal solver target directly in one step.</td>
             </tr>
           </tbody>
         </table>
       </div>
 
+      <h2 class="fig-title">Per-scenario results</h2>
+      <p class="fig-cap">The accuracy count comes from these four scenarios. Reading down a column says more than the totals do: the four routes tied at 1/4 clear only the no-conflict control, and the numeric-threshold conflict defeats every route. With one case per scenario at a single seed, treat a one-tick gap as weak evidence rather than a settled ranking.</p>
+      <div class="table-wrap">
+        <table class="matrix">
+          <thead>
+            <tr>
+              <th scope="col">Route</th>
+              <th scope="col">Contradiction<span class="col-exp">expects conflict</span></th>
+              <th scope="col">Consistent control<span class="col-exp">expects no conflict</span></th>
+              <th scope="col">Held-out contradiction<span class="col-exp">expects conflict</span></th>
+              <th scope="col">Numeric-threshold conflict<span class="col-exp">expects conflict</span></th>
+              <th scope="col">Accuracy</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>route.ir_hop_chain</code></th>
+              <td class="m pass green" aria-label="pass">&#10003;</td>
+              <td class="m pass green" aria-label="pass">&#10003;</td>
+              <td class="m pass green" aria-label="pass">&#10003;</td>
+              <td class="m fail" aria-label="fail">&middot;</td>
+              <td class="num"><code>3/4</code></td>
+            </tr>
+            <tr>
+              <th scope="row"><code>route.single_ir</code></th>
+              <td class="m fail" aria-label="fail">&middot;</td>
+              <td class="m pass amber" aria-label="pass">&#10003;</td>
+              <td class="m fail" aria-label="fail">&middot;</td>
+              <td class="m fail" aria-label="fail">&middot;</td>
+              <td class="num"><code>1/4</code></td>
+            </tr>
+            <tr>
+              <th scope="row"><code>route.stacked_ir</code></th>
+              <td class="m fail" aria-label="fail">&middot;</td>
+              <td class="m pass amber" aria-label="pass">&#10003;</td>
+              <td class="m fail" aria-label="fail">&middot;</td>
+              <td class="m fail" aria-label="fail">&middot;</td>
+              <td class="num"><code>1/4</code></td>
+            </tr>
+            <tr>
+              <th scope="row"><code>route.ckc_layered</code></th>
+              <td class="m fail" aria-label="fail">&middot;</td>
+              <td class="m pass amber" aria-label="pass">&#10003;</td>
+              <td class="m fail" aria-label="fail">&middot;</td>
+              <td class="m fail" aria-label="fail">&middot;</td>
+              <td class="num"><code>1/4</code></td>
+            </tr>
+            <tr>
+              <th scope="row"><code>route.ckc_repair</code></th>
+              <td class="m fail" aria-label="fail">&middot;</td>
+              <td class="m pass amber" aria-label="pass">&#10003;</td>
+              <td class="m fail" aria-label="fail">&middot;</td>
+              <td class="m fail" aria-label="fail">&middot;</td>
+              <td class="num"><code>1/4</code></td>
+            </tr>
+            <tr>
+              <th scope="row"><code>route.direct_smt</code></th>
+              <td class="m fail" aria-label="fail">&middot;</td>
+              <td class="m fail" aria-label="fail">&middot;</td>
+              <td class="m fail" aria-label="fail">&middot;</td>
+              <td class="m fail" aria-label="fail">&middot;</td>
+              <td class="num"><code>0/4</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
       <h2 class="fig-title">Route pipelines</h2>
-      <p class="fig-cap">Each route configures the same task differently &mdash; how many drafts the model generates, and where a fixed compiler turns the last draft into the solver target. The ratio on the right is the ranking accuracy.</p>
+      <p class="fig-cap">Each route configures the same task differently &mdash; how many drafts the model generates, and where a fixed compiler turns the last draft into the solver target. The count on the right is the ranking accuracy.</p>
       <p class="legend">
         <span class="lg"><span class="edge-key" aria-hidden="true"></span>model step</span>
         <span class="lg"><span class="edge-key compile" aria-hidden="true"></span>deterministic compile</span>
@@ -241,7 +323,8 @@
 
       <section class="locale-block" lang="ja" aria-label="Japanese route ranking">
         <h1>ルートランキング</h1>
-        <p class="lede">ルートは精度で順位付けしています。現在の試行行で、生成されたターゲットが期待された判定に到達した頻度です。</p>
+        <p class="lede">ルートは共通の 4 つのテストシナリオでの精度で順位付けしています。</p>
+        <p class="lede"><strong>精度</strong>は、4 つのシナリオのうちルートが正解した数です。各シナリオでルートはルールを下書きし、その下書きをソルバーターゲットへコンパイルし、ソルバーが判定（<em>衝突</em> または <em>衝突なし</em>）を返します。その判定が期待される答えと一致したときに正解となります。各ルートはシナリオごとに 1 回、固定シードで実行するため、各スコアは 4 点満点の件数です。</p>
 
         <div class="table-wrap">
           <table>
@@ -259,50 +342,117 @@
                 <td class="num">1</td>
                 <td class="num">4</td>
                 <td><code>route.ir_hop_chain</code></td>
-                <td><span class="ratio"><span class="track"><span class="fill green" style="width:75%"></span></span><code>3/4</code></span></td>
+                <td><span class="acc"><span class="pips" aria-hidden="true"><i class="pip green"></i><i class="pip green"></i><i class="pip green"></i><i class="pip"></i></span><code>3/4</code></span></td>
                 <td>翻訳を複数の小さな構造化 JSON ステップに分けてから、最終ターゲットへコンパイルします。</td>
               </tr>
               <tr>
                 <td class="num">2</td>
                 <td class="num">2</td>
                 <td><code>route.single_ir</code></td>
-                <td><span class="ratio"><span class="track"><span class="fill amber" style="width:25%"></span></span><code>1/4</code></span></td>
+                <td><span class="acc"><span class="pips" aria-hidden="true"><i class="pip"></i><i class="pip amber"></i><i class="pip"></i><i class="pip"></i></span><code>1/4</code></span></td>
                 <td>モデルに 1 つの構造化 JSON ドラフトを作らせ、そのドラフトを最終ターゲットへコンパイルします。</td>
               </tr>
               <tr>
                 <td class="num">2</td>
                 <td class="num">3</td>
                 <td><code>route.stacked_ir</code></td>
-                <td><span class="ratio"><span class="track"><span class="fill amber" style="width:25%"></span></span><code>1/4</code></span></td>
+                <td><span class="acc"><span class="pips" aria-hidden="true"><i class="pip"></i><i class="pip amber"></i><i class="pip"></i><i class="pip"></i></span><code>1/4</code></span></td>
                 <td>モデルに短い構造化ドラフトの積み重ねを作らせ、ソース要約からルールに近い出力へ進めます。</td>
               </tr>
               <tr>
                 <td class="num">2</td>
                 <td class="num">5</td>
                 <td><code>route.ckc_layered</code></td>
-                <td><span class="ratio"><span class="track"><span class="fill amber" style="width:25%"></span></span><code>1/4</code></span></td>
+                <td><span class="acc"><span class="pips" aria-hidden="true"><i class="pip"></i><i class="pip amber"></i><i class="pip"></i><i class="pip"></i></span><code>1/4</code></span></td>
                 <td>開発中のプロジェクト固有 IR を使い、ソースを正規化されたステートメントとルールに変換します。</td>
               </tr>
               <tr>
                 <td class="num">2</td>
                 <td class="num">6</td>
                 <td><code>route.ckc_repair</code></td>
-                <td><span class="ratio"><span class="track"><span class="fill amber" style="width:25%"></span></span><code>1/4</code></span></td>
+                <td><span class="acc"><span class="pips" aria-hidden="true"><i class="pip"></i><i class="pip amber"></i><i class="pip"></i><i class="pip"></i></span><code>1/4</code></span></td>
                 <td>プロジェクト固有 IR ルートに自己修復パスを追加し、構造チェックに失敗した箇所をモデルへ戻して下書きを修正させます。</td>
               </tr>
               <tr>
                 <td class="num">3</td>
                 <td class="num">1</td>
                 <td><code>route.direct_smt</code></td>
-                <td><span class="ratio"><span class="track"><span class="fill red" style="width:0%"></span></span><code>0/4</code></span></td>
+                <td><span class="acc"><span class="pips" aria-hidden="true"><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i></span><code>0/4</code></span></td>
                 <td>モデルに最終的な形式ソルバー用ターゲットを 1 ステップで直接書かせます。</td>
               </tr>
             </tbody>
           </table>
         </div>
 
+        <h2 class="fig-title">シナリオ別の結果</h2>
+        <p class="fig-cap">精度の件数はこの 4 つのシナリオから得られます。合計よりも列を縦に読むほうが多くを語ります。1/4 で並ぶ 4 つのルートは衝突なしの対照シナリオしか通せず、数値しきい値の衝突はすべてのルートが取りこぼします。シナリオごとに 1 例・単一シードのため、1 つ分の差は確定した順位ではなく弱い証拠と捉えてください。</p>
+        <div class="table-wrap">
+          <table class="matrix">
+            <thead>
+              <tr>
+                <th scope="col">ルート</th>
+                <th scope="col">矛盾<span class="col-exp">衝突を期待</span></th>
+                <th scope="col">整合（対照）<span class="col-exp">衝突なしを期待</span></th>
+                <th scope="col">ホールドアウト矛盾<span class="col-exp">衝突を期待</span></th>
+                <th scope="col">数値しきい値の衝突<span class="col-exp">衝突を期待</span></th>
+                <th scope="col">精度</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row"><code>route.ir_hop_chain</code></th>
+                <td class="m pass green" aria-label="正解">&#10003;</td>
+                <td class="m pass green" aria-label="正解">&#10003;</td>
+                <td class="m pass green" aria-label="正解">&#10003;</td>
+                <td class="m fail" aria-label="不正解">&middot;</td>
+                <td class="num"><code>3/4</code></td>
+              </tr>
+              <tr>
+                <th scope="row"><code>route.single_ir</code></th>
+                <td class="m fail" aria-label="不正解">&middot;</td>
+                <td class="m pass amber" aria-label="正解">&#10003;</td>
+                <td class="m fail" aria-label="不正解">&middot;</td>
+                <td class="m fail" aria-label="不正解">&middot;</td>
+                <td class="num"><code>1/4</code></td>
+              </tr>
+              <tr>
+                <th scope="row"><code>route.stacked_ir</code></th>
+                <td class="m fail" aria-label="不正解">&middot;</td>
+                <td class="m pass amber" aria-label="正解">&#10003;</td>
+                <td class="m fail" aria-label="不正解">&middot;</td>
+                <td class="m fail" aria-label="不正解">&middot;</td>
+                <td class="num"><code>1/4</code></td>
+              </tr>
+              <tr>
+                <th scope="row"><code>route.ckc_layered</code></th>
+                <td class="m fail" aria-label="不正解">&middot;</td>
+                <td class="m pass amber" aria-label="正解">&#10003;</td>
+                <td class="m fail" aria-label="不正解">&middot;</td>
+                <td class="m fail" aria-label="不正解">&middot;</td>
+                <td class="num"><code>1/4</code></td>
+              </tr>
+              <tr>
+                <th scope="row"><code>route.ckc_repair</code></th>
+                <td class="m fail" aria-label="不正解">&middot;</td>
+                <td class="m pass amber" aria-label="正解">&#10003;</td>
+                <td class="m fail" aria-label="不正解">&middot;</td>
+                <td class="m fail" aria-label="不正解">&middot;</td>
+                <td class="num"><code>1/4</code></td>
+              </tr>
+              <tr>
+                <th scope="row"><code>route.direct_smt</code></th>
+                <td class="m fail" aria-label="不正解">&middot;</td>
+                <td class="m fail" aria-label="不正解">&middot;</td>
+                <td class="m fail" aria-label="不正解">&middot;</td>
+                <td class="m fail" aria-label="不正解">&middot;</td>
+                <td class="num"><code>0/4</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
         <h2 class="fig-title">ルートのパイプライン</h2>
-        <p class="fig-cap">各ルートは同じ作業を異なる構成で行います。モデルが中間ドラフトを生成する回数と、固定のコンパイラが最後のドラフトをソルバーターゲットに変換する位置が異なります。右側の比率は上のランキングと同じ精度です。</p>
+        <p class="fig-cap">各ルートは同じ作業を異なる構成で行います。モデルが中間ドラフトを生成する回数と、固定のコンパイラが最後のドラフトをソルバーターゲットに変換する位置が異なります。右側の件数は上のランキングと同じ精度です。</p>
         <p class="legend">
           <span class="lg"><span class="edge-key" aria-hidden="true"></span>モデルステップ</span>
           <span class="lg"><span class="edge-key compile" aria-hidden="true"></span>決定的コンパイル</span>
