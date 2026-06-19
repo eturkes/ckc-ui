@@ -65,7 +65,7 @@ let coverageApplyGroups = [];
 const baselineRouteId = "route.direct_smt";
 const baselinePipelineId = "pipe.direct_rule_to_smt";
 const layeredPipelineId = "pipe.one_shot_js_ckcir_to_smt";
-const implementedRouteIds = new Set(["route.direct_smt", "route.single_ir", "route.stacked_ir", "route.ir_hop_chain", "route.ckc_layered"]);
+const implementedRouteIds = new Set(["route.direct_smt", "route.single_ir", "route.stacked_ir", "route.ir_hop_chain", "route.ckc_layered", "route.ckc_repair"]);
 const implementedPipelineIds = new Set([baselinePipelineId, layeredPipelineId]);
 const comparisonMetricIds = [
   "target_syntax_validity",
@@ -3069,7 +3069,7 @@ function llamaArgs(prompt, seed, routeId, groupId, sourceLabel = null, options =
   const schema = options.schema ?? jsonSchemaForRoute(routeId, groupId, sourceLabel);
   const routeArgs = options.routeArgs ?? (routeId === "route.ir_hop_chain"
     ? ["-n", "360", "--ctx-size", "3072", "--temp", "0", "--top-k", "1"]
-    : routeId === "route.ckc_layered"
+    : routeId === "route.ckc_layered" || routeId === "route.ckc_repair"
     ? ["-n", "520", "--ctx-size", "4096", "--temp", "0", "--top-k", "1"]
     : routeId === "route.stacked_ir"
     ? ["-n", "420", "--ctx-size", "3072", "--temp", "0", "--top-k", "1"]
@@ -4890,9 +4890,9 @@ function runIrHopChainHop({ hopSpec, prompt, seed, groupId, labels, inputArtifac
   };
 }
 
-function runCkcLayeredStage({ stageSpec, prompt, seed, groupId, labels, sourceLabel = null, inputArtifact }) {
+function runCkcLayeredStage({ stageSpec, prompt, seed, groupId, labels, sourceLabel = null, inputArtifact, routeId = "route.ckc_layered" }) {
   const schema = JSON.stringify(ckcLayeredJsonSchemaForStage(stageSpec.stage_id, groupId, sourceLabel));
-  const subprocess = runLlama(prompt, seed, "route.ckc_layered", groupId, null, { schema });
+  const subprocess = runLlama(prompt, seed, routeId, groupId, null, { schema });
   const rawOutput = cleanModelText(subprocess.stdout, prompt);
   const extracted = extractJsonObject(rawOutput);
   const response = extracted?.text ?? rawOutput;
@@ -4951,6 +4951,7 @@ function runLiveRoute(routeId, groupId, seed, expected) {
   if (routeId === "route.stacked_ir") return runLiveStackedIrRoute(groupId, seed, expected);
   if (routeId === "route.ir_hop_chain") return runLiveIrHopChainRoute(groupId, seed, expected);
   if (routeId === "route.ckc_layered") return runLiveCkcLayeredRoute(groupId, seed, expected);
+  if (routeId === "route.ckc_repair") return runLiveCkcRepairRoute(groupId, seed, expected);
   const prompt = promptFor(routeId, groupId, seed);
   const subprocess = runLlama(prompt, seed, routeId, groupId);
   const rawOutput = cleanModelText(subprocess.stdout, prompt);
@@ -5138,6 +5139,225 @@ function runLiveCkcLayeredRoute(groupId, seed, expected) {
     prompt: modelCalls[0]?.prompt ?? promptForCkcLayeredSegments(groupId),
     response: classified.candidate_text,
     parsed_response: classified.parsed ?? null,
+    compiled_target: classified.compiled_target ?? null,
+    subprocess: aggregateSubprocess,
+    route_call: null,
+    source_calls: null,
+    model_calls: modelCalls,
+    live_call_count: modelCalls.length
+  };
+}
+
+// route.ckc_repair: the route.ckc_layered base pass plus a bounded rule-stage
+// self-repair loop. Repair feedback and attempt selection use only intrinsic
+// well-formedness signals (schema / grounding / bridge / SMT-syntax residuals);
+// the gold-coupled false_positive_conflict / false_negative_conflict residuals
+// are withheld, so the loop never learns the expected verdict.
+const ckcRepairMaxIterations = 2;
+
+function ckcRepairActionableResiduals(residuals) {
+  return (residuals ?? []).filter(
+    (residual) => residual.code !== "false_positive_conflict" && residual.code !== "false_negative_conflict"
+  );
+}
+
+function ckcRepairResidualsForLabel(residuals, label) {
+  return ckcRepairActionableResiduals(residuals).filter(
+    (residual) => residual.source_label == null || residual.source_label === label
+  );
+}
+
+function ckcRepairAttemptScore(classified) {
+  return {
+    target_syntax_valid: classified.target_syntax_valid ? 1 : 0,
+    model_output_syntax_valid: classified.model_output_syntax_valid ? 1 : 0,
+    actionable_residuals: ckcRepairActionableResiduals(classified.parsed?.residuals).length
+  };
+}
+
+function ckcRepairAttemptIsBetter(candidate, incumbent) {
+  const a = ckcRepairAttemptScore(candidate);
+  const b = ckcRepairAttemptScore(incumbent);
+  if (a.target_syntax_valid !== b.target_syntax_valid) return a.target_syntax_valid > b.target_syntax_valid;
+  if (a.model_output_syntax_valid !== b.model_output_syntax_valid) return a.model_output_syntax_valid > b.model_output_syntax_valid;
+  return a.actionable_residuals < b.actionable_residuals;
+}
+
+function ckcRepairFeedbackLines(residuals) {
+  const lines = [
+    "Repair notes: the prior rule JSON failed deterministic repository checks. Correct only these issues and keep already-valid fields unchanged:"
+  ];
+  for (const residual of residuals.slice(0, 8)) {
+    const where = residual.field ? ` (field ${residual.field})` : "";
+    const expected = residual.expected ? ` expected: ${residual.expected};` : "";
+    const observed = residual.observed ? ` observed: ${residual.observed};` : "";
+    lines.push(`- [${residual.code}]${where} ${residual.reason}${expected}${observed}`.trimEnd());
+  }
+  return lines;
+}
+
+function promptForCkcRepairRules(groupId, statements, sourceLabel, residuals, priorRuleRow) {
+  return [
+    promptForCkcLayeredRules(groupId, statements, sourceLabel),
+    "",
+    "Prior rule JSON attempt:",
+    previousHopJsonBlock(priorRuleRow),
+    ...ckcRepairFeedbackLines(residuals),
+    "Return one corrected JSON object only, with no prose."
+  ].join("\n");
+}
+
+function runLiveCkcRepairRoute(groupId, seed, expected) {
+  const routeId = "route.ckc_repair";
+  const labels = modelCaseForGroup(groupId).labels;
+  const modelCalls = [];
+  const segmentRows = {};
+  const statementRows = {};
+  const ruleRows = {};
+  const statementForLabel = {};
+
+  for (const label of labels) {
+    const segmentCall = runCkcLayeredStage({
+      stageSpec: ckcLayeredStageSpecs[0],
+      prompt: promptForCkcLayeredSegments(groupId, label),
+      seed,
+      groupId,
+      labels: [label],
+      sourceLabel: label,
+      inputArtifact: { kind: "source_excerpt", source_ref: sourceCuesForLabel(label) },
+      routeId
+    });
+    segmentRows[label] = segmentCall.parsed_response;
+
+    const statementCall = runCkcLayeredStage({
+      stageSpec: ckcLayeredStageSpecs[1],
+      prompt: promptForCkcLayeredStatements(groupId, objectForNextHop(segmentCall.parsed_response), label),
+      seed,
+      groupId,
+      labels: [label],
+      sourceLabel: label,
+      inputArtifact: {
+        kind: "ckc_stage_output",
+        source_label: label,
+        stage_id: segmentCall.stage_id,
+        response_hash: segmentCall.response_hash
+      },
+      routeId
+    });
+    statementRows[label] = statementCall.parsed_response;
+    statementForLabel[label] = objectForNextHop(statementCall.parsed_response);
+
+    const ruleCall = runCkcLayeredStage({
+      stageSpec: ckcLayeredStageSpecs[2],
+      prompt: promptForCkcLayeredRules(groupId, statementForLabel[label], label),
+      seed,
+      groupId,
+      labels: [label],
+      sourceLabel: label,
+      inputArtifact: {
+        kind: "ckc_stage_output",
+        source_label: label,
+        stage_id: statementCall.stage_id,
+        response_hash: statementCall.response_hash
+      },
+      routeId
+    });
+    ruleRows[label] = ruleCall.parsed_response;
+
+    modelCalls.push(segmentCall, statementCall, ruleCall);
+  }
+
+  const classifyWith = (currentRuleRows) => classifyCkcLayeredCandidate(
+    {
+      stageOutputs: {
+        segments: { extracted: { value: segmentRows, text: JSON.stringify(stable(segmentRows), null, 2) }, parsed: segmentRows },
+        statements: { extracted: { value: statementRows, text: JSON.stringify(stable(statementRows), null, 2) }, parsed: statementRows },
+        rules: { extracted: { value: currentRuleRows, text: JSON.stringify(stable(currentRuleRows), null, 2) }, parsed: currentRuleRows }
+      },
+      modelCalls
+    },
+    groupId,
+    expected,
+    seed
+  );
+
+  let bestRules = cloneData(ruleRows);
+  let bestClassified = classifyWith(bestRules);
+  const repairTrace = [{
+    iteration: 0,
+    kind: "base",
+    repaired_labels: [],
+    target_syntax_valid: bestClassified.target_syntax_valid,
+    model_output_syntax_valid: bestClassified.model_output_syntax_valid,
+    actionable_residual_codes: diagnosticCodesFromResiduals(ckcRepairActionableResiduals(bestClassified.parsed?.residuals))
+  }];
+
+  for (let iteration = 1; iteration <= ckcRepairMaxIterations; iteration += 1) {
+    if (bestClassified.target_syntax_valid && ckcRepairActionableResiduals(bestClassified.parsed?.residuals).length === 0) break;
+    const candidateRules = cloneData(bestRules);
+    const iterationCalls = [];
+    for (const label of labels) {
+      const labelResiduals = ckcRepairResidualsForLabel(bestClassified.parsed?.residuals, label);
+      if (labelResiduals.length === 0) continue;
+      const repairCall = runCkcLayeredStage({
+        stageSpec: ckcLayeredStageSpecs[2],
+        prompt: promptForCkcRepairRules(groupId, statementForLabel[label], label, labelResiduals, candidateRules[label]),
+        seed,
+        groupId,
+        labels: [label],
+        sourceLabel: label,
+        inputArtifact: {
+          kind: "ckc_repair_feedback",
+          source_label: label,
+          iteration,
+          residual_codes: [...new Set(labelResiduals.map((residual) => residual.code))]
+        },
+        routeId
+      });
+      candidateRules[label] = repairCall.parsed_response;
+      iterationCalls.push(repairCall);
+    }
+    if (iterationCalls.length === 0) break;
+    modelCalls.push(...iterationCalls);
+    const candidateClassified = classifyWith(candidateRules);
+    const improved = ckcRepairAttemptIsBetter(candidateClassified, bestClassified);
+    repairTrace.push({
+      iteration,
+      kind: "repair",
+      repaired_labels: iterationCalls.map((call) => call.source_label),
+      target_syntax_valid: candidateClassified.target_syntax_valid,
+      model_output_syntax_valid: candidateClassified.model_output_syntax_valid,
+      actionable_residual_codes: diagnosticCodesFromResiduals(ckcRepairActionableResiduals(candidateClassified.parsed?.residuals)),
+      adopted: improved
+    });
+    if (improved) {
+      bestRules = candidateRules;
+      bestClassified = candidateClassified;
+    } else {
+      break;
+    }
+  }
+
+  // Deterministic final snapshot over the full call lineage; makes no model call.
+  const classified = classifyWith(bestRules);
+  const processDiagnostics = [];
+  for (const call of modelCalls) {
+    if (call.subprocess.exit_status !== 0 || call.subprocess.signal || call.subprocess.error) processDiagnostics.push("process_crash");
+  }
+  const aggregateSubprocess = aggregateSubprocessFromModelCalls(modelCalls, "<ckc-repair-json-stage-calls>");
+  return {
+    route_id: routeId,
+    group_id: groupId,
+    seed,
+    syntax_valid: classified.syntax_valid,
+    target_syntax_valid: classified.target_syntax_valid,
+    model_output_syntax_valid: classified.model_output_syntax_valid,
+    admitted: classified.admitted && processDiagnostics.every((code) => code !== "process_crash"),
+    verdict: processDiagnostics.includes("process_crash") ? "solver_execution_failure" : classified.verdict,
+    diagnostics: [...new Set([...classified.diagnostics, ...processDiagnostics])],
+    prompt: modelCalls[0]?.prompt ?? promptForCkcLayeredSegments(groupId),
+    response: classified.candidate_text,
+    parsed_response: classified.parsed ? { ...classified.parsed, repair_trace: repairTrace } : { repair_trace: repairTrace },
     compiled_target: classified.compiled_target ?? null,
     subprocess: aggregateSubprocess,
     route_call: null,

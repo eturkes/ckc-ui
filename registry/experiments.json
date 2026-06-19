@@ -43,13 +43,14 @@
       "id": "exp.m3_routes",
       "basis": "exp.m2_shorthop",
       "comparison_scope": "frozen_route_registry_implemented_routes_with_m3_fixture_expansion",
-      "route_registry_status": "includes implemented route.stacked_ir, route.ir_hop_chain, and route.ckc_layered over original M1 groups, the M2 holdout, and M3 expanded synthetic/metamorphic groups",
+      "route_registry_status": "includes implemented route.stacked_ir, route.ir_hop_chain, route.ckc_layered, and the self-repairing route.ckc_repair over original M1 groups, the M2 holdout, and M3 expanded synthetic/metamorphic groups",
       "routes": [
         "route.direct_smt",
         "route.single_ir",
         "route.stacked_ir",
         "route.ir_hop_chain",
-        "route.ckc_layered"
+        "route.ckc_layered",
+        "route.ckc_repair"
       ],
       "evaluation_groups": [
         {

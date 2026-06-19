@@ -15,6 +15,33 @@ confirmation before work starts.
   stack; root `index.html` renders its route ranking. Detail in
   `.agent/memory.md`.
 
+## Active initiative (user-selected, overrides Next): sophisticated IR routes
+
+Add four sophisticated IR route configurations to the harness + registry and
+surface measured `candidate_verdict_accuracy` in `index.html`. Each attacks the
+stalled candidate-accuracy / zero-admission ceiling differently. One route per
+session: implement, run live, rank, commit. Honesty gate for every route: any
+repair / selection / feedback signal stays answer-agnostic (never reads gold
+`expected`); only measured numbers reach the UI.
+
+- [x] S1 `route.ckc_repair` -- ckc_layered base + bounded rule-stage self-repair
+  loop; feedback = intrinsic schema / grounding / bridge / SMT-syntax residuals,
+  attempts selected on well-formedness only (gold-coupled FP/FN residuals
+  withheld). Result + commit/context stamped in `.agent/memory.md`.
+- [ ] S2 `route.ckc_grounded` -- terminology / ontology binding + typecheck stage
+  before lowering; targets grounding residuals at their source.
+- [ ] S3 `route.ckc_ensemble` -- multiple independent IR drafts per row, then a
+  reconciliation / vote pass into one before compiling.
+- [ ] S4 `route.ckc_cegis` -- solver counterexample-guided repair reusing S1's
+  loop infra; feedback driven by an SMT solver (needs z3; verify install first).
+
+Per-route integration surface (S1 reference): `implementedRouteIds`, `llamaArgs`
+route-args branch, `runLiveRoute` dispatch, a `runLive<Route>` runner reusing
+`classifyCkcLayeredCandidate`, `registry/routes.json` entry, `exp.m3_routes`
+`.routes` in `registry/experiments.json`, plus the EN + JA row in `index.html`.
+Gate: `node tools/build-run.mjs --verify --live-model --experiment exp.m3_routes`
+returns exit 0. `simulateRoute` (recorded mode) needs no per-route branch.
+
 ## Next
 
 - [ ] `user-selected` Plan session -- open M1 (SPEC §2 row; checklist §8):

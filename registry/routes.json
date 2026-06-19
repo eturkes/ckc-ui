@@ -47,6 +47,16 @@
       "schema_notes": "schema.ckc_layered.v0 aggregate over segment, statement, and rule stage schemas aligned to the CKC fixture spine",
       "bridge_notes": "deterministic ckc_layered_v0_to_route_rule_ir_v0 bridge preserves stage lineage, then feeds the existing route_rule_ir_v0_to_smt_v0 compiler",
       "live_model": true
+    },
+    {
+      "id": "route.ckc_repair",
+      "shape": "extends route.ckc_layered: after the layered CKC stages bridge and compile, intrinsic schema, grounding, bridge, and SMT-syntax residuals are fed back for bounded rule-stage revision, then re-bridged",
+      "runtime": "project-local llama.cpp subprocess via tools/setup-local-model.mjs; the ckc_layered base calls plus up to two rule-stage repair calls per source label, with attempts selected on well-formedness only",
+      "default_model": "Qwen2.5-0.5B-Instruct Q2_K GGUF",
+      "implementation_status": "implemented_fixture_harness",
+      "schema_notes": "reuses schema.ckc_layered.v0; repair calls are constrained to the same stage3.rules schema",
+      "bridge_notes": "reuses the ckc_layered_v0_to_route_rule_ir_v0 bridge and route_rule_ir_v0_to_smt_v0 compiler; gold-coupled false_positive/false_negative residuals are withheld from repair feedback so the loop never learns the expected verdict",
+      "live_model": true
     }
   ]
 }
