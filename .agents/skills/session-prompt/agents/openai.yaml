@@ -1,7 +1,0 @@
-interface:
-  display_name: "session-prompt"
-  short_description: "Start a CKC UI session from a task."
-  default_prompt: "$session-prompt [TASK]"
-
-policy:
-  allow_implicit_invocation: false
