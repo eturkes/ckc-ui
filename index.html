@@ -15,6 +15,7 @@
       --green: #0f6f5c;
       --amber: #8a5b00;
       --red: #a23b35;
+      --accent: #3f6184;
       font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       font-size: 15px;
     }
@@ -44,7 +45,36 @@
     @media (max-width: 680px) {
       .wrap { width: min(100vw - 20px, 1120px); padding: 16px 0; }
       th, td { padding: 8px; }
+      .fig-title { margin-top: 20px; }
     }
+
+    /* config pipeline figure */
+    h2 { margin: 0; }
+    .fig-title { font-size: 1.05rem; margin-top: 26px; letter-spacing: .01em; }
+    .fig-cap { margin-top: 6px; font-size: .9rem; }
+    .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 10px; font-size: .76rem; color: var(--muted); }
+    .lg { display: inline-flex; align-items: center; gap: 6px; }
+    .edge-key { display: inline-block; width: 22px; height: 0; border-top: 2px solid var(--accent); }
+    .edge-key.compile { border-top-style: dashed; border-top-color: var(--muted); }
+    .configs { margin-top: 14px; display: grid; gap: 10px; }
+    .config-row { border: 1px solid var(--line); border-radius: 6px; background: var(--surface); padding: 10px 12px; }
+    .config-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; }
+    .config-head code { font-size: .82rem; font-weight: 700; }
+    .config-acc { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+    .config-acc code { font-weight: 700; font-variant-numeric: tabular-nums; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+    .dot.green { background: var(--green); }
+    .dot.amber { background: var(--amber); }
+    .dot.red { background: var(--red); }
+    .pipeline { display: flex; align-items: center; margin-top: 10px; overflow-x: auto; padding-bottom: 3px; }
+    .node { flex: none; border: 1px solid var(--line); border-radius: 5px; padding: 5px 9px; font-size: .72rem; line-height: 1.2; background: #eef2f6; color: var(--muted); white-space: nowrap; }
+    .node.endpoint { background: var(--surface); border-color: #b9c6d2; color: var(--ink); font-weight: 700; }
+    .edge { flex: none; position: relative; width: 28px; height: 16px; margin: 0 3px; }
+    .edge::before { content: ""; position: absolute; top: 50%; left: 0; right: 6px; border-top: 2px solid var(--accent); transform: translateY(-50%); }
+    .edge::after { content: ""; position: absolute; top: 50%; right: 0; width: 0; height: 0; border-left: 6px solid var(--accent); border-top: 4px solid transparent; border-bottom: 4px solid transparent; transform: translateY(-50%); }
+    .edge.compile::before { border-top-style: dashed; border-top-color: var(--muted); }
+    .edge.compile::after { border-left-color: var(--muted); }
+    .loop { margin-left: 5px; padding: 0 5px; border: 1px solid #b9c6d2; border-radius: 999px; font-size: .64rem; color: var(--accent); font-weight: 700; }
   </style>
 </head>
 <body>
@@ -111,6 +141,104 @@
         </table>
       </div>
 
+      <h2 class="fig-title">Route pipelines</h2>
+      <p class="fig-cap">Each route configures the same task differently &mdash; how many drafts the model generates, and where a fixed compiler turns the last draft into the solver target. The ratio on the right is the ranking accuracy.</p>
+      <p class="legend">
+        <span class="lg"><span class="edge-key" aria-hidden="true"></span>model step</span>
+        <span class="lg"><span class="edge-key compile" aria-hidden="true"></span>deterministic compile</span>
+        <span class="lg"><span class="loop" aria-hidden="true">&#8635;</span>repair loop</span>
+      </p>
+      <div class="configs">
+        <div class="config-row">
+          <div class="config-head">
+            <code>route.direct_smt</code>
+            <span class="config-acc"><span class="dot red"></span><code>0/4</code></span>
+          </div>
+          <div class="pipeline">
+            <span class="node endpoint">Source</span>
+            <span class="edge" aria-hidden="true"></span>
+            <span class="node endpoint">Solver target</span>
+          </div>
+        </div>
+        <div class="config-row">
+          <div class="config-head">
+            <code>route.single_ir</code>
+            <span class="config-acc"><span class="dot amber"></span><code>1/4</code></span>
+          </div>
+          <div class="pipeline">
+            <span class="node endpoint">Source</span>
+            <span class="edge" aria-hidden="true"></span>
+            <span class="node">Structured draft</span>
+            <span class="edge compile" aria-hidden="true"></span>
+            <span class="node endpoint">Solver target</span>
+          </div>
+        </div>
+        <div class="config-row">
+          <div class="config-head">
+            <code>route.stacked_ir</code>
+            <span class="config-acc"><span class="dot amber"></span><code>1/4</code></span>
+          </div>
+          <div class="pipeline">
+            <span class="node endpoint">Source</span>
+            <span class="edge" aria-hidden="true"></span>
+            <span class="node">Stacked draft</span>
+            <span class="edge compile" aria-hidden="true"></span>
+            <span class="node endpoint">Solver target</span>
+          </div>
+        </div>
+        <div class="config-row">
+          <div class="config-head">
+            <code>route.ir_hop_chain</code>
+            <span class="config-acc"><span class="dot green"></span><code>3/4</code></span>
+          </div>
+          <div class="pipeline">
+            <span class="node endpoint">Source</span>
+            <span class="edge" aria-hidden="true"></span>
+            <span class="node">Lexical cues</span>
+            <span class="edge" aria-hidden="true"></span>
+            <span class="node">Clinical frame</span>
+            <span class="edge" aria-hidden="true"></span>
+            <span class="node">Rule rows</span>
+            <span class="edge compile" aria-hidden="true"></span>
+            <span class="node endpoint">Solver target</span>
+          </div>
+        </div>
+        <div class="config-row">
+          <div class="config-head">
+            <code>route.ckc_layered</code>
+            <span class="config-acc"><span class="dot amber"></span><code>1/4</code></span>
+          </div>
+          <div class="pipeline">
+            <span class="node endpoint">Source</span>
+            <span class="edge" aria-hidden="true"></span>
+            <span class="node">Segments</span>
+            <span class="edge" aria-hidden="true"></span>
+            <span class="node">Statements</span>
+            <span class="edge" aria-hidden="true"></span>
+            <span class="node">Rules</span>
+            <span class="edge compile" aria-hidden="true"></span>
+            <span class="node endpoint">Solver target</span>
+          </div>
+        </div>
+        <div class="config-row">
+          <div class="config-head">
+            <code>route.ckc_repair</code>
+            <span class="config-acc"><span class="dot amber"></span><code>1/4</code></span>
+          </div>
+          <div class="pipeline">
+            <span class="node endpoint">Source</span>
+            <span class="edge" aria-hidden="true"></span>
+            <span class="node">Segments</span>
+            <span class="edge" aria-hidden="true"></span>
+            <span class="node">Statements</span>
+            <span class="edge" aria-hidden="true"></span>
+            <span class="node">Rules<span class="loop" aria-hidden="true">&#8635; &times;2</span></span>
+            <span class="edge compile" aria-hidden="true"></span>
+            <span class="node endpoint">Solver target</span>
+          </div>
+        </div>
+      </div>
+
       <section class="locale-block" lang="ja" aria-label="Japanese route ranking">
         <h1>ルートランキング</h1>
         <p class="lede">ルートは精度で順位付けしています。現在の試行行で、生成されたターゲットが期待された判定に到達した頻度です。</p>
@@ -171,6 +299,104 @@
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <h2 class="fig-title">ルートのパイプライン</h2>
+        <p class="fig-cap">各ルートは同じ作業を異なる構成で行います。モデルが中間ドラフトを生成する回数と、固定のコンパイラが最後のドラフトをソルバーターゲットに変換する位置が異なります。右側の比率は上のランキングと同じ精度です。</p>
+        <p class="legend">
+          <span class="lg"><span class="edge-key" aria-hidden="true"></span>モデルステップ</span>
+          <span class="lg"><span class="edge-key compile" aria-hidden="true"></span>決定的コンパイル</span>
+          <span class="lg"><span class="loop" aria-hidden="true">&#8635;</span>修復ループ</span>
+        </p>
+        <div class="configs">
+          <div class="config-row">
+            <div class="config-head">
+              <code>route.direct_smt</code>
+              <span class="config-acc"><span class="dot red"></span><code>0/4</code></span>
+            </div>
+            <div class="pipeline">
+              <span class="node endpoint">ソース</span>
+              <span class="edge" aria-hidden="true"></span>
+              <span class="node endpoint">ソルバーターゲット</span>
+            </div>
+          </div>
+          <div class="config-row">
+            <div class="config-head">
+              <code>route.single_ir</code>
+              <span class="config-acc"><span class="dot amber"></span><code>1/4</code></span>
+            </div>
+            <div class="pipeline">
+              <span class="node endpoint">ソース</span>
+              <span class="edge" aria-hidden="true"></span>
+              <span class="node">構造化ドラフト</span>
+              <span class="edge compile" aria-hidden="true"></span>
+              <span class="node endpoint">ソルバーターゲット</span>
+            </div>
+          </div>
+          <div class="config-row">
+            <div class="config-head">
+              <code>route.stacked_ir</code>
+              <span class="config-acc"><span class="dot amber"></span><code>1/4</code></span>
+            </div>
+            <div class="pipeline">
+              <span class="node endpoint">ソース</span>
+              <span class="edge" aria-hidden="true"></span>
+              <span class="node">積層ドラフト</span>
+              <span class="edge compile" aria-hidden="true"></span>
+              <span class="node endpoint">ソルバーターゲット</span>
+            </div>
+          </div>
+          <div class="config-row">
+            <div class="config-head">
+              <code>route.ir_hop_chain</code>
+              <span class="config-acc"><span class="dot green"></span><code>3/4</code></span>
+            </div>
+            <div class="pipeline">
+              <span class="node endpoint">ソース</span>
+              <span class="edge" aria-hidden="true"></span>
+              <span class="node">語彙の手がかり</span>
+              <span class="edge" aria-hidden="true"></span>
+              <span class="node">臨床フレーム</span>
+              <span class="edge" aria-hidden="true"></span>
+              <span class="node">ルール行</span>
+              <span class="edge compile" aria-hidden="true"></span>
+              <span class="node endpoint">ソルバーターゲット</span>
+            </div>
+          </div>
+          <div class="config-row">
+            <div class="config-head">
+              <code>route.ckc_layered</code>
+              <span class="config-acc"><span class="dot amber"></span><code>1/4</code></span>
+            </div>
+            <div class="pipeline">
+              <span class="node endpoint">ソース</span>
+              <span class="edge" aria-hidden="true"></span>
+              <span class="node">セグメント</span>
+              <span class="edge" aria-hidden="true"></span>
+              <span class="node">ステートメント</span>
+              <span class="edge" aria-hidden="true"></span>
+              <span class="node">ルール</span>
+              <span class="edge compile" aria-hidden="true"></span>
+              <span class="node endpoint">ソルバーターゲット</span>
+            </div>
+          </div>
+          <div class="config-row">
+            <div class="config-head">
+              <code>route.ckc_repair</code>
+              <span class="config-acc"><span class="dot amber"></span><code>1/4</code></span>
+            </div>
+            <div class="pipeline">
+              <span class="node endpoint">ソース</span>
+              <span class="edge" aria-hidden="true"></span>
+              <span class="node">セグメント</span>
+              <span class="edge" aria-hidden="true"></span>
+              <span class="node">ステートメント</span>
+              <span class="edge" aria-hidden="true"></span>
+              <span class="node">ルール<span class="loop" aria-hidden="true">&#8635; &times;2</span></span>
+              <span class="edge compile" aria-hidden="true"></span>
+              <span class="node endpoint">ソルバーターゲット</span>
+            </div>
+          </div>
         </div>
       </section>
 
